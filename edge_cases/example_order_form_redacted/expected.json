@@ -1,0 +1,50 @@
+{
+  "contract_items_count": 3,
+  "contract_items": [
+    {
+      "name": "Talent Intelligence Platform Premium Edition",
+      "sku_reference": "SKU-001",
+      "currency": "USD",
+      "total_listed_value": 765000.00,
+      "quantity": 1,
+      "unit_price": 255000.00,
+      "unit_price_period": "year",
+      "service_start_date": "2023-11-01",
+      "service_end_date": "2026-10-31",
+      "invoicing_schedule_type": "recurring",
+      "invoicing_frequency": "yearly",
+      "payment_terms": "Net 55",
+      "special_notes": "Up to 25,000 employee size"
+    },
+    {
+      "name": "Talent Acquisition",
+      "sku_reference": "SKU-002",
+      "currency": "USD",
+      "total_listed_value": 225000.00,
+      "quantity": 1,
+      "unit_price": 75000.00,
+      "unit_price_period": "year",
+      "service_start_date": "2023-11-01",
+      "service_end_date": "2026-10-31",
+      "invoicing_schedule_type": "recurring",
+      "invoicing_frequency": "yearly",
+      "payment_terms": "Net 55",
+      "special_notes": null
+    },
+    {
+      "name": "Premium Support",
+      "sku_reference": "SKU-003",
+      "currency": "USD",
+      "total_listed_value": 152100.00,
+      "quantity": 1,
+      "unit_price": 50700.00,
+      "unit_price_period": "year",
+      "service_start_date": "2023-11-01",
+      "service_end_date": "2026-10-31",
+      "invoicing_schedule_type": "recurring",
+      "invoicing_frequency": "yearly",
+      "payment_terms": "Net 55",
+      "special_notes": null
+    }
+  ]
+}

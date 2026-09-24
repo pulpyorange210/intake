@@ -1,0 +1,17 @@
+[
+  {"id": "SKU-001", "sku_code": "SKU-001", "name": "Talent Intelligence Platform Premium Edition",
+   "description": "Foundational platform layer integrating with HR/IT systems, providing AI-driven talent insights and workflow automation.",
+   "parsing_instructions": ""},
+  {"id": "SKU-002", "sku_code": "SKU-002", "name": "Talent Acquisition",
+   "description": "Product suite for finding and hiring talent, covering the full candidate journey from sourcing through selection.",
+   "parsing_instructions": ""},
+  {"id": "SKU-003", "sku_code": "SKU-003", "name": "Premium Support",
+   "description": "Dedicated support services including priority response times and extended support hours.",
+   "parsing_instructions": ""},
+  {"id": "SKU-004", "sku_code": "SKU-004", "name": "Professional Services",
+   "description": "Implementation, training, and consulting services.",
+   "parsing_instructions": ""},
+  {"id": "SKU-005", "sku_code": "SKU-005", "name": "Data Analytics Add-on",
+   "description": "Advanced reporting and data warehouse capabilities.",
+   "parsing_instructions": ""}
+]
