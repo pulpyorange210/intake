@@ -13,46 +13,202 @@
     "precision": 1.0,
     "recall": 1.0
   },
-  "item_fields": {
-    "currency": 1.0,
-    "total_listed_value": 1.0,
-    "quantity": 0.9696969696969697,
-    "unit_price": 1.0,
-    "service_start_date": 1.0,
-    "service_end_date": 1.0,
-    "invoicing_schedule_type": 0.0,
-    "invoicing_frequency": 0.9015151515151515,
-    "payment_terms": 1.0,
-    "special_notes": 0.0
-  },
-  "item_fields_answered": {
-    "currency": 1.0,
-    "total_listed_value": 1.0,
-    "quantity": 0.9696969696969697,
-    "unit_price": 1.0,
-    "service_start_date": 1.0,
-    "service_end_date": 1.0,
-    "invoicing_schedule_type": 0.0,
-    "invoicing_frequency": 0.9015151515151515,
-    "payment_terms": 1.0,
-    "special_notes": 0.0
-  },
-  "item_fields_abstained": {
-    "currency": 0,
-    "total_listed_value": 0,
-    "quantity": 0,
-    "unit_price": 0,
-    "service_start_date": 0,
-    "service_end_date": 0,
-    "invoicing_schedule_type": 0,
-    "invoicing_frequency": 0,
-    "payment_terms": 0,
-    "special_notes": 0
-  },
-  "header_fields": {
-    "effective_date": 1.0,
-    "contract_signed_date_buying_company": 1.0,
-    "contract_signed_date_selling_company": 1.0
+  "fields": {
+    "currency": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "total_listed_value": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "quantity": {
+      "overall": 0.9696969696969697,
+      "unflagged": {
+        "accuracy": 0.9696969696969697,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "unit_price": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "service_start_date": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "service_end_date": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "invoicing_schedule_type": {
+      "overall": 0.0,
+      "unflagged": {
+        "accuracy": 0.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "invoicing_frequency": {
+      "overall": 0.9015151515151515,
+      "unflagged": {
+        "accuracy": 0.9015151515151515,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "payment_terms": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "special_notes": {
+      "overall": 0.0,
+      "unflagged": {
+        "accuracy": 0.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "effective_date": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 50
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "contract_signed_date_buying_company": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 50
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "contract_signed_date_selling_company": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 50
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    }
   },
   "forms_fully_correct": 0,
   "needs_review": 0,
@@ -60,5 +216,297 @@
     "inferred_from_pricing": 128,
     "null": 4
   },
-  "total_cost_usd": 11.0471
+  "total_cost_usd": 11.0471,
+  "failures": {
+    "items": [],
+    "invoicing_schedule_type": [
+      "of-0001 TALENT_ACQUISITION_CORE: pred=None gold='upfront'",
+      "of-0001 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='upfront'",
+      "of-0001 PROFESSIONAL_SERVICE: pred=None gold='upfront'",
+      "of-0002 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='upfront'",
+      "of-0003 ELEVATE_SUCCESS_PLAN: pred=None gold='upfront'",
+      "of-0003 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='upfront'",
+      "of-0004 PROFESSIONAL_SERVICE: pred='upfront' gold='hybrid'",
+      "of-0004 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred='upfront' gold='hybrid'",
+      "of-0005 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='hybrid'",
+      "of-0006 ELEVATE_SUCCESS_PLAN: pred=None gold='recurring'",
+      "of-0006 PROFESSIONAL_SERVICE: pred=None gold='recurring'",
+      "of-0006 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='recurring'",
+      "of-0006 TALENT_ACQUISITION_CANDIDATE_EXPERIENCE: pred=None gold='recurring'",
+      "of-0007 PREMIUM_SUPPORT: pred=None gold='hybrid'",
+      "of-0007 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='hybrid'",
+      "of-0007 SANDBOX: pred=None gold='hybrid'",
+      "of-0007 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='hybrid'",
+      "of-0008 TALENT_ACQUISITION: pred=None gold='recurring'",
+      "of-0008 TALENT_ACQUISITION_CRM: pred=None gold='recurring'",
+      "of-0008 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='recurring'",
+      "of-0009 SIGNATURE_SUCCESS: pred=None gold='recurring'",
+      "of-0009 PREMIUM_SUPPORT: pred=None gold='recurring'",
+      "of-0009 TALENT_ACQUISITION_CORE: pred=None gold='recurring'",
+      "of-0009 ELEVATE_SUCCESS_PLAN: pred=None gold='recurring'",
+      "of-0010 TALENT_ACQUISITION: pred=None gold='recurring'",
+      "of-0010 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='recurring'",
+      "of-0011 PROFESSIONAL_SERVICE: pred=None gold='upfront'",
+      "of-0011 SANDBOX: pred=None gold='upfront'",
+      "of-0012 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='hybrid'",
+      "of-0012 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='hybrid'",
+      "of-0012 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='hybrid'",
+      "of-0013 TALENT_ACQUISITION_CRM: pred=None gold='upfront'",
+      "of-0014 TALENT_ACQUISITION: pred=None gold='upfront'",
+      "of-0014 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='upfront'",
+      "of-0015 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='recurring'",
+      "of-0015 PREMIUM_SUPPORT: pred=None gold='recurring'",
+      "of-0015 SANDBOX: pred=None gold='recurring'",
+      "of-0015 SIGNATURE_SUCCESS: pred=None gold='recurring'",
+      "of-0016 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='recurring'",
+      "of-0016 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='recurring'",
+      "of-0017 TALENT_ACQUISITION: pred=None gold='upfront'",
+      "of-0017 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='upfront'",
+      "of-0017 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='upfront'",
+      "of-0018 SANDBOX: pred=None gold='recurring'",
+      "of-0019 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='upfront'",
+      "of-0019 TALENT_ACQUISITION: pred=None gold='upfront'",
+      "of-0019 PROFESSIONAL_SERVICE: pred=None gold='upfront'",
+      "of-0019 PREMIUM_SUPPORT: pred=None gold='upfront'",
+      "of-0020 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='hybrid'",
+      "of-0021 TALENT_ACQUISITION: pred=None gold='recurring'",
+      "of-0021 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='recurring'",
+      "of-0021 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='recurring'",
+      "of-0021 TALENT_ACQUISITION_CORE: pred=None gold='recurring'",
+      "of-0022 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='hybrid'",
+      "of-0022 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='hybrid'",
+      "of-0022 TALENT_DESIGN: pred=None gold='hybrid'",
+      "of-0023 PROFESSIONAL_SERVICE: pred=None gold='hybrid'",
+      "of-0023 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='hybrid'",
+      "of-0023 SIGNATURE_SUCCESS: pred=None gold='hybrid'",
+      "of-0023 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='hybrid'",
+      "of-0024 SANDBOX: pred=None gold='recurring'",
+      "of-0024 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='recurring'",
+      "of-0024 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='recurring'",
+      "of-0025 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='upfront'",
+      "of-0025 TALENT_ACQUISITION_CANDIDATE_EXPERIENCE: pred=None gold='upfront'",
+      "of-0026 TALENT_ACQUISITION: pred=None gold='recurring'",
+      "of-0026 TALENT_MANAGEMENT_CORE: pred=None gold='recurring'",
+      "of-0026 WHATSAPP_SMS_CREDITS: pred=None gold='recurring'",
+      "of-0027 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='hybrid'",
+      "of-0027 PREMIUM_SUPPORT: pred=None gold='hybrid'",
+      "of-0027 SANDBOX: pred=None gold='hybrid'",
+      "of-0028 TALENT_ACQUISITION_CORE: pred=None gold='recurring'",
+      "of-0028 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='recurring'",
+      "of-0029 TALENT_MANAGEMENT_LEADER_EXPERIENCE: pred=None gold='recurring'",
+      "of-0029 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='recurring'",
+      "of-0029 TALENT_ACQUISITION: pred=None gold='recurring'",
+      "of-0030 ELEVATE_SUCCESS_PLAN: pred=None gold='hybrid'",
+      "of-0030 TALENT_ACQUISITION: pred=None gold='hybrid'",
+      "of-0031 PREMIUM_SUPPORT: pred=None gold='hybrid'",
+      "of-0031 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='hybrid'",
+      "of-0032 TALENT_ACQUISITION: pred=None gold='hybrid'",
+      "of-0033 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='hybrid'",
+      "of-0033 TALENT_ACQUISITION_CANDIDATE_EXPERIENCE: pred=None gold='hybrid'",
+      "of-0033 SANDBOX: pred=None gold='hybrid'",
+      "of-0034 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='hybrid'",
+      "of-0034 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='hybrid'",
+      "of-0034 SKILLS_PORTFOLIO: pred=None gold='hybrid'",
+      "of-0035 TALENT_ACQUISITION: pred=None gold='recurring'",
+      "of-0035 PREMIUM_SUPPORT: pred=None gold='recurring'",
+      "of-0035 TALENT_ACQUISITION_CANDIDATE_EXPERIENCE: pred=None gold='recurring'",
+      "of-0035 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='recurring'",
+      "of-0036 SIGNATURE_SUCCESS: pred=None gold='upfront'",
+      "of-0036 ELEVATE_SUCCESS_PLAN: pred=None gold='upfront'",
+      "of-0036 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='upfront'",
+      "of-0037 PROFESSIONAL_SERVICE: pred=None gold='hybrid'",
+      "of-0037 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='hybrid'",
+      "of-0037 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='hybrid'",
+      "of-0037 TALENT_ACQUISITION: pred=None gold='hybrid'",
+      "of-0038 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='recurring'",
+      "of-0039 WHATSAPP_SMS_CREDITS: pred=None gold='hybrid'",
+      "of-0039 PREMIUM_SUPPORT: pred=None gold='hybrid'",
+      "of-0040 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='upfront'",
+      "of-0040 TALENT_ACQUISITION: pred=None gold='upfront'",
+      "of-0041 WHATSAPP_SMS_CREDITS: pred=None gold='upfront'",
+      "of-0041 ELEVATE_SUCCESS_PLAN: pred=None gold='upfront'",
+      "of-0041 TALENT_ACQUISITION_CORE: pred=None gold='upfront'",
+      "of-0041 PROFESSIONAL_SERVICE: pred=None gold='upfront'",
+      "of-0042 SIGNATURE_SUCCESS: pred=None gold='upfront'",
+      "of-0043 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='hybrid'",
+      "of-0043 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='hybrid'",
+      "of-0044 TALENT_ACQUISITION_CORE: pred=None gold='hybrid'",
+      "of-0044 TALENT_ACQUISITION: pred=None gold='hybrid'",
+      "of-0044 ELEVATE_SUCCESS_PLAN: pred=None gold='hybrid'",
+      "of-0044 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='hybrid'",
+      "of-0045 PROFESSIONAL_SERVICE: pred=None gold='hybrid'",
+      "of-0046 SIGNATURE_SUCCESS: pred=None gold='hybrid'",
+      "of-0046 ELEVATE_SUCCESS_PLAN: pred=None gold='hybrid'",
+      "of-0046 PROFESSIONAL_SERVICE: pred=None gold='hybrid'",
+      "of-0047 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='recurring'",
+      "of-0047 ELEVATE_SUCCESS_PLAN: pred=None gold='recurring'",
+      "of-0047 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='recurring'",
+      "of-0047 SIGNATURE_SUCCESS: pred=None gold='recurring'",
+      "of-0048 TALENT_ACQUISITION_CORE: pred=None gold='upfront'",
+      "of-0048 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='upfront'",
+      "of-0048 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='upfront'",
+      "of-0049 WHATSAPP_SMS_CREDITS: pred=None gold='hybrid'",
+      "of-0049 TALENT_ACQUISITION_CRM: pred=None gold='hybrid'",
+      "of-0049 TALENT_MANAGEMENT_LEADER_EXPERIENCE: pred=None gold='hybrid'",
+      "of-0049 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='hybrid'",
+      "of-0050 ELEVATE_SUCCESS_PLAN: pred=None gold='upfront'",
+      "of-0050 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='upfront'",
+      "of-0050 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='upfront'"
+    ],
+    "special_notes": [
+      "of-0001 TALENT_ACQUISITION_CORE: pred='Up to Customer Employee Size: 5,000' gold='Annual uplift terms included as agreed.'",
+      "of-0001 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0001 PROFESSIONAL_SERVICE: pred='As applicable, implementation services and fees are defined in a Statement of Work.' gold='Subject to master subscription agreement.'",
+      "of-0002 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred='Up to Customer Employee Size: 2,500' gold='Annual uplift terms included as agreed.'",
+      "of-0003 ELEVATE_SUCCESS_PLAN: pred=None gold='Subject to master subscription agreement.'",
+      "of-0003 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Subject to master subscription agreement.'",
+      "of-0004 PROFESSIONAL_SERVICE: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0004 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Includes standard onboarding support.'",
+      "of-0005 TALENT_INTELLIGENCE_PLATFORM: pred='Up to Customer Employee Size: 2,500' gold='Subject to master subscription agreement.'",
+      "of-0006 ELEVATE_SUCCESS_PLAN: pred=None gold='Customer-specific pricing approved.'",
+      "of-0006 PROFESSIONAL_SERVICE: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0006 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0006 TALENT_ACQUISITION_CANDIDATE_EXPERIENCE: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0007 PREMIUM_SUPPORT: pred=None gold='Subject to master subscription agreement.'",
+      "of-0007 TALENT_MANAGEMENT_ENTERPRISE: pred='Up to Customer Employee Size: 50,000' gold='Customer-specific pricing approved.'",
+      "of-0007 SANDBOX: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0007 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0008 TALENT_ACQUISITION: pred='Up to Customer Employee Size: 50,000' gold='Usage caps apply per signed order form.'",
+      "of-0008 TALENT_ACQUISITION_CRM: pred='Up to Customer Employee Size: 50,000' gold='Includes standard onboarding support.'",
+      "of-0008 TALENT_INTELLIGENCE_PLATFORM: pred='Up to Customer Employee Size: 50,000' gold='Customer-specific pricing approved.'",
+      "of-0009 SIGNATURE_SUCCESS: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0009 PREMIUM_SUPPORT: pred=None gold='Customer-specific pricing approved.'",
+      "of-0009 TALENT_ACQUISITION_CORE: pred=None gold='Subject to master subscription agreement.'",
+      "of-0009 ELEVATE_SUCCESS_PLAN: pred=None gold='Customer-specific pricing approved.'",
+      "of-0010 TALENT_ACQUISITION: pred='Up to Customer Employee Size: 2,500' gold='Annual uplift terms included as agreed.'",
+      "of-0010 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred='Up to Customer Employee Size: 2,500' gold='Usage caps apply per signed order form.'",
+      "of-0011 PROFESSIONAL_SERVICE: pred=None gold='Includes standard onboarding support.'",
+      "of-0011 SANDBOX: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0012 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='Subject to master subscription agreement.'",
+      "of-0012 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0012 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='Customer-specific pricing approved.'",
+      "of-0013 TALENT_ACQUISITION_CRM: pred='Up to Customer Employee Size: 50,000' gold='Usage caps apply per signed order form.'",
+      "of-0014 TALENT_ACQUISITION: pred='Up to Customer Employee Size: 5,000' gold='Subject to master subscription agreement.'",
+      "of-0014 TALENT_MANAGEMENT_ENTERPRISE: pred='Up to Customer Employee Size: 5,000' gold='Customer-specific pricing approved.'",
+      "of-0015 TALENT_INTELLIGENCE_PLATFORM: pred='Up to Customer Employee Size: 25,000' gold='Annual uplift terms included as agreed.'",
+      "of-0015 PREMIUM_SUPPORT: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0015 SANDBOX: pred=None gold='Subject to master subscription agreement.'",
+      "of-0015 SIGNATURE_SUCCESS: pred=None gold='Includes standard onboarding support.'",
+      "of-0016 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred='Up to Customer Employee 5ize: 50,000' gold='Usage caps apply per signed order form.'",
+      "of-0016 TALENT_INTELLIGENCE_PLATFORM: pred='Up to Customer Employee 5ize: 50,000' gold='Subject to master subscription agreement.'",
+      "of-0017 TALENT_ACQUISITION: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0017 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Customer-specific pricing approved.'",
+      "of-0017 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='Subject to master subscription agreement.'",
+      "of-0018 SANDBOX: pred='Up to Customer Employee Size: 50,000' gold='Includes standard onboarding support.'",
+      "of-0019 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0019 TALENT_ACQUISITION: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0019 PROFESSIONAL_SERVICE: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0019 PREMIUM_SUPPORT: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0020 TALENT_INTELLIGENCE_PLATFORM: pred='Up to Customer Emp1oyee Size: 25,000' gold='Includes standard onboarding support.'",
+      "of-0021 TALENT_ACQUISITION: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0021 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Customer-specific pricing approved.'",
+      "of-0021 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='Includes standard onboarding support.'",
+      "of-0021 TALENT_ACQUISITION_CORE: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0022 TALENT_MANAGEMENT_ENTERPRISE: pred='Up to Customer Employee Size: 50,000' gold='Subject to master subscription agreement.'",
+      "of-0022 TALENT_INTELLIGENCE_PLATFORM: pred='Up to Customer Employee Size: 50,000' gold='Subject to master subscription agreement.'",
+      "of-0022 TALENT_DESIGN: pred='Up to Customer Employee Size: 50,000' gold='Subject to master subscription agreement.'",
+      "of-0023 PROFESSIONAL_SERVICE: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0023 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='Customer-specific pricing approved.'",
+      "of-0023 SIGNATURE_SUCCESS: pred=None gold='Includes standard onboarding support.'",
+      "of-0023 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0024 SANDBOX: pred=None gold='Subject to master subscription agreement.'",
+      "of-0024 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='Includes standard onboarding support.'",
+      "of-0024 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Customer-specific pricing approved.'",
+      "of-0025 TALENT_MANAGEMENT_ENTERPRISE: pred='Up to Customer Employee Size: 2,500' gold='Usage caps apply per signed order form.'",
+      "of-0025 TALENT_ACQUISITION_CANDIDATE_EXPERIENCE: pred='Up to Customer Employee Size: 2,500' gold='Includes standard onboarding support.'",
+      "of-0026 TALENT_ACQUISITION: pred='Up to Customer Employee Size: 5,000' gold='Subject to master subscription agreement.'",
+      "of-0026 TALENT_MANAGEMENT_CORE: pred='Up to Customer Employee Size: 5,000' gold='Subject to master subscription agreement.'",
+      "of-0026 WHATSAPP_SMS_CREDITS: pred='Up to Customer Employee Size: 5,000' gold='Includes standard onboarding support.'",
+      "of-0027 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Customer-specific pricing approved.'",
+      "of-0027 PREMIUM_SUPPORT: pred=None gold='Customer-specific pricing approved.'",
+      "of-0027 SANDBOX: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0028 TALENT_ACQUISITION_CORE: pred='Up to Customer Employee Size: 15,000' gold='Usage caps apply per signed order form.'",
+      "of-0028 TALENT_MANAGEMENT_ENTERPRISE: pred='Up to Customer Employee Size: 15,000' gold='Includes standard onboarding support.'",
+      "of-0029 TALENT_MANAGEMENT_LEADER_EXPERIENCE: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0029 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Customer-specific pricing approved.'",
+      "of-0029 TALENT_ACQUISITION: pred=None gold='Includes standard onboarding support.'",
+      "of-0030 ELEVATE_SUCCESS_PLAN: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0030 TALENT_ACQUISITION: pred=None gold='Customer-specific pricing approved.'",
+      "of-0031 PREMIUM_SUPPORT: pred='Up to Customer Employee Size: 2,500' gold='Usage caps apply per signed order form.'",
+      "of-0031 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred='Up to Customer Employee Size: 2,500' gold='Customer-specific pricing approved.'",
+      "of-0032 TALENT_ACQUISITION: pred='Up to Customer Employee Size: 10,000' gold='Includes standard onboarding support.'",
+      "of-0033 TALENT_MANAGEMENT_ENTERPRISE: pred='Up to Customer Employee Size: 15,000' gold='Annual uplift terms included as agreed.'",
+      "of-0033 TALENT_ACQUISITION_CANDIDATE_EXPERIENCE: pred='Up to Customer Employee Size: 15,000' gold='Customer-specific pricing approved.'",
+      "of-0033 SANDBOX: pred='Up to Customer Employee Size: 15,000' gold='Subject to master subscription agreement.'",
+      "of-0034 TALENT_MANAGEMENT_ENTERPRISE: pred='Up to Customer Employee Size: 15,000' gold='Annual uplift terms included as agreed.'",
+      "of-0034 TALENT_INTELLIGENCE_PLATFORM: pred='Up to Customer Employee Size: 15,000' gold='Annual uplift terms included as agreed.'",
+      "of-0034 SKILLS_PORTFOLIO: pred='Up to Customer Employee Size: 15,000' gold='Subject to master subscription agreement.'",
+      "of-0035 TALENT_ACQUISITION: pred='Up to Customer Employee Size: 2,500' gold='Annual uplift terms included as agreed.'",
+      "of-0035 PREMIUM_SUPPORT: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0035 TALENT_ACQUISITION_CANDIDATE_EXPERIENCE: pred=None gold='Includes standard onboarding support.'",
+      "of-0035 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0036 SIGNATURE_SUCCESS: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0036 ELEVATE_SUCCESS_PLAN: pred=None gold='Customer-specific pricing approved.'",
+      "of-0036 TALENT_MANAGEMENT_ENTERPRISE: pred='Up to Customer Employee Size: 50,000' gold='Subject to master subscription agreement.'",
+      "of-0037 PROFESSIONAL_SERVICE: pred=None gold='Customer-specific pricing approved.'",
+      "of-0037 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Includes standard onboarding support.'",
+      "of-0037 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0037 TALENT_ACQUISITION: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0038 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred='Up to Customer Employee Size: 5,000' gold='Includes standard onboarding support.'",
+      "of-0039 WHATSAPP_SMS_CREDITS: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0039 PREMIUM_SUPPORT: pred=None gold='Subject to master subscription agreement.'",
+      "of-0040 TALENT_MANAGEMENT_ENTERPRISE: pred='Up to Customer Employee Size: 15,000' gold='Subject to master subscription agreement.'",
+      "of-0040 TALENT_ACQUISITION: pred='Up to Customer Employee Size: 15,000' gold='Usage caps apply per signed order form.'",
+      "of-0041 WHATSAPP_SMS_CREDITS: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0041 ELEVATE_SUCCESS_PLAN: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0041 TALENT_ACQUISITION_CORE: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0041 PROFESSIONAL_SERVICE: pred='As applicable, implementation services and fees are defined in a Statement of Work.' gold='Usage caps apply per signed order form.'",
+      "of-0042 SIGNATURE_SUCCESS: pred='Up to Customer Employee Size: 10,000' gold='Usage caps apply per signed order form.'",
+      "of-0043 TALENT_MANAGEMENT_ENTERPRISE: pred='Up to Customer Employee Size: 2,500' gold='Customer-specific pricing approved.'",
+      "of-0043 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred='Up to Customer Employee Size: 2,500' gold='Customer-specific pricing approved.'",
+      "of-0044 TALENT_ACQUISITION_CORE: pred=None gold='Customer-specific pricing approved.'",
+      "of-0044 TALENT_ACQUISITION: pred=None gold='Customer-specific pricing approved.'",
+      "of-0044 ELEVATE_SUCCESS_PLAN: pred=None gold='Customer-specific pricing approved.'",
+      "of-0044 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Includes standard onboarding support.'",
+      "of-0045 PROFESSIONAL_SERVICE: pred=None gold='Customer-specific pricing approved.'",
+      "of-0046 SIGNATURE_SUCCESS: pred=None gold='Subject to master subscription agreement.'",
+      "of-0046 ELEVATE_SUCCESS_PLAN: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0046 PROFESSIONAL_SERVICE: pred='As applicable, implementation services and fees are defined in a Statement of Work.' gold='Usage caps apply per signed order form.'",
+      "of-0047 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0047 ELEVATE_SUCCESS_PLAN: pred=None gold='Includes standard onboarding support.'",
+      "of-0047 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0047 SIGNATURE_SUCCESS: pred=None gold='Subject to master subscription agreement.'",
+      "of-0048 TALENT_ACQUISITION_CORE: pred=None gold='Customer-specific pricing approved.'",
+      "of-0048 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Customer-specific pricing approved.'",
+      "of-0048 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='Usage caps apply per signed order form.'",
+      "of-0049 WHATSAPP_SMS_CREDITS: pred=None gold='Annual uplift terms included as agreed.'",
+      "of-0049 TALENT_ACQUISITION_CRM: pred=None gold='Customer-specific pricing approved.'",
+      "of-0049 TALENT_MANAGEMENT_LEADER_EXPERIENCE: pred=None gold='Customer-specific pricing approved.'",
+      "of-0049 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Subject to master subscription agreement.'",
+      "of-0050 ELEVATE_SUCCESS_PLAN: pred=None gold='Subject to master subscription agreement.'",
+      "of-0050 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='Includes standard onboarding support.'",
+      "of-0050 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Customer-specific pricing approved.'"
+    ],
+    "invoicing_frequency": [
+      "of-0004 PROFESSIONAL_SERVICE: pred='one-time' gold='yearly'",
+      "of-0004 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred='one-time' gold='yearly'",
+      "of-0007 PREMIUM_SUPPORT: pred=None gold='one-time'",
+      "of-0016 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred='one-time' gold='yearly'",
+      "of-0016 TALENT_INTELLIGENCE_PLATFORM: pred='one-time' gold='yearly'",
+      "of-0025 TALENT_MANAGEMENT_ENTERPRISE: pred='one-time' gold='yearly'",
+      "of-0025 TALENT_ACQUISITION_CANDIDATE_EXPERIENCE: pred='one-time' gold='yearly'",
+      "of-0026 TALENT_ACQUISITION: pred='one-time' gold='yearly'",
+      "of-0026 TALENT_MANAGEMENT_CORE: pred='one-time' gold='yearly'",
+      "of-0026 WHATSAPP_SMS_CREDITS: pred='one-time' gold='yearly'",
+      "of-0027 PREMIUM_SUPPORT: pred=None gold='one-time'",
+      "of-0031 PREMIUM_SUPPORT: pred=None gold='yearly'",
+      "of-0035 PREMIUM_SUPPORT: pred=None gold='quarterly'"
+    ],
+    "quantity": [
+      "of-0007 PREMIUM_SUPPORT: pred=None gold=3.0",
+      "of-0027 PREMIUM_SUPPORT: pred=None gold=3.0",
+      "of-0031 PREMIUM_SUPPORT: pred=None gold=1.0",
+      "of-0035 PREMIUM_SUPPORT: pred=None gold=1.0"
+    ]
+  }
 }

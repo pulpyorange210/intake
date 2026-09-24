@@ -16,6 +16,9 @@ from .catalog import Catalog
 from .pdf import cents, normalize_for_match, to_decimal
 from .schema import ContractItem, OrderFormHeader, Submission
 
+# Item fields every contract item is expected to have; a null needs an ambiguity entry or an override.
+EXPECTED_ITEM_FIELDS = ("currency", "total_listed_value", "quantity", "service_start_date", "service_end_date")
+
 # Billing/pricing period lengths in months that are considered sensible.
 SENSIBLE_PERIOD_MONTHS = {1, 3, 6, 12}
 RATIO_TOLERANCE = Decimal("0.001")
@@ -38,6 +41,7 @@ class ValidationContext:
     doc_text: str
     doc_numbers: Set[Decimal]
     computed_numbers: Set[Decimal]
+    has_text_layer: bool = True  # False for scanned PDFs: grounding and quote checks can't apply
 
     @property
     def normalized_text(self) -> str:
@@ -92,7 +96,7 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
     normalized_text = ctx.normalized_text
 
     def check_amount(value, label, idx):
-        if value is not None and cents(value) not in grounded:
+        if value is not None and ctx.has_text_layer and cents(value) not in grounded:
             err("ungrounded_amount", idx,
                 f"{label}={value} does not appear in the document and was not produced by the compute tool "
                 f"from document values. Copy it exactly from the document or derive it with compute.")
@@ -107,6 +111,8 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
             return None
 
     def check_quotes(evidence: dict, idx, extra: Optional[str] = None):
+        if not ctx.has_text_layer:
+            return
         quotes = dict(evidence)
         if extra is not None:
             quotes["source_row"] = extra
@@ -116,6 +122,13 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
             # faithful quote can fail to match. Amounts and SKUs are checked independently above.
             issues.append(Issue("note", "evidence_not_found", idx,
                                 f"quotes for {missing} were not found verbatim in the text layer"))
+
+    if not ctx.has_text_layer:
+        issues.append(Issue("note", "no_text_layer", None,
+                            "the PDF has no text layer (likely scanned); amounts and quotes could not be "
+                            "checked against the document text"))
+
+    flagged = {(a.item_index, a.field) for a in sub.ambiguities}
 
     # ---- header ----
     h = sub.order_form
@@ -141,6 +154,12 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
         if start and end and start > end:
             err("date_order", i, f"service_start_date {start} is after service_end_date {end}.")
         check_quotes(item.evidence, i, item.source_row)
+        for field in EXPECTED_ITEM_FIELDS:
+            if getattr(item, field) is None and (i, field) not in flagged:
+                warn("missing_value", i,
+                     f"{field} is null. If the document states it, extract it (quantity defaults to 1 when "
+                     f"not stated); if it is genuinely ambiguous, add an ambiguity entry; if a SKU parsing "
+                     f"instruction requires null, override this warning with that reason.")
 
         if item.sku_code in sub.explicitly_excluded_skus:
             warn("excluded_conflict", i,

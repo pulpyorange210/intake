@@ -8,30 +8,32 @@ Precision 100.0% | Recall 100.0% | F1 100.0% (TP 132, FP 0, FN 0)
 
 Near-twin forms (a non-sold catalog name overlaps a sold one): 20 forms, precision 100.0%, recall 100.0%
 
-## Field accuracy (matched items)
+## Field accuracy
 
-Abstained = left null and flagged ambiguous (counted wrong in Accuracy, excluded from Answered).
+Overall counts every matched item (abstentions count as wrong). The other columns split it by how the output was marked: unflagged answers, answers flagged ambiguous (value given with the ambiguity next to it), and abstentions (left null because ambiguous).
 
-| Field | Accuracy | Answered accuracy | Abstained |
-|---|---|---|---|
-| currency | 100.0% | 100.0% | 0 |
-| total_listed_value | 100.0% | 100.0% | 0 |
-| quantity | 97.0% | 97.0% | 0 |
-| unit_price | 100.0% | 100.0% | 0 |
-| service_start_date | 100.0% | 100.0% | 0 |
-| service_end_date | 100.0% | 100.0% | 0 |
-| invoicing_schedule_type | 0.0% | 0.0% | 0 |
-| invoicing_frequency | 90.2% | 90.2% | 0 |
-| payment_terms | 100.0% | 100.0% | 0 |
-| special_notes | 0.0% | 0.0% | 0 |
+### Contract items
 
-## Header accuracy
+| Field | Overall | Unflagged | Flagged ambiguous | Abstained |
+|---|---|---|---|---|
+| currency | 100.0% | 100.0% (n=132) | - | - |
+| total_listed_value | 100.0% | 100.0% (n=132) | - | - |
+| quantity | 97.0% | 97.0% (n=132) | - | - |
+| unit_price | 100.0% | 100.0% (n=132) | - | - |
+| service_start_date | 100.0% | 100.0% (n=132) | - | - |
+| service_end_date | 100.0% | 100.0% (n=132) | - | - |
+| invoicing_schedule_type | 0.0% | 0.0% (n=132) | - | - |
+| invoicing_frequency | 90.2% | 90.2% (n=132) | - | - |
+| payment_terms | 100.0% | 100.0% (n=132) | - | - |
+| special_notes | 0.0% | 0.0% (n=132) | - | - |
 
-| Field | Accuracy |
-|---|---|
-| effective_date | 100.0% |
-| contract_signed_date_buying_company | 100.0% |
-| contract_signed_date_selling_company | 100.0% |
+### Order form header
+
+| Field | Overall | Unflagged | Flagged ambiguous | Abstained |
+|---|---|---|---|---|
+| effective_date | 100.0% | 100.0% (n=50) | - | - |
+| contract_signed_date_buying_company | 100.0% | 100.0% (n=50) | - | - |
+| contract_signed_date_selling_company | 100.0% | 100.0% (n=50) | - | - |
 
 invoicing_frequency source: {'inferred_from_pricing': 128, None: 4}
 

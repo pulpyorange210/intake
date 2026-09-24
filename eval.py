@@ -12,7 +12,7 @@ import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from ofparser.pdf import extract_text
+from ofparser.pdf import cents, extract_text
 
 MONEY_FIELDS = ["total_listed_value", "unit_price"]
 ITEM_FIELDS = ["currency", "total_listed_value", "quantity", "unit_price", "service_start_date",
@@ -29,7 +29,7 @@ def field_equal(name, pred, gold) -> bool:
     if gold is None or pred is None:
         return gold is None and pred is None
     if name in MONEY_FIELDS:
-        return abs(float(pred) - float(gold)) <= 0.01
+        return cents(pred) == cents(gold)  # exact to the cent
     if name == "quantity":
         return abs(float(pred) - float(gold)) < 1e-6
     return norm_text(pred) == norm_text(gold)
@@ -86,13 +86,9 @@ def near_twin(text: str, gold_items, catalog) -> bool:
     return False
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("run_dir", type=Path)
-    ap.add_argument("--dataset", type=Path, default=Path("synthetic_order_form_dataset_50"))
-    args = ap.parse_args()
-
-    catalog = json.loads((args.dataset / "sku_catalog.json").read_text())
+def score_run(run_dir: Path, dataset: Path):
+    """Score run_dir/outputs/*.json against dataset/ground_truth. Returns (result dict, markdown lines)."""
+    catalog = json.loads((dataset / "sku_catalog.json").read_text())
     stats = defaultdict(lambda: {b: [0, 0] for b in BUCKETS})  # field -> bucket -> [hits, total]
     field_misses = defaultdict(list)
     tp = fp = fn = 0
@@ -111,9 +107,9 @@ def main():
             field_misses[f].append(f"{label}:{tag} pred={value!r} gold={gold_value!r}")
         return hit
 
-    for out_path in sorted((args.run_dir / "outputs").glob("*.json")):
+    for out_path in sorted((run_dir / "outputs").glob("*.json")):
         form = out_path.stem
-        gold = json.loads((args.dataset / "ground_truth" / f"{form}.json").read_text())
+        gold = json.loads((dataset / "ground_truth" / f"{form}.json").read_text())
         pred = json.loads(out_path.read_text())
         n_forms += 1
         cost += (pred.get("meta") or {}).get("cost_usd") or 0
@@ -126,7 +122,7 @@ def main():
         for gi in ug:
             item_errors.append(f"{form}: missed item {g_items[gi]['sku_code']}")
 
-        is_twin = near_twin(extract_text(args.dataset / "pdfs" / f"{form}.pdf"), g_items, catalog)
+        is_twin = near_twin(extract_text(dataset / "pdfs" / f"{form}.pdf"), g_items, catalog)
         if is_twin:
             twin["forms"] += 1; twin["tp"] += len(pairs); twin["fp"] += len(up); twin["fn"] += len(ug)
 
@@ -160,10 +156,10 @@ def main():
         "needs_review": needs_review,
         "invoicing_frequency_source": dict(freq_source),
         "total_cost_usd": round(cost, 4),
+        "failures": {"items": item_errors, **{f: m for f, m in field_misses.items() if m}},
     }
-    (args.run_dir / "eval.json").write_text(json.dumps(result, indent=2))
 
-    md = [f"# Eval: {args.run_dir.name}", "",
+    md = [f"# Eval: {run_dir.name}", "",
           f"Forms: {n_forms} | fully correct: {perfect_forms} | needs_review: {needs_review} | cost: ${cost:.2f}", "",
           "## Item detection", "",
           f"Precision {prec:.1%} | Recall {rec:.1%} | F1 {f1:.1%} (TP {tp}, FP {fp}, FN {fn})", "",
@@ -188,6 +184,16 @@ def main():
     for f in ITEM_FIELDS + HEADER_FIELDS:
         if field_misses[f]:
             md += [f"### {f} ({len(field_misses[f])})"] + [f"- {m}" for m in field_misses[f]] + [""]
+    return result, md
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("run_dir", type=Path)
+    ap.add_argument("--dataset", type=Path, default=Path("synthetic_order_form_dataset_50"))
+    args = ap.parse_args()
+    result, md = score_run(args.run_dir, args.dataset)
+    (args.run_dir / "eval.json").write_text(json.dumps(result, indent=2))
     (args.run_dir / "eval.md").write_text("\n".join(md))
     print("\n".join(md[:30]))
 

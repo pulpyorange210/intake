@@ -180,3 +180,47 @@ like it knows something it doesn't. Giving a value is fine if the uncertainty is
 - Known gap: of-0048's evidence quotes only "Start Date: 12/09/2022", not the consistency check that
   decided it, so the output doesn't show that a format question was resolved. Follow-up candidate.
 - Not yet measured on the full 50; will be covered by the final full run before the README.
+
+## v0.7 - offline audit: tests, grader fix, checker gaps (2026-09-24)
+
+No API calls. Run the tests with `python -m unittest discover -s tests -t .` (21 tests, ~3 s).
+
+**1. Grader tests** (`tests/test_eval.py`)
+- Ground truth scored as a prediction -> 100% on every field, P/R 100%, 50/50 forms fully correct.
+- **Bug found:** a one-cent change to a unit price was scored as correct. Money fields were compared
+  with `abs(pred - gold) <= 0.01`, i.e. a 1-cent tolerance. Fixed: exact comparison at the cent.
+  Re-scored v0.1, v0.3 and v0.5 with the fix: totals and unit prices remain 100% - no earlier claim was
+  inflated by the bug.
+- Also tested: a wrong SKU counts as one extra + one missed item; an abstention lands in the abstained
+  column, not in unflagged accuracy.
+- `eval.py` refactored into `score_run()` so it can be tested; CLI unchanged.
+
+**2. Checker tests** (`tests/test_validator.py`)
+- Caught as hard errors: a planted amount not in the PDF (`ungrounded_amount`), a SKU not in the
+  catalog, reversed dates, a malformed ambiguity entry. Caught as warnings: a line whose unit price is
+  a real document number from another line (`price_ratio_not_integer`), a not-sold SKU conflict.
+  Overrides silence warnings but never hard errors. All 50 ground-truth forms pass with no issues.
+- **Gap found - why v0.1's null quantities weren't flagged:** with quantity null, `price_ratio` returned
+  None and every ratio check was silently skipped, and no check required quantity at all. Fixed: new
+  `missing_value` warning when currency, total, quantity or service dates are null without an ambiguity
+  entry. It is a warning, so a SKU instruction that genuinely requires null can be honoured via an
+  override with that reason. Replaying all accepted v0.5 submissions: no new warnings.
+
+**3. Code audit**
+- (a) Signatures: matched by party name - the prompt says to attribute each date to the party named in
+  its signature block; no position logic exists anywhere in code or prompt. OK.
+- (b) Stated billing wins: `build_output` uses a stated `invoicing_frequency` before any price math;
+  tested with a monthly-priced item "billed annually" -> yearly/stated. OK.
+- (c) No phrases copied from these PDFs in code or prompts (searched for the template's headings, total
+  labels, not-sold sentence, billing boilerplate, party/product names). Only "e.g. a Qty column" -
+  a generic table term. OK.
+- (d) 6-month billing: allowed in the schema (`biannually`, `half_year`), the sensible-period check and
+  the fallback; tested (2 periods/year -> biannually, single price over 6 months -> flagged with
+  alternative biannually). OK.
+- (e) Layout assumptions - **two found and fixed:**
+  - Number grounding only understood `1,234.56`. A `1.234,56` / `1 234,56` / `1'234.56` document would
+    have had every amount rejected as ungrounded. Now every notation is recognised (each token read under
+    every notation it fits, since the locale is unknown).
+  - A scanned PDF (no text layer) would have failed grounding on every amount. Now detected: the model is
+    told to read the page images, grounding and quote checks are skipped, and the output carries a
+    `no_text_layer` review note saying amounts could not be checked against document text.
