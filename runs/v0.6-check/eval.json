@@ -1,0 +1,219 @@
+{
+  "forms": 2,
+  "items": {
+    "tp": 4,
+    "fp": 0,
+    "fn": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  },
+  "near_twin_forms": {
+    "forms": 1,
+    "precision": 1.0,
+    "recall": 1.0
+  },
+  "fields": {
+    "currency": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 4
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "total_listed_value": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 4
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "quantity": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 4
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "unit_price": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 4
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "service_start_date": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 4
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "service_end_date": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 4
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "invoicing_schedule_type": {
+      "overall": 0.0,
+      "unflagged": {
+        "accuracy": 0.0,
+        "n": 4
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "invoicing_frequency": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 4
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "payment_terms": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 4
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "special_notes": {
+      "overall": 0.0,
+      "unflagged": {
+        "accuracy": 0.0,
+        "n": 4
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "effective_date": {
+      "overall": 0.5,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 1
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": 0.0,
+        "n": 1
+      }
+    },
+    "contract_signed_date_buying_company": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 2
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "contract_signed_date_selling_company": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 2
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    }
+  },
+  "forms_fully_correct": 0,
+  "needs_review": 0,
+  "invoicing_frequency_source": {
+    "inferred_from_pricing": 4
+  },
+  "total_cost_usd": 0.3293
+}

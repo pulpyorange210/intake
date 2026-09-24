@@ -57,6 +57,11 @@ entitlements, non-standard terms); null if none. Don't copy generic boilerplate.
 - Header: effective_date is the date the document says the order form becomes effective; null if \
 not stated. For signature dates, work out which party is the customer (buyer) and which is the \
 vendor (seller), then attribute each signature date to the party named in its signature block.
+- Before treating a field as ambiguous, test each candidate reading against the rest of the document: \
+the arithmetic of prices, quantities and the service term, and the other dates. A reading that \
+contradicts the document is not a valid reading. If exactly one reading survives, use it and quote \
+the deciding evidence. Closeness or typicality (e.g. a date being near the signature date) never \
+eliminates a reading; it can only make one likely.
 - Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. \
 Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, \
 and why the document doesn't decide). If surrounding context makes one candidate more likely \

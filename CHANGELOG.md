@@ -162,3 +162,21 @@ like it knows something it doesn't. Giving a value is fine if the uncertainty is
   those 3 items without a frequency.
 - The one retry: of-0048's first submission used a descriptive field name in an ambiguity entry;
   `bad_ambiguity` caught it and the model fixed it.
+
+## v0.6 - contradictions eliminate readings, plausibility only hints (2026-09-24)
+
+**What**
+- Prompt: before calling a field ambiguous, test each candidate reading against the rest of the
+  document (price/quantity/term arithmetic, other dates). A reading that contradicts the document is not
+  valid; if exactly one survives, use it and quote the deciding evidence. Closeness or typicality never
+  eliminates a reading, it can only make one `likely`.
+  Motivation: of-0048 (above). General: "multiple correct answers" means multiple readings consistent
+  with the document, not multiple ways to parse a string.
+
+**Results** (targeted rerun, `runs/v0.6-check`, $0.33):
+- of-0048: service_start_date 2022-12-09 on all 3 items, unflagged; frequency back to quarterly (correct).
+- of-0032: effective_date still abstained with likely 2024-06-04 - nothing in that document depends on
+  the effective date, so April 6 is not contradicted. Correct distinction.
+- Known gap: of-0048's evidence quotes only "Start Date: 12/09/2022", not the consistency check that
+  decided it, so the output doesn't show that a format question was resolved. Follow-up candidate.
+- Not yet measured on the full 50; will be covered by the final full run before the README.
