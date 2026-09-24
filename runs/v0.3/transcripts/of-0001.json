@@ -1,0 +1,376 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON\n  name: Talent Intelligence Platform Premium Edition (Add-on)\n  description: Premium add-on to Talent Intelligence Platform\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION\n  name: Talent Acquisition\n  description: Subscription to Talent Acquisition module\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_ENTERPRISE\n  name: Talent Management Enterprise\n  description: Subscription to Talent Management Enterprise\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_INTELLIGENCE_PLATFORM\n  name: Talent Intelligence Platform\n  description: Subscription to the Talent Intelligence Platform\n  parsing_instructions: |\n    - For this and ALL items: use the Order Form Start Date as the contract term start (not the signature date).\n    - Revenue recognition for the mapped POB is straight-line by days across the service period.\n- code: PREMIUM_SUPPORT\n  name: Premium Support\n  description: Premium support subscription\n  parsing_instructions: |\n    - If minimum/maximum monthly hours are specified, capture them; otherwise leave quantity null.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: PROFESSIONAL_SERVICE\n  name: Professional Service\n  description: Professional services delivered on a usage/progress basis\n  parsing_instructions: |\n    - Capture delivery period and progress inputs (e.g., hours, milestones, percent complete) for percentage-of-completion.\n    - If dates are absent, align service dates with the related SOW or Order Form where available.\n- code: SIGNATURE_SUCCESS\n  name: Signature Success\n  description: Recurring subscription to Signature Success\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: SANDBOX\n  name: Sandbox\n  description: Sandbox environment access subscription\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: ELEVATE_SUCCESS_PLAN\n  name: Elevate Success Plan\n  description: Success plan subscription\n  parsing_instructions: |\n    - Identify any negative-valued contract items in a modification document; strike off the related contract item(s) effective on the modification date.\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: WHATSAPP_SMS_CREDITS\n  name: WhatsApp / SMS Credits\n  description: Recurring subscription for WhatsApp and SMS credits\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CANDIDATE_EXPERIENCE\n  name: Talent Acquisition Candidate Experience\n  description: Candidate experience component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CORE\n  name: Talent Acquisition Core\n  description: Core package of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CRM\n  name: Talent Acquisition CRM\n  description: CRM component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_CORE\n  name: Talent Management Core\n  description: Core package of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_LEADER_EXPERIENCE\n  name: Talent Management Leader Experience\n  description: Leader Experience component of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_DESIGN\n  name: Talent Design\n  description: Recurring subscription to Talent Design\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: COPILOT\n  name: Copilot\n  description: Recurring subscription to Copilot\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Overages - Talent Acquisition AI Interviewer Agent Add-on\n  description: Usage-based overages for the AI Interviewer Agent Add-on\n  parsing_instructions: |\n    - Revenue recognized based on actual usage consumption.\n    - Capture usage metrics as they occur for recognition.\n- code: SKILLS_PORTFOLIO\n  name: Skills Portfolio\n  description: Recurring subscription to Skills Portfolio\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Talent Acquisition AI Interviewer Agent Add-on\n  description: Recurring subscription to the AI Interviewer Agent Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_TALENT_TRACKING_ADDON\n  name: Talent Acquisition Talent Tracking Add-on\n  description: Recurring subscription to the Talent Tracking Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). If the document does not say, use null.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0001.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0001.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                                  Sales Order Form\n\nPrepared For: Orchid Logistics                                                 Quote Number: Q-135420\nAccount Executive: Avery Brown                                                 Offer Valid Through: 2026-08-09\n\n\n Sold/5hip To:                                                     Bill To:\n 8784 Market Street, Seattle, WA 35165,                            Attn: Accounts Payable, 5966 Mission\n USA                                                               Street, Seattle, WA 45046, USA\n\n\n\n Primary Contact: Morgan Diaz                                      Billing Contact: Alex Carter\n Primary Email: morgan@orchidlogistics.com                         Billing Email: ap@orchidlogistics.com\n\n\n\nStart Date: 01-Aug-2026                     End Date: 31 Jul 2027                      Up to Customer Employee Size: 5,000\n\nSUBSCRIPTION SERVICE FEES\n\n SKU Description                                            Qty            Unit Fee                        Extended Price\n\n Talent Acquisition Core                                     1             197,510.77 USD                  197,510.77 USD\n\n Talent Intel. Platf. Prem. Ed.                              1             167,214.88 USD                  167,214.88 USD\n (Add-on)\n Professiona1 Service                                        1             242,917.93 USD                  242,917.93 USD\n\n\n TOTAL SUBSCRIPTION                                                                                        607,643.58 USD\n\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\nINVOIClNG SCHEDULE\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Net 30 unless stated otherwise.\nProcurement summary: annualized bi1ling profile inc1uded for planning.\n\n\n\n\n                                                                                                                     Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on 29-Jul-2026. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Sandbox, Talent Acquisition\n\nOrchid Logistics                                                 Acme Software Inc.\nBy:                                                              By:\n               SIGNED ELECTRONICALLY                                           SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                        Name (Print): ___________________________\nTitle (Print): VP Finance                                        Title (Print): Controller\nDate (Print): Aug 05, 2026                                       Date (Print): Aug 08, 2026\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: NO, PO exception form to be signed.\n\n\n\n\nConfidential - pricing subject to agreement.                                                                 Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01Hr13EXMEShGS8UqUnqE1dr",
+          "input": {
+            "expression": "197510.77 + 167214.88 + 242917.93"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01Hr13EXMEShGS8UqUnqE1dr",
+          "content": "197510.77 + 167214.88 + 242917.93 = 607643.58 (rounded to cents: 607643.58)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISsgIKjgEIEhgCKkB+QP2sRtNZ3zMwMlcGJ8znC9zRDvRXy6VMmcmUtGAntFRQaqpnpmskyyKbouDrPQPqC863ElIAWVGWYVaXCk4CMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWoAY6E1dUGEgzEkb/gTv3N37Qg6S8aDMXpZAk89YmhxhJ4qCIw+dbSnAFZo8pSotKLzfUReAMCzthpAhCYU7jNglAE4u3UVXYPnWZginfbYfIPCY9vKlHxKynxyV5cL70hTnxeFdfBCDcE+VNat2GEYmT4bLT4QOdFmKXa35jnd+BpCi/58Snau/oNwRWOKKJshVPl8njZ/3mf/JnsvcD8rXfFT1hVG3sYAQ==",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01A8tPER12WVuJgAYjeBfr7Q",
+          "input": {
+            "order_form": {
+              "customer_name": "Orchid Logistics",
+              "vendor_name": "Acme Software Inc.",
+              "effective_date": "2026-07-29",
+              "contract_signed_date_buying_company": "2026-08-05",
+              "contract_signed_date_selling_company": "2026-08-08",
+              "currency": "USD",
+              "grand_total": 607643.58,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Orchid Logistics",
+                "vendor_name": "Acme Software Inc.",
+                "effective_date": "This order form becomes effective on 29-Jul-2026.",
+                "contract_signed_date_buying_company": "Orchid Logistics...Date (Print): Aug 05, 2026",
+                "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): Aug 08, 2026",
+                "currency": "607,643.58 USD",
+                "grand_total": "TOTAL SUBSCRIPTION 607,643.58 USD",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "TALENT_ACQUISITION_CORE",
+                "source_row": "Talent Acquisition Core 1 197,510.77 USD 197,510.77 USD",
+                "currency": "USD",
+                "total_listed_value": 197510.77,
+                "quantity": 1,
+                "unit_price": 197510.77,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-08-01",
+                "service_end_date": "2027-07-31",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Talent Acquisition Core 1 197,510.77 USD 197,510.77 USD",
+                  "currency": "197,510.77 USD",
+                  "total_listed_value": "197,510.77 USD",
+                  "quantity": "Talent Acquisition Core 1",
+                  "unit_price": "Unit Fee...197,510.77 USD",
+                  "unit_price_period": "Start Date: 01-Aug-2026 End Date: 31 Jul 2027",
+                  "service_start_date": "Start Date: 01-Aug-2026",
+                  "service_end_date": "End Date: 31 Jul 2027",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+                "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 167,214.88 USD 167,214.88 USD",
+                "currency": "USD",
+                "total_listed_value": 167214.88,
+                "quantity": 1,
+                "unit_price": 167214.88,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-08-01",
+                "service_end_date": "2027-07-31",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Talent Intel. Platf. Prem. Ed.\n(Add-on) 1 167,214.88 USD 167,214.88 USD",
+                  "currency": "167,214.88 USD",
+                  "total_listed_value": "167,214.88 USD",
+                  "quantity": "Talent Intel. Platf. Prem. Ed....1",
+                  "unit_price": "Unit Fee...167,214.88 USD",
+                  "unit_price_period": "Start Date: 01-Aug-2026 End Date: 31 Jul 2027",
+                  "service_start_date": "Start Date: 01-Aug-2026",
+                  "service_end_date": "End Date: 31 Jul 2027",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "PROFESSIONAL_SERVICE",
+                "source_row": "Professiona1 Service 1 242,917.93 USD 242,917.93 USD",
+                "currency": "USD",
+                "total_listed_value": 242917.93,
+                "quantity": 1,
+                "unit_price": 242917.93,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-08-01",
+                "service_end_date": "2027-07-31",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Professiona1 Service 1 242,917.93 USD 242,917.93 USD",
+                  "currency": "242,917.93 USD",
+                  "total_listed_value": "242,917.93 USD",
+                  "quantity": "Professiona1 Service 1",
+                  "unit_price": "Unit Fee...242,917.93 USD",
+                  "unit_price_period": "Start Date: 01-Aug-2026 End Date: 31 Jul 2027",
+                  "service_start_date": "Start Date: 01-Aug-2026",
+                  "service_end_date": "End Date: 31 Jul 2027",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "SANDBOX",
+              "TALENT_ACQUISITION"
+            ],
+            "ambiguities": [],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01A8tPER12WVuJgAYjeBfr7Q",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Orchid Logistics",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "2026-07-29",
+      "contract_signed_date_buying_company": "2026-08-05",
+      "contract_signed_date_selling_company": "2026-08-08",
+      "currency": "USD",
+      "grand_total": 607643.58,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Orchid Logistics",
+        "vendor_name": "Acme Software Inc.",
+        "effective_date": "This order form becomes effective on 29-Jul-2026.",
+        "contract_signed_date_buying_company": "Orchid Logistics...Date (Print): Aug 05, 2026",
+        "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): Aug 08, 2026",
+        "currency": "607,643.58 USD",
+        "grand_total": "TOTAL SUBSCRIPTION 607,643.58 USD",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      },
+      "ambiguous_fields": {}
+    },
+    "contract_items_count": 3,
+    "contract_items": [
+      {
+        "name": "Talent Acquisition Core",
+        "sku_id": "89ab57ac-9aad-49a5-b9f5-4b99698dd292",
+        "sku_code": "TALENT_ACQUISITION_CORE",
+        "currency": "USD",
+        "total_listed_value": 197510.77,
+        "quantity": 1.0,
+        "unit_price": 197510.77,
+        "unit_price_period": "year",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2026-08-01",
+        "service_end_date": "2027-07-31",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": null,
+        "invoicing_frequency_source": "ambiguous",
+        "payment_terms": "Net 30",
+        "special_notes": null,
+        "ambiguous_fields": {
+          "invoicing_frequency": {
+            "candidates": [
+              "one-time",
+              "yearly"
+            ],
+            "reason": "One price covers the whole 12-month term, so it is billed once; that fits both 'one-time' and 'yearly', and the document does not state the billing frequency."
+          }
+        },
+        "source_row": "Talent Acquisition Core 1 197,510.77 USD 197,510.77 USD",
+        "evidence": {
+          "source_row": "Talent Acquisition Core 1 197,510.77 USD 197,510.77 USD",
+          "currency": "197,510.77 USD",
+          "total_listed_value": "197,510.77 USD",
+          "quantity": "Talent Acquisition Core 1",
+          "unit_price": "Unit Fee...197,510.77 USD",
+          "unit_price_period": "Start Date: 01-Aug-2026 End Date: 31 Jul 2027",
+          "service_start_date": "Start Date: 01-Aug-2026",
+          "service_end_date": "End Date: 31 Jul 2027",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+        "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+        "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+        "currency": "USD",
+        "total_listed_value": 167214.88,
+        "quantity": 1.0,
+        "unit_price": 167214.88,
+        "unit_price_period": "year",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2026-08-01",
+        "service_end_date": "2027-07-31",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": null,
+        "invoicing_frequency_source": "ambiguous",
+        "payment_terms": "Net 30",
+        "special_notes": null,
+        "ambiguous_fields": {
+          "invoicing_frequency": {
+            "candidates": [
+              "one-time",
+              "yearly"
+            ],
+            "reason": "One price covers the whole 12-month term, so it is billed once; that fits both 'one-time' and 'yearly', and the document does not state the billing frequency."
+          }
+        },
+        "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 167,214.88 USD 167,214.88 USD",
+        "evidence": {
+          "source_row": "Talent Intel. Platf. Prem. Ed.\n(Add-on) 1 167,214.88 USD 167,214.88 USD",
+          "currency": "167,214.88 USD",
+          "total_listed_value": "167,214.88 USD",
+          "quantity": "Talent Intel. Platf. Prem. Ed....1",
+          "unit_price": "Unit Fee...167,214.88 USD",
+          "unit_price_period": "Start Date: 01-Aug-2026 End Date: 31 Jul 2027",
+          "service_start_date": "Start Date: 01-Aug-2026",
+          "service_end_date": "End Date: 31 Jul 2027",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Professional Service",
+        "sku_id": "2a4fa79f-0fb7-42a3-a4ad-143f3cce8e36",
+        "sku_code": "PROFESSIONAL_SERVICE",
+        "currency": "USD",
+        "total_listed_value": 242917.93,
+        "quantity": 1.0,
+        "unit_price": 242917.93,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2026-08-01",
+        "service_end_date": "2027-07-31",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": null,
+        "invoicing_frequency_source": "ambiguous",
+        "payment_terms": "Net 30",
+        "special_notes": null,
+        "ambiguous_fields": {
+          "invoicing_frequency": {
+            "candidates": [
+              "one-time",
+              "yearly"
+            ],
+            "reason": "One price covers the whole 12-month term, so it is billed once; that fits both 'one-time' and 'yearly', and the document does not state the billing frequency."
+          }
+        },
+        "source_row": "Professiona1 Service 1 242,917.93 USD 242,917.93 USD",
+        "evidence": {
+          "source_row": "Professiona1 Service 1 242,917.93 USD 242,917.93 USD",
+          "currency": "242,917.93 USD",
+          "total_listed_value": "242,917.93 USD",
+          "quantity": "Professiona1 Service 1",
+          "unit_price": "Unit Fee...242,917.93 USD",
+          "unit_price_period": "Start Date: 01-Aug-2026 End Date: 31 Jul 2027",
+          "service_start_date": "Start Date: 01-Aug-2026",
+          "service_end_date": "End Date: 31 Jul 2027",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "SANDBOX",
+      "TALENT_ACQUISITION"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": null,
+        "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+      },
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": 1,
+        "message": "quotes for ['source_row'] were not found verbatim in the text layer"
+      }
+    ],
+    "meta": {
+      "source_pdf": "of-0001.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 2,
+      "submissions": 1,
+      "stop_note": null,
+      "seconds": 24.4,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 2625,
+        "cache_creation_input_tokens": 13397,
+        "cache_read_input_tokens": 12658
+      },
+      "cost_usd": 0.1557
+    }
+  }
+}

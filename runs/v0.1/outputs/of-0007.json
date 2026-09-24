@@ -1,0 +1,174 @@
+{
+  "order_form": {
+    "customer_name": "Riverstone Health",
+    "vendor_name": "Pioneer Intelligence Ltd.",
+    "effective_date": "2023-06-23",
+    "contract_signed_date_buying_company": "2023-06-27",
+    "contract_signed_date_selling_company": "2023-07-01",
+    "currency": "USD",
+    "grand_total": 864296.37,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Riverstone Health",
+      "vendor_name": "Pioneer Intelligence Ltd.",
+      "effective_date": "This order form becomes effective on 2023-06-23.",
+      "contract_signed_date_buying_company": "Date (Print): 27-Jun-2023",
+      "contract_signed_date_selling_company": "Date (Print): 01-Jul-2023",
+      "currency": "USD 864,296.37",
+      "grand_total": "USD 864,296.37",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    }
+  },
+  "contract_items_count": 4,
+  "contract_items": [
+    {
+      "name": "Premium Support",
+      "sku_id": "2c825663-7215-4f20-883c-4e8099f64b8b",
+      "sku_code": "PREMIUM_SUPPORT",
+      "currency": "USD",
+      "total_listed_value": 219131.88,
+      "quantity": null,
+      "unit_price": 73043.96,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-07-10",
+      "service_end_date": "2024-07-08",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "invoicing_frequency_source": null,
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "source_row": "Prem. Support",
+      "evidence": {
+        "currency": "USD 73,043.96",
+        "total_listed_value": "USD 219,131.88",
+        "unit_price": "USD 73,043.96",
+        "unit_price_period": "Start Date: 10-Jul-2023",
+        "service_start_date": "Start Date: 10-Jul-2023",
+        "service_end_date": "End Date: Jul 08, 2024",
+        "payment_terms": "Payment terms include Net 45 un1ess stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Management Enterprise",
+      "sku_id": "4e976929-ebff-4189-b7ab-1b650edabc4e",
+      "sku_code": "TALENT_MANAGEMENT_ENTERPRISE",
+      "currency": "USD",
+      "total_listed_value": 225945.2,
+      "quantity": 5.0,
+      "unit_price": 45189.04,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-07-10",
+      "service_end_date": "2024-07-08",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": "one-time",
+      "invoicing_frequency_source": "inferred_from_pricing",
+      "payment_terms": "Net 45",
+      "special_notes": "Up to Customer Employee Size: 50,000",
+      "source_row": "Talent Mgmt Ent.",
+      "evidence": {
+        "currency": "USD 45,189.04",
+        "total_listed_value": "USD 225,945.20",
+        "quantity": "Talent Mgmt Ent.",
+        "unit_price": "USD 45,189.04",
+        "unit_price_period": "Start Date: 10-Jul-2023",
+        "service_start_date": "Start Date: 10-Jul-2023",
+        "service_end_date": "End Date: Jul 08, 2024",
+        "payment_terms": "Payment terms include Net 45 un1ess stated otherwise.",
+        "special_notes": "Up to Customer Employee Size: 50,000"
+      }
+    },
+    {
+      "name": "Sandbox",
+      "sku_id": "bc8b9193-a684-41c5-ac83-c0356cbcb7f3",
+      "sku_code": "SANDBOX",
+      "currency": "USD",
+      "total_listed_value": 198407.38,
+      "quantity": 1.0,
+      "unit_price": 198407.38,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-07-10",
+      "service_end_date": "2024-07-08",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": "one-time",
+      "invoicing_frequency_source": "inferred_from_pricing",
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "source_row": "Sandbox",
+      "evidence": {
+        "currency": "USD 198,407.38",
+        "total_listed_value": "USD 198,407.38",
+        "quantity": "Sandbox",
+        "unit_price": "USD 198,407.38",
+        "unit_price_period": "Start Date: 10-Jul-2023",
+        "service_start_date": "Start Date: 10-Jul-2023",
+        "service_end_date": "End Date: Jul 08, 2024",
+        "payment_terms": "Payment terms include Net 45 un1ess stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+      "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+      "currency": "USD",
+      "total_listed_value": 220811.91,
+      "quantity": 1.0,
+      "unit_price": 220811.91,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-07-10",
+      "service_end_date": "2024-07-08",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": "one-time",
+      "invoicing_frequency_source": "inferred_from_pricing",
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "source_row": "Talent Intel. Platf. Prem. Ed.",
+      "evidence": {
+        "currency": "USD 220,811.91",
+        "total_listed_value": "USD 220,811.91",
+        "quantity": "Talent Intel. Platf. Prem. Ed.",
+        "unit_price": "USD 220,811.91",
+        "unit_price_period": "Start Date: 10-Jul-2023",
+        "service_start_date": "Start Date: 10-Jul-2023",
+        "service_end_date": "End Date: Jul 08, 2024",
+        "payment_terms": "Payment terms include Net 45 un1ess stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "SIGNATURE_SUCCESS",
+    "TALENT_ACQUISITION_CORE"
+  ],
+  "overrides": [
+    {
+      "check": "unit_price_times_quantity",
+      "item_index": 0,
+      "reason": "Premium Support SKU instructions require quantity null unless minimum/maximum monthly hours are stated; the table's '3' is not an hours entitlement, so quantity is left null while unit price and total are copied as printed (3 x 73,043.96 = 219,131.88)."
+    }
+  ],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "meta": {
+    "source_pdf": "of-0007.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 4,
+    "submissions": 2,
+    "stop_note": null,
+    "seconds": 55.7,
+    "usage": {
+      "input_tokens": 8,
+      "output_tokens": 5980,
+      "cache_creation_input_tokens": 16166,
+      "cache_read_input_tokens": 39729
+    },
+    "cost_usd": 0.2704
+  }
+}

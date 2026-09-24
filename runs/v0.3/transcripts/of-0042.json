@@ -1,0 +1,248 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON\n  name: Talent Intelligence Platform Premium Edition (Add-on)\n  description: Premium add-on to Talent Intelligence Platform\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION\n  name: Talent Acquisition\n  description: Subscription to Talent Acquisition module\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_ENTERPRISE\n  name: Talent Management Enterprise\n  description: Subscription to Talent Management Enterprise\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_INTELLIGENCE_PLATFORM\n  name: Talent Intelligence Platform\n  description: Subscription to the Talent Intelligence Platform\n  parsing_instructions: |\n    - For this and ALL items: use the Order Form Start Date as the contract term start (not the signature date).\n    - Revenue recognition for the mapped POB is straight-line by days across the service period.\n- code: PREMIUM_SUPPORT\n  name: Premium Support\n  description: Premium support subscription\n  parsing_instructions: |\n    - If minimum/maximum monthly hours are specified, capture them; otherwise leave quantity null.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: PROFESSIONAL_SERVICE\n  name: Professional Service\n  description: Professional services delivered on a usage/progress basis\n  parsing_instructions: |\n    - Capture delivery period and progress inputs (e.g., hours, milestones, percent complete) for percentage-of-completion.\n    - If dates are absent, align service dates with the related SOW or Order Form where available.\n- code: SIGNATURE_SUCCESS\n  name: Signature Success\n  description: Recurring subscription to Signature Success\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: SANDBOX\n  name: Sandbox\n  description: Sandbox environment access subscription\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: ELEVATE_SUCCESS_PLAN\n  name: Elevate Success Plan\n  description: Success plan subscription\n  parsing_instructions: |\n    - Identify any negative-valued contract items in a modification document; strike off the related contract item(s) effective on the modification date.\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: WHATSAPP_SMS_CREDITS\n  name: WhatsApp / SMS Credits\n  description: Recurring subscription for WhatsApp and SMS credits\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CANDIDATE_EXPERIENCE\n  name: Talent Acquisition Candidate Experience\n  description: Candidate experience component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CORE\n  name: Talent Acquisition Core\n  description: Core package of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CRM\n  name: Talent Acquisition CRM\n  description: CRM component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_CORE\n  name: Talent Management Core\n  description: Core package of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_LEADER_EXPERIENCE\n  name: Talent Management Leader Experience\n  description: Leader Experience component of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_DESIGN\n  name: Talent Design\n  description: Recurring subscription to Talent Design\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: COPILOT\n  name: Copilot\n  description: Recurring subscription to Copilot\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Overages - Talent Acquisition AI Interviewer Agent Add-on\n  description: Usage-based overages for the AI Interviewer Agent Add-on\n  parsing_instructions: |\n    - Revenue recognized based on actual usage consumption.\n    - Capture usage metrics as they occur for recognition.\n- code: SKILLS_PORTFOLIO\n  name: Skills Portfolio\n  description: Recurring subscription to Skills Portfolio\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Talent Acquisition AI Interviewer Agent Add-on\n  description: Recurring subscription to the AI Interviewer Agent Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_TALENT_TRACKING_ADDON\n  name: Talent Acquisition Talent Tracking Add-on\n  description: Recurring subscription to the Talent Tracking Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). If the document does not say, use null.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0042.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0042.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                               SALES ORDER FORM\n\nPrepared For: Riverstone Health                                                Quote Number: Q-531866\nAccount Executive: Riley Singh                                                 Offer Valid Through: 2022-10-15\n\n\n Sold/Ship To:                                                     Bill To:\n 8734 Mission Street, Denver, CO 68671,                            Attn: Accounts Payable, 5263 Market\n USA                                                               Street, Denver, CO 42480, USA\n\n\n\n Primary Contact: Jamie Kim                                        Billing Contact: Morgan Diaz\n Primary Email: jamie@riverstonehealth.com                         Billing Email: ap@riverstonehealth.com\n\n\n\nStart Date: 09-Oct-2022                     End Date: 10/07/2025                        Up to Customer Employee Size: 10,000\n\nSUBSCRIPTION SERVICE FEES\n\n SKU Description                                            Qty            Rate                             Total\n\n Signature Success                                           1             $60,264.76                       $723,177.12\n\n\n TOTAL SUBSCRIPTION                                                                                         $723,177.12\n\nINVOICE PLAN\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Net 45 unless stated otherwise.\n\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\n\n\n\n                                                                                                                          Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on 09/23/2022. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Professional Service, Talent Intelligence Platform\nPremium Edition (Add-on)\n\nRiverstone Health                                                  Acme Software Inc.\nBy:                                                                By:\n               SIGNED ELECTRONICALLY                                            SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                          Name (Print): ___________________________\nTitle (Print): Controller                                          Title (Print): Finance Manager\nDate (Print): 24-Sep-2022                                          Date (Print): 27-Sep-2022\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: YES, copy to be provided.\n\n\n\n\nConfidential - pricing subject to agreement.                                                                   Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_014PkiH1K3LJXFwhshShZwcy",
+          "input": {
+            "expression": "723177.12 / 60264.76"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01SrGaTh5ePwiQjMQNNzXv2s",
+          "input": {
+            "expression": "60264.76 * 36"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_014PkiH1K3LJXFwhshShZwcy",
+          "content": "723177.12 / 60264.76 = 12 (rounded to cents: 12.00)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01SrGaTh5ePwiQjMQNNzXv2s",
+          "content": "60264.76 * 36 = 2169531.36 (rounded to cents: 2169531.36)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_01GedZkKchtLEvKjBDbUjhPo",
+          "input": {
+            "order_form": {
+              "customer_name": "Riverstone Health",
+              "vendor_name": "Acme Software Inc.",
+              "effective_date": "2022-09-23",
+              "contract_signed_date_buying_company": "2022-09-24",
+              "contract_signed_date_selling_company": "2022-09-27",
+              "currency": "USD",
+              "grand_total": 723177.12,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Riverstone Health",
+                "vendor_name": "Acme Software Inc.",
+                "effective_date": "This order form becomes effective on 09/23/2022.",
+                "contract_signed_date_buying_company": "Riverstone Health...Date (Print): 24-Sep-2022",
+                "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): 27-Sep-2022",
+                "currency": "$723,177.12",
+                "grand_total": "TOTAL SUBSCRIPTION $723,177.12",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "SIGNATURE_SUCCESS",
+                "source_row": "Signature Success 1 $60,264.76 $723,177.12",
+                "currency": "USD",
+                "total_listed_value": 723177.12,
+                "quantity": 1,
+                "unit_price": 60264.76,
+                "unit_price_period": "month",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2022-10-09",
+                "service_end_date": "2025-10-07",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 45",
+                "special_notes": "Up to Customer Employee Size: 10,000",
+                "evidence": {
+                  "sku_code": "Signature Success",
+                  "source_row": "Signature Success 1 $60,264.76 $723,177.12",
+                  "currency": "$60,264.76",
+                  "total_listed_value": "$723,177.12",
+                  "quantity": "Qty...1",
+                  "unit_price": "Rate...$60,264.76",
+                  "unit_price_period": "Rate $60,264.76 ... Total $723,177.12",
+                  "service_start_date": "Start Date: 09-Oct-2022",
+                  "service_end_date": "End Date: 10/07/2025",
+                  "payment_terms": "Payment terms include Net 45 unless stated otherwise.",
+                  "special_notes": "Up to Customer Employee Size: 10,000"
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "PROFESSIONAL_SERVICE",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON"
+            ],
+            "overrides": [],
+            "ambiguities": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01GedZkKchtLEvKjBDbUjhPo",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Riverstone Health",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "2022-09-23",
+      "contract_signed_date_buying_company": "2022-09-24",
+      "contract_signed_date_selling_company": "2022-09-27",
+      "currency": "USD",
+      "grand_total": 723177.12,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Riverstone Health",
+        "vendor_name": "Acme Software Inc.",
+        "effective_date": "This order form becomes effective on 09/23/2022.",
+        "contract_signed_date_buying_company": "Riverstone Health...Date (Print): 24-Sep-2022",
+        "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): 27-Sep-2022",
+        "currency": "$723,177.12",
+        "grand_total": "TOTAL SUBSCRIPTION $723,177.12",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      },
+      "ambiguous_fields": {}
+    },
+    "contract_items_count": 1,
+    "contract_items": [
+      {
+        "name": "Signature Success",
+        "sku_id": "6e0247a7-ae3b-49ef-971e-feb0641cf52d",
+        "sku_code": "SIGNATURE_SUCCESS",
+        "currency": "USD",
+        "total_listed_value": 723177.12,
+        "quantity": 1.0,
+        "unit_price": 60264.76,
+        "unit_price_period": "month",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2022-10-09",
+        "service_end_date": "2025-10-07",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "quarterly",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 45",
+        "special_notes": "Up to Customer Employee Size: 10,000",
+        "ambiguous_fields": {},
+        "source_row": "Signature Success 1 $60,264.76 $723,177.12",
+        "evidence": {
+          "sku_code": "Signature Success",
+          "source_row": "Signature Success 1 $60,264.76 $723,177.12",
+          "currency": "$60,264.76",
+          "total_listed_value": "$723,177.12",
+          "quantity": "Qty...1",
+          "unit_price": "Rate...$60,264.76",
+          "unit_price_period": "Rate $60,264.76 ... Total $723,177.12",
+          "service_start_date": "Start Date: 09-Oct-2022",
+          "service_end_date": "End Date: 10/07/2025",
+          "payment_terms": "Payment terms include Net 45 unless stated otherwise.",
+          "special_notes": "Up to Customer Employee Size: 10,000"
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "PROFESSIONAL_SERVICE",
+      "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": null,
+        "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+      },
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": 0,
+        "message": "quotes for ['unit_price_period'] were not found verbatim in the text layer"
+      }
+    ],
+    "meta": {
+      "source_pdf": "of-0042.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 2,
+      "submissions": 1,
+      "stop_note": null,
+      "seconds": 48.4,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 3193,
+        "cache_creation_input_tokens": 14717,
+        "cache_read_input_tokens": 12417
+      },
+      "cost_usd": 0.178
+    }
+  }
+}

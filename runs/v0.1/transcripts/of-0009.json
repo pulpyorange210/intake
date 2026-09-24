@@ -1,0 +1,652 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON\n  name: Talent Intelligence Platform Premium Edition (Add-on)\n  description: Premium add-on to Talent Intelligence Platform\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION\n  name: Talent Acquisition\n  description: Subscription to Talent Acquisition module\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_ENTERPRISE\n  name: Talent Management Enterprise\n  description: Subscription to Talent Management Enterprise\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_INTELLIGENCE_PLATFORM\n  name: Talent Intelligence Platform\n  description: Subscription to the Talent Intelligence Platform\n  parsing_instructions: |\n    - For this and ALL items: use the Order Form Start Date as the contract term start (not the signature date).\n    - Revenue recognition for the mapped POB is straight-line by days across the service period.\n- code: PREMIUM_SUPPORT\n  name: Premium Support\n  description: Premium support subscription\n  parsing_instructions: |\n    - If minimum/maximum monthly hours are specified, capture them; otherwise leave quantity null.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: PROFESSIONAL_SERVICE\n  name: Professional Service\n  description: Professional services delivered on a usage/progress basis\n  parsing_instructions: |\n    - Capture delivery period and progress inputs (e.g., hours, milestones, percent complete) for percentage-of-completion.\n    - If dates are absent, align service dates with the related SOW or Order Form where available.\n- code: SIGNATURE_SUCCESS\n  name: Signature Success\n  description: Recurring subscription to Signature Success\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: SANDBOX\n  name: Sandbox\n  description: Sandbox environment access subscription\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: ELEVATE_SUCCESS_PLAN\n  name: Elevate Success Plan\n  description: Success plan subscription\n  parsing_instructions: |\n    - Identify any negative-valued contract items in a modification document; strike off the related contract item(s) effective on the modification date.\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: WHATSAPP_SMS_CREDITS\n  name: WhatsApp / SMS Credits\n  description: Recurring subscription for WhatsApp and SMS credits\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CANDIDATE_EXPERIENCE\n  name: Talent Acquisition Candidate Experience\n  description: Candidate experience component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CORE\n  name: Talent Acquisition Core\n  description: Core package of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CRM\n  name: Talent Acquisition CRM\n  description: CRM component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_CORE\n  name: Talent Management Core\n  description: Core package of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_LEADER_EXPERIENCE\n  name: Talent Management Leader Experience\n  description: Leader Experience component of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_DESIGN\n  name: Talent Design\n  description: Recurring subscription to Talent Design\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: COPILOT\n  name: Copilot\n  description: Recurring subscription to Copilot\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Overages - Talent Acquisition AI Interviewer Agent Add-on\n  description: Usage-based overages for the AI Interviewer Agent Add-on\n  parsing_instructions: |\n    - Revenue recognized based on actual usage consumption.\n    - Capture usage metrics as they occur for recognition.\n- code: SKILLS_PORTFOLIO\n  name: Skills Portfolio\n  description: Recurring subscription to Skills Portfolio\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Talent Acquisition AI Interviewer Agent Add-on\n  description: Recurring subscription to the AI Interviewer Agent Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_TALENT_TRACKING_ADDON\n  name: Talent Acquisition Talent Tracking Add-on\n  description: Recurring subscription to the Talent Tracking Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). If the document does not say, use null.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine).\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up, a quote not found). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0009.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0009.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                               Customer Order Schedule\n\nPrepared For: Summit Telecom                                                   Quote Number: Q-659340\nAccount Executive: Alex Carter                                                 Offer Valid Through: 2023-03-19\n\n\n 5old/Ship To:                                                     Bill To:\n 1093 Innovation Pkwy, Austin, TX 17919,                           Attn: Accounts Payable, 2277 Innovation\n USA                                                               Pkwy, Austin, TX 35386, USA\n\n\n\n Primary Contact: Jordan Lee                                       Billing Contact: Jordan Lee\n Primary Email: jordan@summittelecom.com                           Billing Email: ap@summittelecom.com\n\n\n\nStart Date: 2023-02-23                      End Date: 21-Feb-2025                       Up to Customer Employee Size: 5,000\n\nLICENSE AND SERVICE FEES\n\n Offering                                                   Qty            Unit Price                        Total\n\n Signature 5uccess                                           1             $85,606.58                    $2,054,557.92\n\n Prem. 5upport                                               2             $213,579.42                   $10,251,812.16\n\n Talent Acquisition Core                                     3             $105,272.78                   $7,579,640.16\n\n Elevate Success Plan                                        3             $148,399.38                   $10,684,755.36\n\n\n TOTAL SUBSCRIPTION                                                                                      $30,570,765.60\n\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\nINVOICING SCHEDULE\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Net 45 unless stated otherwise.\nProcurement summary: annualized billing profile included for planning.\n\n\n\n\n                                                                                                                     Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on 2023-02-06. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not so1d in this order: Skills Portfolio, Talent Intelligence Platform Premium\nEdition (Add-on)\n\nSummit Telecom                                                       Pioneer Intelligence Ltd.\nBy:                                                                  By:\n               SIGNED ELECTRONICALLY                                               SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                            Name (Print): ___________________________\nTitle (Print): Controller                                            Title (Print): VP Finance\nDate (Print): 2023-02-10                                             Date (Print): 2023-02-13\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: NO, PO exception form to be signed.\n\n\n\n\nThis is a generated order form for evaluation.                                                                   Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_016UampLWbAKHVuwvUrdJras",
+          "input": {
+            "expression": "2054557.92 + 10251812.16 + 7579640.16 + 10684755.36"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01717YcrRj4wKqoZQA3tJ7jy",
+          "input": {
+            "expression": "2054557.92 / 85606.58"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_016UampLWbAKHVuwvUrdJras",
+          "content": "2054557.92 + 10251812.16 + 7579640.16 + 10684755.36 = 30570765.60 (rounded to cents: 30570765.60)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01717YcrRj4wKqoZQA3tJ7jy",
+          "content": "2054557.92 / 85606.58 = 24 (rounded to cents: 24.00)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_01RpcCeuVDPAWdUfwWvSC3ys",
+          "input": {
+            "expression": "10251812.16 / (2 * 213579.42)"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_012ZgG84hoxjV7saUDTv99Tf",
+          "input": {
+            "expression": "7579640.16 / (3 * 105272.78)"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01CusWiPwZJj3a5V4yz3hcn8",
+          "input": {
+            "expression": "10684755.36 / (3 * 148399.38)"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01RpcCeuVDPAWdUfwWvSC3ys",
+          "content": "10251812.16 / (2 * 213579.42) = 24 (rounded to cents: 24.00)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_012ZgG84hoxjV7saUDTv99Tf",
+          "content": "7579640.16 / (3 * 105272.78) = 24 (rounded to cents: 24.00)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01CusWiPwZJj3a5V4yz3hcn8",
+          "content": "10684755.36 / (3 * 148399.38) = 24 (rounded to cents: 24.00)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISnAIKjgEIEhgCKkDe5q2b1haOp9j9VrzXQnxzk3ifX3vjsElGX2NvD8OgjysoU6iJruwpONqmntnUf3Nnpq9ToI/hiY5U7d+e5/e5Mg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWoAc2p1NUGEgyVSGinMDod4EFCoBEaDIYl4FctXrZCDrd46iIwbqY+OeZrlojeRXnqGhEEd3YVi/NLGEJO+4MiAd/0YxiPxREIwGSRaoaio5NiD78VKjuaOHUk6nsq6TAqfJnw6/pxljmfrexMWJ/vooFJQF+A+E6Y95xhNj9AFGkQmbzjJqj9MkT9w6yhYD7XaRgB",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_018LFApCrkFBkZx5YVNzyjxK",
+          "input": {
+            "contract_items": [
+              {
+                "sku_code": "SIGNATURE_SUCCESS",
+                "source_row": "Signature 5uccess 1 $85,606.58 $2,054,557.92",
+                "currency": "USD",
+                "total_listed_value": 2054557.92,
+                "quantity": 1,
+                "unit_price": 85606.58,
+                "unit_price_period": "month",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2023-02-23",
+                "service_end_date": "2025-02-21",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 45",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Signature 5uccess",
+                  "source_row": "Signature 5uccess 1 $85,606.58 $2,054,557.92",
+                  "currency": "$85,606.58",
+                  "total_listed_value": "$2,054,557.92",
+                  "quantity": "1",
+                  "unit_price": "$85,606.58",
+                  "unit_price_period": "Start Date: 2023-02-23 End Date: 21-Feb-2025",
+                  "service_start_date": "Start Date: 2023-02-23",
+                  "service_end_date": "End Date: 21-Feb-2025",
+                  "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "PREMIUM_SUPPORT",
+                "source_row": "Prem. 5upport 2 $213,579.42 $10,251,812.16",
+                "currency": "USD",
+                "total_listed_value": 10251812.16,
+                "quantity": 2,
+                "unit_price": 213579.42,
+                "unit_price_period": "month",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2023-02-23",
+                "service_end_date": "2025-02-21",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 45",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Prem. 5upport",
+                  "source_row": "Prem. 5upport 2 $213,579.42 $10,251,812.16",
+                  "currency": "$213,579.42",
+                  "total_listed_value": "$10,251,812.16",
+                  "quantity": "2",
+                  "unit_price": "$213,579.42",
+                  "unit_price_period": "Start Date: 2023-02-23 End Date: 21-Feb-2025",
+                  "service_start_date": "Start Date: 2023-02-23",
+                  "service_end_date": "End Date: 21-Feb-2025",
+                  "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "TALENT_ACQUISITION_CORE",
+                "source_row": "Talent Acquisition Core 3 $105,272.78 $7,579,640.16",
+                "currency": "USD",
+                "total_listed_value": 7579640.16,
+                "quantity": 3,
+                "unit_price": 105272.78,
+                "unit_price_period": "month",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2023-02-23",
+                "service_end_date": "2025-02-21",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 45",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Talent Acquisition Core",
+                  "source_row": "Talent Acquisition Core 3 $105,272.78 $7,579,640.16",
+                  "currency": "$105,272.78",
+                  "total_listed_value": "$7,579,640.16",
+                  "quantity": "3",
+                  "unit_price": "$105,272.78",
+                  "unit_price_period": "Start Date: 2023-02-23 End Date: 21-Feb-2025",
+                  "service_start_date": "Start Date: 2023-02-23",
+                  "service_end_date": "End Date: 21-Feb-2025",
+                  "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "ELEVATE_SUCCESS_PLAN",
+                "source_row": "Elevate Success Plan 3 $148,399.38 $10,684,755.36",
+                "currency": "USD",
+                "total_listed_value": 10684755.36,
+                "quantity": 3,
+                "unit_price": 148399.38,
+                "unit_price_period": "month",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2023-02-23",
+                "service_end_date": "2025-02-21",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 45",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Elevate Success Plan",
+                  "source_row": "Elevate Success Plan 3 $148,399.38 $10,684,755.36",
+                  "currency": "$148,399.38",
+                  "total_listed_value": "$10,684,755.36",
+                  "quantity": "3",
+                  "unit_price": "$148,399.38",
+                  "unit_price_period": "Start Date: 2023-02-23 End Date: 21-Feb-2025",
+                  "service_start_date": "Start Date: 2023-02-23",
+                  "service_end_date": "End Date: 21-Feb-2025",
+                  "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "SKILLS_PORTFOLIO",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON"
+            ],
+            "order_form": {
+              "customer_name": "Summit Telecom",
+              "vendor_name": "Pioneer Intelligence Ltd.",
+              "effective_date": "2023-02-06",
+              "contract_signed_date_buying_company": "2023-02-10",
+              "contract_signed_date_selling_company": "2023-02-13",
+              "currency": "USD",
+              "grand_total": 30570765.6,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Summit Telecom",
+                "vendor_name": "Pioneer Intelligence Ltd.",
+                "effective_date": "This order form becomes effective on 2023-02-06.",
+                "contract_signed_date_buying_company": "Summit Telecom ... Title (Print): Controller Date (Print): 2023-02-10",
+                "contract_signed_date_selling_company": "Pioneer Intelligence Ltd. ... Title (Print): VP Finance Date (Print): 2023-02-13",
+                "currency": "$30,570,765.60",
+                "grand_total": "$30,570,765.60",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_018LFApCrkFBkZx5YVNzyjxK",
+          "content": "Submission 1/3 not accepted.\nWarnings (fix if wrong; if correct as written, resubmit with an override {check, item_index, reason}):\n- [evidence_not_found] item None: quotes for ['contract_signed_date_buying_company', 'contract_signed_date_selling_company'] were not found verbatim in the document text layer. Quote exactly (a shorter exact quote is fine).",
+          "is_error": true
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAIS0gIKjgEIEhgCKkCrEGQSBEU+H66T0LmxKrTuWiks4mi65QILoEznpJn3MgjnlYbxFYyehRqDCo/+9RepXoMGE1OOLgxL2j1UQ3ZuMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWoAd+p1NUGEgwXgqGmVgOoRuWxQmEaDOD2oyn6Qa/3ZyyGUyIwdDh8U3OifxUO973NX2OBErxZE2ZM08kSOZF5qezNnq8RvSDx/8vk7EnJuSROuUZGKnHiTMY8UvnPSiRm5NvGiz0LiJhiQ0/zlE9vjlCZALyUsJjo8YZO1pxrgOuUMAnjhQnbSmBaFmF+qLTodWNOwVWVH+lXNH+kt2o34/wWLreC9UvZ6nEis4h33dRjx/UJAJAxiLHEbRZcge6WFYWceJcOSxgB",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01HqFRRxghbuEsupwZXcDGbn",
+          "input": {
+            "contract_items": [
+              {
+                "sku_code": "SIGNATURE_SUCCESS",
+                "source_row": "Signature 5uccess 1 $85,606.58 $2,054,557.92",
+                "currency": "USD",
+                "total_listed_value": 2054557.92,
+                "quantity": 1,
+                "unit_price": 85606.58,
+                "unit_price_period": "month",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2023-02-23",
+                "service_end_date": "2025-02-21",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 45",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Signature 5uccess",
+                  "source_row": "Signature 5uccess",
+                  "currency": "$85,606.58",
+                  "total_listed_value": "$2,054,557.92",
+                  "quantity": "1",
+                  "unit_price": "$85,606.58",
+                  "unit_price_period": "Start Date: 2023-02-23",
+                  "service_start_date": "Start Date: 2023-02-23",
+                  "service_end_date": "End Date: 21-Feb-2025",
+                  "payment_terms": "Payment\nterms include Net 45 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "PREMIUM_SUPPORT",
+                "source_row": "Prem. 5upport",
+                "currency": "USD",
+                "total_listed_value": 10251812.16,
+                "quantity": 2,
+                "unit_price": 213579.42,
+                "unit_price_period": "month",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2023-02-23",
+                "service_end_date": "2025-02-21",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 45",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Prem. 5upport",
+                  "source_row": "Prem. 5upport",
+                  "currency": "$213,579.42",
+                  "total_listed_value": "$10,251,812.16",
+                  "quantity": "2",
+                  "unit_price": "$213,579.42",
+                  "unit_price_period": "Start Date: 2023-02-23",
+                  "service_start_date": "Start Date: 2023-02-23",
+                  "service_end_date": "End Date: 21-Feb-2025",
+                  "payment_terms": "terms include Net 45 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "TALENT_ACQUISITION_CORE",
+                "source_row": "Talent Acquisition Core",
+                "currency": "USD",
+                "total_listed_value": 7579640.16,
+                "quantity": 3,
+                "unit_price": 105272.78,
+                "unit_price_period": "month",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2023-02-23",
+                "service_end_date": "2025-02-21",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 45",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Talent Acquisition Core",
+                  "source_row": "Talent Acquisition Core",
+                  "currency": "$105,272.78",
+                  "total_listed_value": "$7,579,640.16",
+                  "quantity": "3",
+                  "unit_price": "$105,272.78",
+                  "unit_price_period": "Start Date: 2023-02-23",
+                  "service_start_date": "Start Date: 2023-02-23",
+                  "service_end_date": "End Date: 21-Feb-2025",
+                  "payment_terms": "terms include Net 45 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "ELEVATE_SUCCESS_PLAN",
+                "source_row": "Elevate Success Plan",
+                "currency": "USD",
+                "total_listed_value": 10684755.36,
+                "quantity": 3,
+                "unit_price": 148399.38,
+                "unit_price_period": "month",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2023-02-23",
+                "service_end_date": "2025-02-21",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 45",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Elevate Success Plan",
+                  "source_row": "Elevate Success Plan",
+                  "currency": "$148,399.38",
+                  "total_listed_value": "$10,684,755.36",
+                  "quantity": "3",
+                  "unit_price": "$148,399.38",
+                  "unit_price_period": "Start Date: 2023-02-23",
+                  "service_start_date": "Start Date: 2023-02-23",
+                  "service_end_date": "End Date: 21-Feb-2025",
+                  "payment_terms": "terms include Net 45 unless stated otherwise."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "SKILLS_PORTFOLIO",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON"
+            ],
+            "order_form": {
+              "customer_name": "Summit Telecom",
+              "vendor_name": "Pioneer Intelligence Ltd.",
+              "effective_date": "2023-02-06",
+              "contract_signed_date_buying_company": "2023-02-10",
+              "contract_signed_date_selling_company": "2023-02-13",
+              "currency": "USD",
+              "grand_total": 30570765.6,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Summit Telecom",
+                "vendor_name": "Pioneer Intelligence Ltd.",
+                "effective_date": "This order form becomes effective on 2023-02-06.",
+                "contract_signed_date_buying_company": "Date (Print): 2023-02-10",
+                "contract_signed_date_selling_company": "Date (Print): 2023-02-13",
+                "currency": "$30,570,765.60",
+                "grand_total": "$30,570,765.60",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01HqFRRxghbuEsupwZXcDGbn",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Summit Telecom",
+      "vendor_name": "Pioneer Intelligence Ltd.",
+      "effective_date": "2023-02-06",
+      "contract_signed_date_buying_company": "2023-02-10",
+      "contract_signed_date_selling_company": "2023-02-13",
+      "currency": "USD",
+      "grand_total": 30570765.6,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Summit Telecom",
+        "vendor_name": "Pioneer Intelligence Ltd.",
+        "effective_date": "This order form becomes effective on 2023-02-06.",
+        "contract_signed_date_buying_company": "Date (Print): 2023-02-10",
+        "contract_signed_date_selling_company": "Date (Print): 2023-02-13",
+        "currency": "$30,570,765.60",
+        "grand_total": "$30,570,765.60",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      }
+    },
+    "contract_items_count": 4,
+    "contract_items": [
+      {
+        "name": "Signature Success",
+        "sku_id": "6e0247a7-ae3b-49ef-971e-feb0641cf52d",
+        "sku_code": "SIGNATURE_SUCCESS",
+        "currency": "USD",
+        "total_listed_value": 2054557.92,
+        "quantity": 1.0,
+        "unit_price": 85606.58,
+        "unit_price_period": "month",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2023-02-23",
+        "service_end_date": "2025-02-21",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "monthly",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 45",
+        "special_notes": null,
+        "source_row": "Signature 5uccess 1 $85,606.58 $2,054,557.92",
+        "evidence": {
+          "sku_code": "Signature 5uccess",
+          "source_row": "Signature 5uccess",
+          "currency": "$85,606.58",
+          "total_listed_value": "$2,054,557.92",
+          "quantity": "1",
+          "unit_price": "$85,606.58",
+          "unit_price_period": "Start Date: 2023-02-23",
+          "service_start_date": "Start Date: 2023-02-23",
+          "service_end_date": "End Date: 21-Feb-2025",
+          "payment_terms": "Payment\nterms include Net 45 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Premium Support",
+        "sku_id": "2c825663-7215-4f20-883c-4e8099f64b8b",
+        "sku_code": "PREMIUM_SUPPORT",
+        "currency": "USD",
+        "total_listed_value": 10251812.16,
+        "quantity": 2.0,
+        "unit_price": 213579.42,
+        "unit_price_period": "month",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2023-02-23",
+        "service_end_date": "2025-02-21",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "monthly",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 45",
+        "special_notes": null,
+        "source_row": "Prem. 5upport",
+        "evidence": {
+          "sku_code": "Prem. 5upport",
+          "source_row": "Prem. 5upport",
+          "currency": "$213,579.42",
+          "total_listed_value": "$10,251,812.16",
+          "quantity": "2",
+          "unit_price": "$213,579.42",
+          "unit_price_period": "Start Date: 2023-02-23",
+          "service_start_date": "Start Date: 2023-02-23",
+          "service_end_date": "End Date: 21-Feb-2025",
+          "payment_terms": "terms include Net 45 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Talent Acquisition Core",
+        "sku_id": "89ab57ac-9aad-49a5-b9f5-4b99698dd292",
+        "sku_code": "TALENT_ACQUISITION_CORE",
+        "currency": "USD",
+        "total_listed_value": 7579640.16,
+        "quantity": 3.0,
+        "unit_price": 105272.78,
+        "unit_price_period": "month",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2023-02-23",
+        "service_end_date": "2025-02-21",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "monthly",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 45",
+        "special_notes": null,
+        "source_row": "Talent Acquisition Core",
+        "evidence": {
+          "sku_code": "Talent Acquisition Core",
+          "source_row": "Talent Acquisition Core",
+          "currency": "$105,272.78",
+          "total_listed_value": "$7,579,640.16",
+          "quantity": "3",
+          "unit_price": "$105,272.78",
+          "unit_price_period": "Start Date: 2023-02-23",
+          "service_start_date": "Start Date: 2023-02-23",
+          "service_end_date": "End Date: 21-Feb-2025",
+          "payment_terms": "terms include Net 45 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Elevate Success Plan",
+        "sku_id": "63d14b22-78d4-4cb0-9cd6-85127611f1d0",
+        "sku_code": "ELEVATE_SUCCESS_PLAN",
+        "currency": "USD",
+        "total_listed_value": 10684755.36,
+        "quantity": 3.0,
+        "unit_price": 148399.38,
+        "unit_price_period": "month",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2023-02-23",
+        "service_end_date": "2025-02-21",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "monthly",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 45",
+        "special_notes": null,
+        "source_row": "Elevate Success Plan",
+        "evidence": {
+          "sku_code": "Elevate Success Plan",
+          "source_row": "Elevate Success Plan",
+          "currency": "$148,399.38",
+          "total_listed_value": "$10,684,755.36",
+          "quantity": "3",
+          "unit_price": "$148,399.38",
+          "unit_price_period": "Start Date: 2023-02-23",
+          "service_start_date": "Start Date: 2023-02-23",
+          "service_end_date": "End Date: 21-Feb-2025",
+          "payment_terms": "terms include Net 45 unless stated otherwise."
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "SKILLS_PORTFOLIO",
+      "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "meta": {
+      "source_pdf": "of-0009.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 4,
+      "submissions": 2,
+      "stop_note": null,
+      "seconds": 51.0,
+      "usage": {
+        "input_tokens": 8,
+        "output_tokens": 5355,
+        "cache_creation_input_tokens": 16001,
+        "cache_read_input_tokens": 38972
+      },
+      "cost_usd": 0.2534
+    }
+  }
+}

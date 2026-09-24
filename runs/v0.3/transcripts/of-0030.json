@@ -1,0 +1,321 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON\n  name: Talent Intelligence Platform Premium Edition (Add-on)\n  description: Premium add-on to Talent Intelligence Platform\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION\n  name: Talent Acquisition\n  description: Subscription to Talent Acquisition module\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_ENTERPRISE\n  name: Talent Management Enterprise\n  description: Subscription to Talent Management Enterprise\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_INTELLIGENCE_PLATFORM\n  name: Talent Intelligence Platform\n  description: Subscription to the Talent Intelligence Platform\n  parsing_instructions: |\n    - For this and ALL items: use the Order Form Start Date as the contract term start (not the signature date).\n    - Revenue recognition for the mapped POB is straight-line by days across the service period.\n- code: PREMIUM_SUPPORT\n  name: Premium Support\n  description: Premium support subscription\n  parsing_instructions: |\n    - If minimum/maximum monthly hours are specified, capture them; otherwise leave quantity null.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: PROFESSIONAL_SERVICE\n  name: Professional Service\n  description: Professional services delivered on a usage/progress basis\n  parsing_instructions: |\n    - Capture delivery period and progress inputs (e.g., hours, milestones, percent complete) for percentage-of-completion.\n    - If dates are absent, align service dates with the related SOW or Order Form where available.\n- code: SIGNATURE_SUCCESS\n  name: Signature Success\n  description: Recurring subscription to Signature Success\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: SANDBOX\n  name: Sandbox\n  description: Sandbox environment access subscription\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: ELEVATE_SUCCESS_PLAN\n  name: Elevate Success Plan\n  description: Success plan subscription\n  parsing_instructions: |\n    - Identify any negative-valued contract items in a modification document; strike off the related contract item(s) effective on the modification date.\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: WHATSAPP_SMS_CREDITS\n  name: WhatsApp / SMS Credits\n  description: Recurring subscription for WhatsApp and SMS credits\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CANDIDATE_EXPERIENCE\n  name: Talent Acquisition Candidate Experience\n  description: Candidate experience component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CORE\n  name: Talent Acquisition Core\n  description: Core package of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CRM\n  name: Talent Acquisition CRM\n  description: CRM component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_CORE\n  name: Talent Management Core\n  description: Core package of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_LEADER_EXPERIENCE\n  name: Talent Management Leader Experience\n  description: Leader Experience component of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_DESIGN\n  name: Talent Design\n  description: Recurring subscription to Talent Design\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: COPILOT\n  name: Copilot\n  description: Recurring subscription to Copilot\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Overages - Talent Acquisition AI Interviewer Agent Add-on\n  description: Usage-based overages for the AI Interviewer Agent Add-on\n  parsing_instructions: |\n    - Revenue recognized based on actual usage consumption.\n    - Capture usage metrics as they occur for recognition.\n- code: SKILLS_PORTFOLIO\n  name: Skills Portfolio\n  description: Recurring subscription to Skills Portfolio\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Talent Acquisition AI Interviewer Agent Add-on\n  description: Recurring subscription to the AI Interviewer Agent Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_TALENT_TRACKING_ADDON\n  name: Talent Acquisition Talent Tracking Add-on\n  description: Recurring subscription to the Talent Tracking Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). If the document does not say, use null.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0030.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0030.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                                CUSTOMER ORDER SCHEDULE\n\nPrepared For: Summit Telecom                                                   Quote Number: Q-155032\nAccount Executive: Morgan Diaz                                                 Offer Valid Through: 2026-01-31\n\n\n Sold/Ship To:                                                     Bill To:\n 8699 Harbor Boulevard, San Jose, CA                               Attn: Accounts Payable, 1029 Technology\n 14583, USA                                                        Drive, San Jose, CA 80077, USA\n\n\n\n Primary Contact: Avery Brown                                      Billing Contact: Jamie Kim\n Primary Email: avery@summittelecom.com                            Billing Email: ap@summittelecom.com\n\n\n\nStart Date: 01/25/2026                      End Date: Jan 23, 2029                      Up to Customer Employee Size: 25,000\n\nLICENSE AND SERVICE FEES\n\n SKU Description                                            Qty            Unit Price                    Total\n\n Elevate Success Plan                                        5             $103,953.12                   $18,711,561.60\n\n Talent Acquisition                                          2             $122,602.02                   $8,827,345.44\n\n\n TOTAL SUBSCRIPTION                                                                                      $27,538,907.04\n\nINVOICE PLAN\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Net 55 unless stated otherwise.\nProcurement summary: annualized billing profile included for planning.\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\n\n\n\n                                                                                                                    Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on 2026-01-21. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Signature Success, WhatsApp / SMS Credits\n\nSummit Telecom                                                   Acme Software Inc.\nBy:                                                              By:\n               SIGNED ELECTRONICALLY                                          SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                        Name (Print): ___________________________\nTitle (Print): Finance Manager                                   Title (Print): Finance Manager\nDate (Print): 2026-01-27                                         Date (Print): 2026-01-27\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: NO, PO exception form to be signed.\n\n\n\n\nConfidential - pricing subject to agreement.                                                                 Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_016CtnpJ9PeoAcUvgpTFufbc",
+          "input": {
+            "expression": "5 * 103953.12 * 36"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01GL8fdy8SvrSZqYHVMyKEc5",
+          "input": {
+            "expression": "2 * 122602.02 * 36"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_018UqdZDpx4LeiPrYDDvr4G5",
+          "input": {
+            "expression": "18711561.60 + 8827345.44"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_016CtnpJ9PeoAcUvgpTFufbc",
+          "content": "5 * 103953.12 * 36 = 18711561.60 (rounded to cents: 18711561.60)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01GL8fdy8SvrSZqYHVMyKEc5",
+          "content": "2 * 122602.02 * 36 = 8827345.44 (rounded to cents: 8827345.44)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_018UqdZDpx4LeiPrYDDvr4G5",
+          "content": "18711561.60 + 8827345.44 = 27538907.04 (rounded to cents: 27538907.04)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISpQIKjgEIEhgCKkAKraNbrrqDWKcJhdtwV1F7dlb64rCuaBhkoBDreN7FrRS9UM5BqL/t/NY00L3RtFac4mIAcCanzorJ8moUO0uyMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWoAYiF1dUGEgzDwx585z2k1iRvDO0aDOVsfxbnvd3y2sXXNSIwKRmnycFwPXQ4qEEDtjQakPksmuajM5GnC8sQY4DVuNeAJz25XMEjX5kheTB0+GpPKkSu7Zw1bG2yvgefkRCbx6+ZWi8NqfRyIPCuE/uvx02nvHMQT08AFkyP2Gog3CytM416G7rIiAmCGppTvk6uxgymjsjJixgB",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_016c2hnBDyqM8ZRRGj1hEZes",
+          "input": {
+            "order_form": {
+              "customer_name": "Summit Telecom",
+              "vendor_name": "Acme Software Inc.",
+              "effective_date": "2026-01-21",
+              "contract_signed_date_buying_company": "2026-01-27",
+              "contract_signed_date_selling_company": "2026-01-27",
+              "currency": "USD",
+              "grand_total": 27538907.04,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Summit Telecom",
+                "vendor_name": "Acme Software Inc.",
+                "effective_date": "This order form becomes effective on 2026-01-21.",
+                "contract_signed_date_buying_company": "Summit Telecom ... Date (Print): 2026-01-27",
+                "contract_signed_date_selling_company": "Acme Software Inc. ... Date (Print): 2026-01-27",
+                "currency": "$27,538,907.04",
+                "grand_total": "TOTAL SUBSCRIPTION $27,538,907.04",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "ELEVATE_SUCCESS_PLAN",
+                "source_row": "Elevate Success Plan 5 $103,953.12 $18,711,561.60",
+                "currency": "USD",
+                "total_listed_value": 18711561.6,
+                "quantity": 5,
+                "unit_price": 103953.12,
+                "unit_price_period": "month",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-01-25",
+                "service_end_date": "2029-01-23",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 55",
+                "special_notes": "Up to Customer Employee Size: 25,000",
+                "evidence": {
+                  "sku_code": "Elevate Success Plan",
+                  "source_row": "Elevate Success Plan 5 $103,953.12 $18,711,561.60",
+                  "currency": "$18,711,561.60",
+                  "total_listed_value": "$18,711,561.60",
+                  "quantity": "5",
+                  "unit_price": "$103,953.12",
+                  "unit_price_period": "Start Date: 01/25/2026 End Date: Jan 23, 2029",
+                  "service_start_date": "Start Date: 01/25/2026",
+                  "service_end_date": "End Date: Jan 23, 2029",
+                  "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+                  "special_notes": "Up to Customer Employee Size: 25,000"
+                }
+              },
+              {
+                "sku_code": "TALENT_ACQUISITION",
+                "source_row": "Talent Acquisition 2 $122,602.02 $8,827,345.44",
+                "currency": "USD",
+                "total_listed_value": 8827345.44,
+                "quantity": 2,
+                "unit_price": 122602.02,
+                "unit_price_period": "month",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-01-25",
+                "service_end_date": "2029-01-23",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 55",
+                "special_notes": "Up to Customer Employee Size: 25,000",
+                "evidence": {
+                  "sku_code": "Talent Acquisition",
+                  "source_row": "Talent Acquisition 2 $122,602.02 $8,827,345.44",
+                  "currency": "$8,827,345.44",
+                  "total_listed_value": "$8,827,345.44",
+                  "quantity": "2",
+                  "unit_price": "$122,602.02",
+                  "unit_price_period": "Start Date: 01/25/2026 End Date: Jan 23, 2029",
+                  "service_start_date": "Start Date: 01/25/2026",
+                  "service_end_date": "End Date: Jan 23, 2029",
+                  "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+                  "special_notes": "Up to Customer Employee Size: 25,000"
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "SIGNATURE_SUCCESS",
+              "WHATSAPP_SMS_CREDITS"
+            ],
+            "overrides": [],
+            "ambiguities": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_016c2hnBDyqM8ZRRGj1hEZes",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Summit Telecom",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "2026-01-21",
+      "contract_signed_date_buying_company": "2026-01-27",
+      "contract_signed_date_selling_company": "2026-01-27",
+      "currency": "USD",
+      "grand_total": 27538907.04,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Summit Telecom",
+        "vendor_name": "Acme Software Inc.",
+        "effective_date": "This order form becomes effective on 2026-01-21.",
+        "contract_signed_date_buying_company": "Summit Telecom ... Date (Print): 2026-01-27",
+        "contract_signed_date_selling_company": "Acme Software Inc. ... Date (Print): 2026-01-27",
+        "currency": "$27,538,907.04",
+        "grand_total": "TOTAL SUBSCRIPTION $27,538,907.04",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      },
+      "ambiguous_fields": {}
+    },
+    "contract_items_count": 2,
+    "contract_items": [
+      {
+        "name": "Elevate Success Plan",
+        "sku_id": "63d14b22-78d4-4cb0-9cd6-85127611f1d0",
+        "sku_code": "ELEVATE_SUCCESS_PLAN",
+        "currency": "USD",
+        "total_listed_value": 18711561.6,
+        "quantity": 5.0,
+        "unit_price": 103953.12,
+        "unit_price_period": "month",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2026-01-25",
+        "service_end_date": "2029-01-23",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "monthly",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 55",
+        "special_notes": "Up to Customer Employee Size: 25,000",
+        "ambiguous_fields": {},
+        "source_row": "Elevate Success Plan 5 $103,953.12 $18,711,561.60",
+        "evidence": {
+          "sku_code": "Elevate Success Plan",
+          "source_row": "Elevate Success Plan 5 $103,953.12 $18,711,561.60",
+          "currency": "$18,711,561.60",
+          "total_listed_value": "$18,711,561.60",
+          "quantity": "5",
+          "unit_price": "$103,953.12",
+          "unit_price_period": "Start Date: 01/25/2026 End Date: Jan 23, 2029",
+          "service_start_date": "Start Date: 01/25/2026",
+          "service_end_date": "End Date: Jan 23, 2029",
+          "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+          "special_notes": "Up to Customer Employee Size: 25,000"
+        }
+      },
+      {
+        "name": "Talent Acquisition",
+        "sku_id": "d6f20b62-9bec-421b-8d33-489712746aee",
+        "sku_code": "TALENT_ACQUISITION",
+        "currency": "USD",
+        "total_listed_value": 8827345.44,
+        "quantity": 2.0,
+        "unit_price": 122602.02,
+        "unit_price_period": "month",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2026-01-25",
+        "service_end_date": "2029-01-23",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "monthly",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 55",
+        "special_notes": "Up to Customer Employee Size: 25,000",
+        "ambiguous_fields": {},
+        "source_row": "Talent Acquisition 2 $122,602.02 $8,827,345.44",
+        "evidence": {
+          "sku_code": "Talent Acquisition",
+          "source_row": "Talent Acquisition 2 $122,602.02 $8,827,345.44",
+          "currency": "$8,827,345.44",
+          "total_listed_value": "$8,827,345.44",
+          "quantity": "2",
+          "unit_price": "$122,602.02",
+          "unit_price_period": "Start Date: 01/25/2026 End Date: Jan 23, 2029",
+          "service_start_date": "Start Date: 01/25/2026",
+          "service_end_date": "End Date: Jan 23, 2029",
+          "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+          "special_notes": "Up to Customer Employee Size: 25,000"
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "SIGNATURE_SUCCESS",
+      "WHATSAPP_SMS_CREDITS"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "review_notes": [],
+    "meta": {
+      "source_pdf": "of-0030.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 2,
+      "submissions": 1,
+      "stop_note": null,
+      "seconds": 26.1,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 2485,
+        "cache_creation_input_tokens": 13705,
+        "cache_read_input_tokens": 12532
+      },
+      "cost_usd": 0.1541
+    }
+  }
+}

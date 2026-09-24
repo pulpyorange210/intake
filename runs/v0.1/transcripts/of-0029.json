@@ -1,0 +1,482 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON\n  name: Talent Intelligence Platform Premium Edition (Add-on)\n  description: Premium add-on to Talent Intelligence Platform\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION\n  name: Talent Acquisition\n  description: Subscription to Talent Acquisition module\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_ENTERPRISE\n  name: Talent Management Enterprise\n  description: Subscription to Talent Management Enterprise\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_INTELLIGENCE_PLATFORM\n  name: Talent Intelligence Platform\n  description: Subscription to the Talent Intelligence Platform\n  parsing_instructions: |\n    - For this and ALL items: use the Order Form Start Date as the contract term start (not the signature date).\n    - Revenue recognition for the mapped POB is straight-line by days across the service period.\n- code: PREMIUM_SUPPORT\n  name: Premium Support\n  description: Premium support subscription\n  parsing_instructions: |\n    - If minimum/maximum monthly hours are specified, capture them; otherwise leave quantity null.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: PROFESSIONAL_SERVICE\n  name: Professional Service\n  description: Professional services delivered on a usage/progress basis\n  parsing_instructions: |\n    - Capture delivery period and progress inputs (e.g., hours, milestones, percent complete) for percentage-of-completion.\n    - If dates are absent, align service dates with the related SOW or Order Form where available.\n- code: SIGNATURE_SUCCESS\n  name: Signature Success\n  description: Recurring subscription to Signature Success\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: SANDBOX\n  name: Sandbox\n  description: Sandbox environment access subscription\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: ELEVATE_SUCCESS_PLAN\n  name: Elevate Success Plan\n  description: Success plan subscription\n  parsing_instructions: |\n    - Identify any negative-valued contract items in a modification document; strike off the related contract item(s) effective on the modification date.\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: WHATSAPP_SMS_CREDITS\n  name: WhatsApp / SMS Credits\n  description: Recurring subscription for WhatsApp and SMS credits\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CANDIDATE_EXPERIENCE\n  name: Talent Acquisition Candidate Experience\n  description: Candidate experience component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CORE\n  name: Talent Acquisition Core\n  description: Core package of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CRM\n  name: Talent Acquisition CRM\n  description: CRM component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_CORE\n  name: Talent Management Core\n  description: Core package of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_LEADER_EXPERIENCE\n  name: Talent Management Leader Experience\n  description: Leader Experience component of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_DESIGN\n  name: Talent Design\n  description: Recurring subscription to Talent Design\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: COPILOT\n  name: Copilot\n  description: Recurring subscription to Copilot\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Overages - Talent Acquisition AI Interviewer Agent Add-on\n  description: Usage-based overages for the AI Interviewer Agent Add-on\n  parsing_instructions: |\n    - Revenue recognized based on actual usage consumption.\n    - Capture usage metrics as they occur for recognition.\n- code: SKILLS_PORTFOLIO\n  name: Skills Portfolio\n  description: Recurring subscription to Skills Portfolio\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Talent Acquisition AI Interviewer Agent Add-on\n  description: Recurring subscription to the AI Interviewer Agent Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_TALENT_TRACKING_ADDON\n  name: Talent Acquisition Talent Tracking Add-on\n  description: Recurring subscription to the Talent Tracking Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). If the document does not say, use null.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine).\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up, a quote not found). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0029.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0029.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                                  ORDER FORM - SUBSCRIPTION SERVICES\n\nPrepared For: Brightwave Industries                                            Quote Number: Q-256232\nAccount Executive: Jamie Kim                                                   Offer Valid Through: 2026-10-07\n\n\n Sold/Ship To:                                                     Bill To:\n 1540 Enterprise Way, Chicago, IL 90095,                           Attn: Accounts Payable, 999 Mission\n USA                                                               Street, Chicago, IL 19323, USA\n\n\n\n Primary Contact: Alex Carter                                      Billing Contact: Riley Singh\n Primary Email: alex@brightwaveindustries.com                      Billing Email: ap@brightwaveindustries.com\n\n\n\nStart Date: Sep 01, 2026                    End Date: 2028-08-30                        Up to Customer Employee Size: 2,500\n\nSUBSCRIPTION SERVICE FEES\n\n SKU Description                                            Qty            Rate                           Total\n\n Talent Mgmt Leader Experience                               5             $160,410.21                   $802,051.05\n\n Talent Intel. Platf. Prem. Ed.                              1             $63,181.37                    $63,181.37\n (Add-on)\n Talent Acquisition                                          1             $185,069.11                   $185,069.11\n\n\n TOTAL SUBSCRIPTION                                                                                      $1,050,301.53\n\nINVOICING SCHEDULE\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Net 55 unless stated otherwise.\nProcurement summary: annualized billing profile included for planning.\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\n\n\n\n                                                                                                                       Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on 27-Aug-2026. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Sandbox, Talent Management Enterprise\n\nBrightwave Industries                                            Acme Software Inc.\nBy:                                                              By:\n               SIGNED ELECTRONICALLY                                           SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                        Name (Print): ___________________________\nTitle (Print): VP Finance                                        Title (Print): Controller\nDate (Print): 2026-09-02                                         Date (Print): 2026-09-03\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: YES, copy to be provided.\n\n\n\n\nThis is a generated order form for evaluation.                                                               Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAIS/woKjgEIEhgCKkD4hy4gHilIhKc1zo8qVp3k4WqlLSg4dcrpOXjcjUGvcgkIXErWdiQ9hy4a+z1rPkT9eI4xOAxsyihcH0qw9shgMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWoAc6q1NUGEgyw0rvgBtMXADiuyusaDD0gRstZv48zThgDsiIwmzTbcoTm89+b4ZleWqZ72jkIenzJY/H9CQzuTPrNX9ePWbe7P7DyyMOn9zYLmSbJKp0Jdad77+MJEs8YK5neZa7ovXVA/6Srv86lW4dooIMmFNx8G/TFStPmYZKXhdLvpLi0X1UQrsMRz1HUu8R5Ge2sG3Ro74xU/uY45Sb5gD/A2UF5XCKOn6u12wL5ElDpkbuHONXlmZXIVB4vd7rbo4tuZELqi5vcEHpjkGzRjvrNGZTuoGIIzYuz+maxDYxxr2melDV2sCKja7GCAFbOgmDaFi56U3xrlS0BOyv5hQHK5WRZQ1lC+I7hUgzCS+ualFwtg0QF74nrjkO04uQMA5RlxKcp5Y8w8XSZWsrfRt4uFQ0GisZNSUouqzf+9MX/OpwpVKhbQeJTc/VM3XntUo9addBa+rXMK5NoWSN9zDSvPYXjNQ20mAkSj85tERwp1eXN3JN6Zoc3TQ5AGL1wQqshirRRbZPboiTaH5WcEPtN3pTFliWNbaADvkbfR2lrF9oxt/3PHQT1BBer3QDA/C1YGgi9maO0u5ARDrVHNle+qcx04h8xpu0ExegNinxt7vBafmmMzlZAXGC0/ztlmwuKPoQ/t5P4scW996YllPAR0zOhNcRHY8FZA6E65nFQLCa54vcOcrexNWDJtSTyP/eMlv2q3YpQsC6Xz2sElEiTa9JIY5zXte3WgFVYpuXliaB5cwjdTxQm48DTzT7aboJJMj6qnBaKhBu1PNXNZP571HyYpxZyiISvITn/B+aRGRCqtVj/Y+oHSDPlETrJlwhmZzdancD7g2aVUq6NYK7sbooH0hZ8OSec7/cnvseDwVmutDv8dOaPfCak61fYqgFHl3wa9zG3lLBsXIDaeEzCa306utlSQL7WTNZXJk0XATH8KfOhEvziuZgTed/w9PiaPIhD+zx8GK/OYPoukuWzWho5oF5yCrNOUm7zpN1jpPAMF38MHXFOb0bt9OHWekmuIesQHzWUwdYxZ3vTPGGsmIEFESqRZKugDiEdvXsOxYHMXTTvRurgZLDt7k72XVDe0gal4CvmoiSZOA8cpvDJzs7cqFBYREbAGLGuELeXTo8ps1oFU/i2vFuMBgYJIaXLaStl1srFsuoRwsLsmt/zFNH9JI05AOJFRrl6zcFseD+n27rEnkMefRtkdNRg9GoBUWJJzOLRFvDOjIofWbzaagExLFXqyL2q8PaSbFgEnSWbErpX/Bqm1eWkPKxawB54tj3IVhQwKpp5UIwNFcZb2ATnBrPD6GsCCoYHQTaILskhrVE3RKNrIff4UXyZXuZ+BAUsZUdnVMYTKDijmrny8YyWFC+bGpFoM7XOMD6QGKj5iT6d1rFGA79TIE0P9FnWHpumTerBkSIJ2N5nzl8nLhmkpscfHOLIE8oPJwJMxBD3ElmfgBATElPHtc9vhrjCEqGQ+aCBP6YMNApikEjkq2T2RxfyIbCGwf6KcvvUhdF1iONXXQvz9k+Swk8OAHWCjoDk6PGkFmXVdrmMUGRa/RjmPCw38iXnIV1Ury7m9y76DPAsl1k+ncZATHH4bBTg+QMcPLH06Bb+TGzHc7kF1psJ1lkFDqRSCDAGUR8wmP8l5aL1UvvkDLkNuuWQfylbWy8zvBh7edgC0FZCBkwYAQ==",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01YCWajC5qmePPGB8dPAQf8D",
+          "input": {
+            "expression": "5*160410.21"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_018UKgzJUJ4aHYNMpvTUh8En",
+          "input": {
+            "expression": "802051.05+63181.37+185069.11"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01YCWajC5qmePPGB8dPAQf8D",
+          "content": "5*160410.21 = 802051.05 (rounded to cents: 802051.05)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_018UKgzJUJ4aHYNMpvTUh8En",
+          "content": "802051.05+63181.37+185069.11 = 1050301.53 (rounded to cents: 1050301.53)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_01KywZdX4pFxpdAyHjVe4mh2",
+          "input": {
+            "contract_items": [
+              {
+                "sku_code": "TALENT_MANAGEMENT_LEADER_EXPERIENCE",
+                "source_row": "Talent Mgmt Leader Experience 5 $160,410.21 $802,051.05",
+                "currency": "USD",
+                "total_listed_value": 802051.05,
+                "quantity": 5,
+                "unit_price": 160410.21,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-09-01",
+                "service_end_date": "2028-08-30",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 55",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Talent Mgmt Leader Experience                               5             $160,410.21                   $802,051.05",
+                  "currency": "$160,410.21",
+                  "total_listed_value": "$802,051.05",
+                  "quantity": "5",
+                  "unit_price": "$160,410.21",
+                  "unit_price_period": "Start Date: Sep 01, 2026                    End Date: 2028-08-30",
+                  "service_start_date": "Start Date: Sep 01, 2026",
+                  "service_end_date": "End Date: 2028-08-30",
+                  "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+                "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 $63,181.37 $63,181.37",
+                "currency": "USD",
+                "total_listed_value": 63181.37,
+                "quantity": 1,
+                "unit_price": 63181.37,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-09-01",
+                "service_end_date": "2028-08-30",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 55",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Talent Intel. Platf. Prem. Ed.                              1             $63,181.37                    $63,181.37",
+                  "currency": "$63,181.37",
+                  "total_listed_value": "$63,181.37",
+                  "quantity": "1",
+                  "unit_price": "$63,181.37",
+                  "unit_price_period": "Start Date: Sep 01, 2026                    End Date: 2028-08-30",
+                  "service_start_date": "Start Date: Sep 01, 2026",
+                  "service_end_date": "End Date: 2028-08-30",
+                  "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "TALENT_ACQUISITION",
+                "source_row": "Talent Acquisition 1 $185,069.11 $185,069.11",
+                "currency": "USD",
+                "total_listed_value": 185069.11,
+                "quantity": 1,
+                "unit_price": 185069.11,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-09-01",
+                "service_end_date": "2028-08-30",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 55",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Talent Acquisition                                          1             $185,069.11                   $185,069.11",
+                  "currency": "$185,069.11",
+                  "total_listed_value": "$185,069.11",
+                  "quantity": "1",
+                  "unit_price": "$185,069.11",
+                  "unit_price_period": "Start Date: Sep 01, 2026                    End Date: 2028-08-30",
+                  "service_start_date": "Start Date: Sep 01, 2026",
+                  "service_end_date": "End Date: 2028-08-30",
+                  "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "SANDBOX",
+              "TALENT_MANAGEMENT_ENTERPRISE"
+            ],
+            "order_form": {
+              "customer_name": "Brightwave Industries",
+              "vendor_name": "Acme Software Inc.",
+              "effective_date": "2026-08-27",
+              "contract_signed_date_buying_company": "2026-09-02",
+              "contract_signed_date_selling_company": "2026-09-03",
+              "currency": "USD",
+              "grand_total": 1050301.53,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Brightwave Industries",
+                "vendor_name": "Acme Software Inc.",
+                "effective_date": "This order form becomes effective on 27-Aug-2026.",
+                "contract_signed_date_buying_company": "Brightwave Industries ... Date (Print): 2026-09-02",
+                "contract_signed_date_selling_company": "Acme Software Inc. ... Date (Print): 2026-09-03",
+                "currency": "$1,050,301.53",
+                "grand_total": "$1,050,301.53",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01KywZdX4pFxpdAyHjVe4mh2",
+          "content": "Submission 1/3 not accepted.\nWarnings (fix if wrong; if correct as written, resubmit with an override {check, item_index, reason}):\n- [evidence_not_found] item None: quotes for ['contract_signed_date_buying_company', 'contract_signed_date_selling_company'] were not found verbatim in the document text layer. Quote exactly (a shorter exact quote is fine).\n- [evidence_not_found] item 1: quotes for ['source_row'] were not found verbatim in the document text layer. Quote exactly (a shorter exact quote is fine).",
+          "is_error": true
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_01W3LqXmSx1EadKXmWGYoJn4",
+          "input": {
+            "contract_items": [
+              {
+                "sku_code": "TALENT_MANAGEMENT_LEADER_EXPERIENCE",
+                "source_row": "Talent Mgmt Leader Experience 5 $160,410.21 $802,051.05",
+                "currency": "USD",
+                "total_listed_value": 802051.05,
+                "quantity": 5,
+                "unit_price": 160410.21,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-09-01",
+                "service_end_date": "2028-08-30",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 55",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Talent Mgmt Leader Experience                               5             $160,410.21                   $802,051.05",
+                  "currency": "$160,410.21",
+                  "total_listed_value": "$802,051.05",
+                  "quantity": "5",
+                  "unit_price": "$160,410.21",
+                  "unit_price_period": "Start Date: Sep 01, 2026                    End Date: 2028-08-30",
+                  "service_start_date": "Start Date: Sep 01, 2026",
+                  "service_end_date": "End Date: 2028-08-30",
+                  "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+                "source_row": "Talent Intel. Platf. Prem. Ed.                              1             $63,181.37                    $63,181.37",
+                "currency": "USD",
+                "total_listed_value": 63181.37,
+                "quantity": 1,
+                "unit_price": 63181.37,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-09-01",
+                "service_end_date": "2028-08-30",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 55",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Talent Intel. Platf. Prem. Ed.                              1             $63,181.37                    $63,181.37",
+                  "currency": "$63,181.37",
+                  "total_listed_value": "$63,181.37",
+                  "quantity": "1",
+                  "unit_price": "$63,181.37",
+                  "unit_price_period": "Start Date: Sep 01, 2026                    End Date: 2028-08-30",
+                  "service_start_date": "Start Date: Sep 01, 2026",
+                  "service_end_date": "End Date: 2028-08-30",
+                  "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "TALENT_ACQUISITION",
+                "source_row": "Talent Acquisition                                          1             $185,069.11                   $185,069.11",
+                "currency": "USD",
+                "total_listed_value": 185069.11,
+                "quantity": 1,
+                "unit_price": 185069.11,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-09-01",
+                "service_end_date": "2028-08-30",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 55",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Talent Acquisition                                          1             $185,069.11                   $185,069.11",
+                  "currency": "$185,069.11",
+                  "total_listed_value": "$185,069.11",
+                  "quantity": "1",
+                  "unit_price": "$185,069.11",
+                  "unit_price_period": "Start Date: Sep 01, 2026                    End Date: 2028-08-30",
+                  "service_start_date": "Start Date: Sep 01, 2026",
+                  "service_end_date": "End Date: 2028-08-30",
+                  "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "SANDBOX",
+              "TALENT_MANAGEMENT_ENTERPRISE"
+            ],
+            "order_form": {
+              "customer_name": "Brightwave Industries",
+              "vendor_name": "Acme Software Inc.",
+              "effective_date": "2026-08-27",
+              "contract_signed_date_buying_company": "2026-09-02",
+              "contract_signed_date_selling_company": "2026-09-03",
+              "currency": "USD",
+              "grand_total": 1050301.53,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Brightwave Industries",
+                "vendor_name": "Acme Software Inc.",
+                "effective_date": "This order form becomes effective on 27-Aug-2026.",
+                "contract_signed_date_buying_company": "Date (Print): 2026-09-02",
+                "contract_signed_date_selling_company": "Date (Print): 2026-09-03",
+                "currency": "$1,050,301.53",
+                "grand_total": "$1,050,301.53",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01W3LqXmSx1EadKXmWGYoJn4",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Brightwave Industries",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "2026-08-27",
+      "contract_signed_date_buying_company": "2026-09-02",
+      "contract_signed_date_selling_company": "2026-09-03",
+      "currency": "USD",
+      "grand_total": 1050301.53,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Brightwave Industries",
+        "vendor_name": "Acme Software Inc.",
+        "effective_date": "This order form becomes effective on 27-Aug-2026.",
+        "contract_signed_date_buying_company": "Date (Print): 2026-09-02",
+        "contract_signed_date_selling_company": "Date (Print): 2026-09-03",
+        "currency": "$1,050,301.53",
+        "grand_total": "$1,050,301.53",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      }
+    },
+    "contract_items_count": 3,
+    "contract_items": [
+      {
+        "name": "Talent Management Leader Experience",
+        "sku_id": "dd8cb75c-b04b-4f2a-992c-3cfd85a77677",
+        "sku_code": "TALENT_MANAGEMENT_LEADER_EXPERIENCE",
+        "currency": "USD",
+        "total_listed_value": 802051.05,
+        "quantity": 5.0,
+        "unit_price": 160410.21,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2026-09-01",
+        "service_end_date": "2028-08-30",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "one-time",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 55",
+        "special_notes": null,
+        "source_row": "Talent Mgmt Leader Experience 5 $160,410.21 $802,051.05",
+        "evidence": {
+          "source_row": "Talent Mgmt Leader Experience                               5             $160,410.21                   $802,051.05",
+          "currency": "$160,410.21",
+          "total_listed_value": "$802,051.05",
+          "quantity": "5",
+          "unit_price": "$160,410.21",
+          "unit_price_period": "Start Date: Sep 01, 2026                    End Date: 2028-08-30",
+          "service_start_date": "Start Date: Sep 01, 2026",
+          "service_end_date": "End Date: 2028-08-30",
+          "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+        "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+        "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+        "currency": "USD",
+        "total_listed_value": 63181.37,
+        "quantity": 1.0,
+        "unit_price": 63181.37,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2026-09-01",
+        "service_end_date": "2028-08-30",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "one-time",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 55",
+        "special_notes": null,
+        "source_row": "Talent Intel. Platf. Prem. Ed.                              1             $63,181.37                    $63,181.37",
+        "evidence": {
+          "source_row": "Talent Intel. Platf. Prem. Ed.                              1             $63,181.37                    $63,181.37",
+          "currency": "$63,181.37",
+          "total_listed_value": "$63,181.37",
+          "quantity": "1",
+          "unit_price": "$63,181.37",
+          "unit_price_period": "Start Date: Sep 01, 2026                    End Date: 2028-08-30",
+          "service_start_date": "Start Date: Sep 01, 2026",
+          "service_end_date": "End Date: 2028-08-30",
+          "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Talent Acquisition",
+        "sku_id": "d6f20b62-9bec-421b-8d33-489712746aee",
+        "sku_code": "TALENT_ACQUISITION",
+        "currency": "USD",
+        "total_listed_value": 185069.11,
+        "quantity": 1.0,
+        "unit_price": 185069.11,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2026-09-01",
+        "service_end_date": "2028-08-30",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "one-time",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 55",
+        "special_notes": null,
+        "source_row": "Talent Acquisition                                          1             $185,069.11                   $185,069.11",
+        "evidence": {
+          "source_row": "Talent Acquisition                                          1             $185,069.11                   $185,069.11",
+          "currency": "$185,069.11",
+          "total_listed_value": "$185,069.11",
+          "quantity": "1",
+          "unit_price": "$185,069.11",
+          "unit_price_period": "Start Date: Sep 01, 2026                    End Date: 2028-08-30",
+          "service_start_date": "Start Date: Sep 01, 2026",
+          "service_end_date": "End Date: 2028-08-30",
+          "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "SANDBOX",
+      "TALENT_MANAGEMENT_ENTERPRISE"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "meta": {
+      "source_pdf": "of-0029.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 3,
+      "submissions": 2,
+      "stop_note": null,
+      "seconds": 46.4,
+      "usage": {
+        "input_tokens": 6,
+        "output_tokens": 4174,
+        "cache_creation_input_tokens": 14854,
+        "cache_read_input_tokens": 24988
+      },
+      "cost_usd": 0.2097
+    }
+  }
+}

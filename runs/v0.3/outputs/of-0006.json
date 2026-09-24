@@ -1,0 +1,197 @@
+{
+  "order_form": {
+    "customer_name": "Meridian Financial Services",
+    "vendor_name": "Pioneer Intelligence Ltd.",
+    "effective_date": "2024-11-21",
+    "contract_signed_date_buying_company": "2024-11-23",
+    "contract_signed_date_selling_company": "2024-11-24",
+    "currency": "USD",
+    "grand_total": 62375532.12,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Meridian Financial Services",
+      "vendor_name": "Pioneer Intelligence Ltd.",
+      "effective_date": "This order form becomes effective on 2024-11-21.",
+      "contract_signed_date_buying_company": "Meridian Financial Services...Date (Print): 2024-11-23",
+      "contract_signed_date_selling_company": "Pioneer Intelligence Ltd....Date (Print): 2024-11-24",
+      "currency": "USD 62,375,532.12",
+      "grand_total": "TOTAL SUBSCRIPTION USD 62,375,532.12",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {}
+  },
+  "contract_items_count": 4,
+  "contract_items": [
+    {
+      "name": "Elevate Success Plan",
+      "sku_id": "63d14b22-78d4-4cb0-9cd6-85127611f1d0",
+      "sku_code": "ELEVATE_SUCCESS_PLAN",
+      "currency": "USD",
+      "total_listed_value": 7433692.92,
+      "quantity": 1.0,
+      "unit_price": 206491.47,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-11-23",
+      "service_end_date": "2027-11-22",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": "monthly",
+      "invoicing_frequency_source": "inferred_from_pricing",
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "source_row": "Elevate Success Plan 1 USD 206,491.47 USD 7,433,692.92",
+      "evidence": {
+        "source_row": "Elevate Success Plan 1 USD 206,491.47 USD 7,433,692.92",
+        "currency": "USD 206,491.47",
+        "total_listed_value": "USD 7,433,692.92",
+        "quantity": "Elevate Success Plan 1",
+        "unit_price": "USD 206,491.47",
+        "unit_price_period": "Start Date: 11/23/2024 End Date: 22 Nov 2027",
+        "service_start_date": "Start Date: 11/23/2024",
+        "service_end_date": "End Date: 22 Nov 2027",
+        "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Professional Service",
+      "sku_id": "2a4fa79f-0fb7-42a3-a4ad-143f3cce8e36",
+      "sku_code": "PROFESSIONAL_SERVICE",
+      "currency": "USD",
+      "total_listed_value": 22779809.28,
+      "quantity": 3.0,
+      "unit_price": 210924.16,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-11-23",
+      "service_end_date": "2027-11-22",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": "monthly",
+      "invoicing_frequency_source": "inferred_from_pricing",
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "source_row": "Professional Service 3 USD 210,924.16 USD 22,779,809.28",
+      "evidence": {
+        "source_row": "Professional Service 3 USD 210,924.16 USD 22,779,809.28",
+        "currency": "USD 210,924.16",
+        "total_listed_value": "USD 22,779,809.28",
+        "quantity": "Professional Service 3",
+        "unit_price": "USD 210,924.16",
+        "unit_price_period": "Start Date: 11/23/2024 End Date: 22 Nov 2027",
+        "service_start_date": "Start Date: 11/23/2024",
+        "service_end_date": "End Date: 22 Nov 2027",
+        "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+      "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+      "currency": "USD",
+      "total_listed_value": 7340803.92,
+      "quantity": 1.0,
+      "unit_price": 203911.22,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-11-23",
+      "service_end_date": "2027-11-22",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": "monthly",
+      "invoicing_frequency_source": "inferred_from_pricing",
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 USD 203,911.22 USD 7,340,803.92",
+      "evidence": {
+        "source_row": "Talent Intel. Platf. Prem. Ed.\n(Add-on) 1 USD 203,911.22 USD 7,340,803.92",
+        "currency": "USD 203,911.22",
+        "total_listed_value": "USD 7,340,803.92",
+        "quantity": "Talent Intel. Platf. Prem. Ed. ... 1",
+        "unit_price": "USD 203,911.22",
+        "unit_price_period": "Start Date: 11/23/2024 End Date: 22 Nov 2027",
+        "service_start_date": "Start Date: 11/23/2024",
+        "service_end_date": "End Date: 22 Nov 2027",
+        "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Acquisition Candidate Experience",
+      "sku_id": "436af129-f59f-4be4-aa40-e50f90046516",
+      "sku_code": "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE",
+      "currency": "USD",
+      "total_listed_value": 24821226.0,
+      "quantity": 5.0,
+      "unit_price": 137895.7,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-11-23",
+      "service_end_date": "2027-11-22",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": "monthly",
+      "invoicing_frequency_source": "inferred_from_pricing",
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "source_row": "Talent Acquisition Candidate Experience 5 USD 137,895.70 USD 24,821,226.00",
+      "evidence": {
+        "source_row": "Talent Acquisition Candidate                                5             USD 137,895.70                USD 24,821,226.00\n Experience",
+        "currency": "USD 137,895.70",
+        "total_listed_value": "USD 24,821,226.00",
+        "quantity": "Talent Acquisition Candidate ... 5",
+        "unit_price": "USD 137,895.70",
+        "unit_price_period": "Start Date: 11/23/2024 End Date: 22 Nov 2027",
+        "service_start_date": "Start Date: 11/23/2024",
+        "service_end_date": "End Date: 22 Nov 2027",
+        "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "TALENT_ACQUISITION_CORE",
+    "SANDBOX"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": null,
+      "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+    },
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": 2,
+      "message": "quotes for ['source_row'] were not found verbatim in the text layer"
+    },
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": 3,
+      "message": "quotes for ['source_row'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0006.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 2,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 29.8,
+    "usage": {
+      "input_tokens": 4,
+      "output_tokens": 3444,
+      "cache_creation_input_tokens": 14073,
+      "cache_read_input_tokens": 12706
+    },
+    "cost_usd": 0.1804
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "order_form": {
+    "customer_name": "Oakbridge Energy",
+    "vendor_name": "Northstar Systems LLC",
+    "effective_date": "2024-04-24",
+    "contract_signed_date_buying_company": "2024-04-24",
+    "contract_signed_date_selling_company": "2024-04-24",
+    "currency": "USD",
+    "grand_total": 1704618.29,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Oakbridge Energy",
+      "vendor_name": "Northstar Systems LLC",
+      "effective_date": "This order form becomes effective on 24 Apr 2024.",
+      "contract_signed_date_buying_company": "Oakbridge Energy...Date (Print): 2024-04-24",
+      "contract_signed_date_selling_company": "Northstar Systems LLC...Date (Print): 2024-04-24",
+      "currency": "$1,704,618.29",
+      "grand_total": "TOTAL SUBSCRIPTION $1,704,618.29",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {}
+  },
+  "contract_items_count": 3,
+  "contract_items": [
+    {
+      "name": "Talent Management Enterprise",
+      "sku_id": "4e976929-ebff-4189-b7ab-1b650edabc4e",
+      "sku_code": "TALENT_MANAGEMENT_ENTERPRISE",
+      "currency": "USD",
+      "total_listed_value": 1034232.3,
+      "quantity": 5.0,
+      "unit_price": 206846.46,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-05-18",
+      "service_end_date": "2025-05-17",
+      "invoicing_schedule_type": "upfront",
+      "invoicing_frequency": null,
+      "invoicing_frequency_source": "ambiguous",
+      "payment_terms": "Net 55",
+      "special_notes": "Up to Customer Employee Size: 15,000",
+      "ambiguous_fields": {
+        "invoicing_frequency": {
+          "candidates": [
+            "one-time",
+            "yearly"
+          ],
+          "reason": "One price covers the whole 12-month term, so it is billed once; that fits both 'one-time' and 'yearly', and the document does not state the billing frequency."
+        }
+      },
+      "source_row": "Talent Mgmt Ent. 5 $206,846.46 $1,034,232.30",
+      "evidence": {
+        "sku_code": "Talent Mgmt Ent.",
+        "source_row": "Talent Mgmt Ent. 5 $206,846.46 $1,034,232.30",
+        "currency": "$1,034,232.30",
+        "total_listed_value": "$1,034,232.30",
+        "quantity": "5",
+        "unit_price": "$206,846.46",
+        "unit_price_period": "Start Date: 2024-05-18 End Date: 2025-05-17",
+        "service_start_date": "Start Date: 2024-05-18",
+        "service_end_date": "End Date: 2025-05-17",
+        "invoicing_schedule_type": "Invoices are sent in advance in accordance with each line item\u2019s billing frequency.",
+        "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+        "special_notes": "Up to Customer Employee Size: 15,000"
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform",
+      "sku_id": "a763df24-1ea6-4afc-a195-13ce52ea20cd",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+      "currency": "USD",
+      "total_listed_value": 98508.32,
+      "quantity": 1.0,
+      "unit_price": 98508.32,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-05-18",
+      "service_end_date": "2025-05-17",
+      "invoicing_schedule_type": "upfront",
+      "invoicing_frequency": null,
+      "invoicing_frequency_source": "ambiguous",
+      "payment_terms": "Net 55",
+      "special_notes": "Up to Customer Employee Size: 15,000",
+      "ambiguous_fields": {
+        "invoicing_frequency": {
+          "candidates": [
+            "one-time",
+            "yearly"
+          ],
+          "reason": "One price covers the whole 12-month term, so it is billed once; that fits both 'one-time' and 'yearly', and the document does not state the billing frequency."
+        }
+      },
+      "source_row": "Talent Intel. Platf. 1 $98,508.32 $98,508.32",
+      "evidence": {
+        "sku_code": "Talent Intel. Platf.",
+        "source_row": "Talent Intel. Platf. 1 $98,508.32 $98,508.32",
+        "currency": "$98,508.32",
+        "total_listed_value": "$98,508.32",
+        "quantity": "1",
+        "unit_price": "$98,508.32",
+        "unit_price_period": "Start Date: 2024-05-18 End Date: 2025-05-17",
+        "service_start_date": "Start Date: 2024-05-18",
+        "service_end_date": "End Date: 2025-05-17",
+        "invoicing_schedule_type": "Invoices are sent in advance in accordance with each line item\u2019s billing frequency.",
+        "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+        "special_notes": "Up to Customer Employee Size: 15,000"
+      }
+    },
+    {
+      "name": "Skills Portfolio",
+      "sku_id": "54d9788d-fa28-4cbf-847b-9aac7c6cab8f",
+      "sku_code": "SKILLS_PORTFOLIO",
+      "currency": "USD",
+      "total_listed_value": 571877.67,
+      "quantity": 3.0,
+      "unit_price": 190625.89,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-05-18",
+      "service_end_date": "2025-05-17",
+      "invoicing_schedule_type": "upfront",
+      "invoicing_frequency": null,
+      "invoicing_frequency_source": "ambiguous",
+      "payment_terms": "Net 55",
+      "special_notes": "Up to Customer Employee Size: 15,000",
+      "ambiguous_fields": {
+        "invoicing_frequency": {
+          "candidates": [
+            "one-time",
+            "yearly"
+          ],
+          "reason": "One price covers the whole 12-month term, so it is billed once; that fits both 'one-time' and 'yearly', and the document does not state the billing frequency."
+        }
+      },
+      "source_row": "Skills Portfolio 3 $190,625.89 $571,877.67",
+      "evidence": {
+        "sku_code": "Skills Portfolio",
+        "source_row": "Skills Portfolio 3 $190,625.89 $571,877.67",
+        "currency": "$571,877.67",
+        "total_listed_value": "$571,877.67",
+        "quantity": "3",
+        "unit_price": "$190,625.89",
+        "unit_price_period": "Start Date: 2024-05-18 End Date: 2025-05-17",
+        "service_start_date": "Start Date: 2024-05-18",
+        "service_end_date": "End Date: 2025-05-17",
+        "invoicing_schedule_type": "Invoices are sent in advance in accordance with each line item\u2019s billing frequency.",
+        "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+        "special_notes": "Up to Customer Employee Size: 15,000"
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "SANDBOX",
+    "TALENT_DESIGN"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [],
+  "meta": {
+    "source_pdf": "of-0034.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 2,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 24.4,
+    "usage": {
+      "input_tokens": 4,
+      "output_tokens": 2645,
+      "cache_creation_input_tokens": 13293,
+      "cache_read_input_tokens": 12546
+    },
+    "cost_usd": 0.1555
+  }
+}

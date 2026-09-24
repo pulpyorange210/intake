@@ -1,0 +1,410 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON\n  name: Talent Intelligence Platform Premium Edition (Add-on)\n  description: Premium add-on to Talent Intelligence Platform\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION\n  name: Talent Acquisition\n  description: Subscription to Talent Acquisition module\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_ENTERPRISE\n  name: Talent Management Enterprise\n  description: Subscription to Talent Management Enterprise\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_INTELLIGENCE_PLATFORM\n  name: Talent Intelligence Platform\n  description: Subscription to the Talent Intelligence Platform\n  parsing_instructions: |\n    - For this and ALL items: use the Order Form Start Date as the contract term start (not the signature date).\n    - Revenue recognition for the mapped POB is straight-line by days across the service period.\n- code: PREMIUM_SUPPORT\n  name: Premium Support\n  description: Premium support subscription\n  parsing_instructions: |\n    - If minimum/maximum monthly hours are specified, capture them; otherwise leave quantity null.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: PROFESSIONAL_SERVICE\n  name: Professional Service\n  description: Professional services delivered on a usage/progress basis\n  parsing_instructions: |\n    - Capture delivery period and progress inputs (e.g., hours, milestones, percent complete) for percentage-of-completion.\n    - If dates are absent, align service dates with the related SOW or Order Form where available.\n- code: SIGNATURE_SUCCESS\n  name: Signature Success\n  description: Recurring subscription to Signature Success\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: SANDBOX\n  name: Sandbox\n  description: Sandbox environment access subscription\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: ELEVATE_SUCCESS_PLAN\n  name: Elevate Success Plan\n  description: Success plan subscription\n  parsing_instructions: |\n    - Identify any negative-valued contract items in a modification document; strike off the related contract item(s) effective on the modification date.\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: WHATSAPP_SMS_CREDITS\n  name: WhatsApp / SMS Credits\n  description: Recurring subscription for WhatsApp and SMS credits\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CANDIDATE_EXPERIENCE\n  name: Talent Acquisition Candidate Experience\n  description: Candidate experience component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CORE\n  name: Talent Acquisition Core\n  description: Core package of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CRM\n  name: Talent Acquisition CRM\n  description: CRM component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_CORE\n  name: Talent Management Core\n  description: Core package of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_LEADER_EXPERIENCE\n  name: Talent Management Leader Experience\n  description: Leader Experience component of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_DESIGN\n  name: Talent Design\n  description: Recurring subscription to Talent Design\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: COPILOT\n  name: Copilot\n  description: Recurring subscription to Copilot\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Overages - Talent Acquisition AI Interviewer Agent Add-on\n  description: Usage-based overages for the AI Interviewer Agent Add-on\n  parsing_instructions: |\n    - Revenue recognized based on actual usage consumption.\n    - Capture usage metrics as they occur for recognition.\n- code: SKILLS_PORTFOLIO\n  name: Skills Portfolio\n  description: Recurring subscription to Skills Portfolio\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Talent Acquisition AI Interviewer Agent Add-on\n  description: Recurring subscription to the AI Interviewer Agent Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_TALENT_TRACKING_ADDON\n  name: Talent Acquisition Talent Tracking Add-on\n  description: Recurring subscription to the Talent Tracking Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). If the document does not say, use null.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0034.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0034.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                               Customer Order Schedule\n\nPrepared For: Oakbridge Energy                                                 Quote Number: Q-675281\nAccount Executive: Jamie Kim                                                   Offer Valid Through: 2024-05-30\n\n\n Sold/Ship To:                                                     Bill To:\n 4193 Technology Drive, Chicago, IL                                Attn: Accounts Payable, 2243 Harbor\n 36610, USA                                                        Boulevard, Chicago, IL 21146, USA\n\n\n\n Primary Contact: Jamie Kim                                        Billing Contact: Alex Carter\n Primary Email: jamie@oakbridgeenergy.com                          Billing Email: ap@oakbridgeenergy.com\n\n\n\nStart Date: 2024-05-18                      End Date: 2025-05-17                        Up to Customer Employee Size: 15,000\n\nSUBSCRIPTION FEES\n\n Offering                                                   Qty            Unit Price                      Extended Price\n\n Talent Mgmt Ent.                                            5             $206,846.46                     $1,034,232.30\n\n Talent Intel. Platf.                                        1             $98,508.32                      $98,508.32\n\n Skills Portfolio                                            3             $190,625.89                     $571,877.67\n\n\n TOTAL SUBSCRIPTION                                                                                        $1,704,618.29\n\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\nINVOICING SCHEDULE\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Net 55 unless stated otherwise.\n\n\n\n\n                                                                                                                         Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on 24 Apr 2024. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Sandbox, Talent Design\n\nOakbridge Energy                                                 Northstar Systems LLC\nBy:                                                              By:\n               SIGNED ELECTRONICALLY                                          SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                        Name (Print): ___________________________\nTitle (Print): Finance Manager                                   Title (Print): Finance Manager\nDate (Print): 2024-04-24                                         Date (Print): 2024-04-24\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: NO, PO exception form to be signed.\n\n\n\n\nThis is a generated order form for evaluation.                                                               Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAIS9gkKjgEIEhgCKkBQMcHn8eh1uwd48WBMpLHO8FRK/lT4Wwqy0qnOlwR3nkxRJXGKH7HNX9SVc7+zX2K2rX5jBOJ3t/bkhgZrr1KlMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWoAZSF1dUGEgyB3jF50BipDOwHI/YaDP/vsQC6rzrHk6PEiSIwN9VXs/Z/bEKBP8/4REp7z1v0vAgkRnGPqe2RVnhvmiYiKJzKHLN6t+OvuZMPxWzNKpQIyb8DSrbVLQ5fW39X+vvZrHozyctVCqwdGJ8zSlUWWNB/CoWHGsGXLGx6S5rQXvRD3RYI8EzJpB47nau4Ba3PQYH+APVSs/VliKOovc4MeBqmQqKfxrltOcfBO5fYhPFEyiOxGXQZ9eiiTek/POnrBHviumGyEaYe34Xet3p+KK/TIu5vLzYsC8MA1Qy1kLEuI7PAHLkvjK65mtEySdSItiUFPioJ2wStAdpixwUh7AU9TWpsNE1z43KN8sJkpd5jwKvLtF4oaDTfG/SPjc/x0e9No+UOOZ4nbujgR+Zvd/FguZLkGQ1lbuY5eOD+5oxUdPUxv2n0ORmB5Vu/EV5Es67VSfTsuxLckAoEJw7s53vyoHoivM4DQGeVU9KRH9iYJF2mML1i3lS5wyF9jiZ4Mw1ovQLJTtZPQgXjX42+dLj+c7ZtRLg3AnbD+Ha2GseWROYDtXR5VDFGG0ATqtrTpDl+C3TIiVKl+gt9o4YgweRd+UAXKj0L8nGekc8Yd/KDCyrcityqlOaxI+F4oWgDa+MK/5ZAJ5prcVKtZ7+OvZ+av7cHB55uQICMz3y8RmTe/VWai2sQfbtWHebJ2KBEF/39O1GzcsbHcmtwVIbYxNn/YJUGRMi1V6ncZ+nfzgjQv+vMxR2PhWAt1yZHcQ+vTPQcJAaC7udSfqitMOJJ4lwLeWcVTQYsR++ED6VJuN1ltsunHjmT8x0C0WWtfpCh0g96X2KMsd+P6DgZeFLap+E0CmZMsE1Ck5VZ+MEJhfcSCaGT/dlMQOacRpryl656wjOhHu7A4xhVkCRRM/O5h4kF1obN2TqGdw6GqNTR0rclevOQDkYqSwlvQCaVL2ngqX5dnFhivkpi7lbhSIgMbnd57GQsVBNMCmlwZvDoI6B1jsu02cudLvjoHppRnisi4zOSn5yfSUCst4FXTTxu6mmkyW6dyWLtlLEOl1JLiVLEiSi9ohfKI8zWIixIRaKXz5spxz8JgW/RCc7i/bmqyGC9L3Et9LyYUfjNC/QiE5blrE+II56Ssr213wYsANXxBPjObYjm/AJ1ZmKTdhB+PVlPIevKgYsnd9eea4vi8+CL4UCMv2KKZq5L8vM/6EZRfkv/cibm4cvueS8thVYfZLtliXmonncsfpX1ZHH8EeLRMLf3GmAfb16fE+qTSQdWP/4mWqvx9R6Adn7wLwgFmAfVegilQddIdVhI4Nl0SwcgDLfS3ZddWk33kXuDVqIlvBxMDTcPzTWxxR3cYOsLVoP0HJByXLWZiHx8HOXgOsW20XjUBWbS0tokjIHnTmI0HKy5RXFFrjjShrRm54gj8RffQ/fDwrk8uV9h0i9VgjdAjeYE3K9KoQdUNe8uRzdO3rvK89YuLBh7m7UdBtvVEC62ybnPGAE=",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01XaJvNnrEDF7U8zjTbHj2hc",
+          "input": {
+            "expression": "5*206846.46"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_0124AQ7mh29x2n4kGc2hJYhM",
+          "input": {
+            "expression": "3*190625.89"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01HSQH9EHn5KDjK6rzDUvFqm",
+          "input": {
+            "expression": "1034232.30+98508.32+571877.67"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01XaJvNnrEDF7U8zjTbHj2hc",
+          "content": "5*206846.46 = 1034232.30 (rounded to cents: 1034232.30)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_0124AQ7mh29x2n4kGc2hJYhM",
+          "content": "3*190625.89 = 571877.67 (rounded to cents: 571877.67)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01HSQH9EHn5KDjK6rzDUvFqm",
+          "content": "1034232.30+98508.32+571877.67 = 1704618.29 (rounded to cents: 1704618.29)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_01RXFXf7AhxLHThRF8P5emFs",
+          "input": {
+            "order_form": {
+              "customer_name": "Oakbridge Energy",
+              "vendor_name": "Northstar Systems LLC",
+              "effective_date": "2024-04-24",
+              "contract_signed_date_buying_company": "2024-04-24",
+              "contract_signed_date_selling_company": "2024-04-24",
+              "currency": "USD",
+              "grand_total": 1704618.29,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Oakbridge Energy",
+                "vendor_name": "Northstar Systems LLC",
+                "effective_date": "This order form becomes effective on 24 Apr 2024.",
+                "contract_signed_date_buying_company": "Oakbridge Energy...Date (Print): 2024-04-24",
+                "contract_signed_date_selling_company": "Northstar Systems LLC...Date (Print): 2024-04-24",
+                "currency": "$1,704,618.29",
+                "grand_total": "TOTAL SUBSCRIPTION $1,704,618.29",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "TALENT_MANAGEMENT_ENTERPRISE",
+                "source_row": "Talent Mgmt Ent. 5 $206,846.46 $1,034,232.30",
+                "currency": "USD",
+                "total_listed_value": 1034232.3,
+                "quantity": 5,
+                "unit_price": 206846.46,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2024-05-18",
+                "service_end_date": "2025-05-17",
+                "invoicing_schedule_type": "upfront",
+                "invoicing_frequency": null,
+                "payment_terms": "Net 55",
+                "special_notes": "Up to Customer Employee Size: 15,000",
+                "evidence": {
+                  "sku_code": "Talent Mgmt Ent.",
+                  "source_row": "Talent Mgmt Ent. 5 $206,846.46 $1,034,232.30",
+                  "currency": "$1,034,232.30",
+                  "total_listed_value": "$1,034,232.30",
+                  "quantity": "5",
+                  "unit_price": "$206,846.46",
+                  "unit_price_period": "Start Date: 2024-05-18 End Date: 2025-05-17",
+                  "service_start_date": "Start Date: 2024-05-18",
+                  "service_end_date": "End Date: 2025-05-17",
+                  "invoicing_schedule_type": "Invoices are sent in advance in accordance with each line item\u2019s billing frequency.",
+                  "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+                  "special_notes": "Up to Customer Employee Size: 15,000"
+                }
+              },
+              {
+                "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+                "source_row": "Talent Intel. Platf. 1 $98,508.32 $98,508.32",
+                "currency": "USD",
+                "total_listed_value": 98508.32,
+                "quantity": 1,
+                "unit_price": 98508.32,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2024-05-18",
+                "service_end_date": "2025-05-17",
+                "invoicing_schedule_type": "upfront",
+                "invoicing_frequency": null,
+                "payment_terms": "Net 55",
+                "special_notes": "Up to Customer Employee Size: 15,000",
+                "evidence": {
+                  "sku_code": "Talent Intel. Platf.",
+                  "source_row": "Talent Intel. Platf. 1 $98,508.32 $98,508.32",
+                  "currency": "$98,508.32",
+                  "total_listed_value": "$98,508.32",
+                  "quantity": "1",
+                  "unit_price": "$98,508.32",
+                  "unit_price_period": "Start Date: 2024-05-18 End Date: 2025-05-17",
+                  "service_start_date": "Start Date: 2024-05-18",
+                  "service_end_date": "End Date: 2025-05-17",
+                  "invoicing_schedule_type": "Invoices are sent in advance in accordance with each line item\u2019s billing frequency.",
+                  "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+                  "special_notes": "Up to Customer Employee Size: 15,000"
+                }
+              },
+              {
+                "sku_code": "SKILLS_PORTFOLIO",
+                "source_row": "Skills Portfolio 3 $190,625.89 $571,877.67",
+                "currency": "USD",
+                "total_listed_value": 571877.67,
+                "quantity": 3,
+                "unit_price": 190625.89,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2024-05-18",
+                "service_end_date": "2025-05-17",
+                "invoicing_schedule_type": "upfront",
+                "invoicing_frequency": null,
+                "payment_terms": "Net 55",
+                "special_notes": "Up to Customer Employee Size: 15,000",
+                "evidence": {
+                  "sku_code": "Skills Portfolio",
+                  "source_row": "Skills Portfolio 3 $190,625.89 $571,877.67",
+                  "currency": "$571,877.67",
+                  "total_listed_value": "$571,877.67",
+                  "quantity": "3",
+                  "unit_price": "$190,625.89",
+                  "unit_price_period": "Start Date: 2024-05-18 End Date: 2025-05-17",
+                  "service_start_date": "Start Date: 2024-05-18",
+                  "service_end_date": "End Date: 2025-05-17",
+                  "invoicing_schedule_type": "Invoices are sent in advance in accordance with each line item\u2019s billing frequency.",
+                  "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+                  "special_notes": "Up to Customer Employee Size: 15,000"
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "SANDBOX",
+              "TALENT_DESIGN"
+            ],
+            "ambiguities": [],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01RXFXf7AhxLHThRF8P5emFs",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Oakbridge Energy",
+      "vendor_name": "Northstar Systems LLC",
+      "effective_date": "2024-04-24",
+      "contract_signed_date_buying_company": "2024-04-24",
+      "contract_signed_date_selling_company": "2024-04-24",
+      "currency": "USD",
+      "grand_total": 1704618.29,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Oakbridge Energy",
+        "vendor_name": "Northstar Systems LLC",
+        "effective_date": "This order form becomes effective on 24 Apr 2024.",
+        "contract_signed_date_buying_company": "Oakbridge Energy...Date (Print): 2024-04-24",
+        "contract_signed_date_selling_company": "Northstar Systems LLC...Date (Print): 2024-04-24",
+        "currency": "$1,704,618.29",
+        "grand_total": "TOTAL SUBSCRIPTION $1,704,618.29",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      },
+      "ambiguous_fields": {}
+    },
+    "contract_items_count": 3,
+    "contract_items": [
+      {
+        "name": "Talent Management Enterprise",
+        "sku_id": "4e976929-ebff-4189-b7ab-1b650edabc4e",
+        "sku_code": "TALENT_MANAGEMENT_ENTERPRISE",
+        "currency": "USD",
+        "total_listed_value": 1034232.3,
+        "quantity": 5.0,
+        "unit_price": 206846.46,
+        "unit_price_period": "year",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2024-05-18",
+        "service_end_date": "2025-05-17",
+        "invoicing_schedule_type": "upfront",
+        "invoicing_frequency": null,
+        "invoicing_frequency_source": "ambiguous",
+        "payment_terms": "Net 55",
+        "special_notes": "Up to Customer Employee Size: 15,000",
+        "ambiguous_fields": {
+          "invoicing_frequency": {
+            "candidates": [
+              "one-time",
+              "yearly"
+            ],
+            "reason": "One price covers the whole 12-month term, so it is billed once; that fits both 'one-time' and 'yearly', and the document does not state the billing frequency."
+          }
+        },
+        "source_row": "Talent Mgmt Ent. 5 $206,846.46 $1,034,232.30",
+        "evidence": {
+          "sku_code": "Talent Mgmt Ent.",
+          "source_row": "Talent Mgmt Ent. 5 $206,846.46 $1,034,232.30",
+          "currency": "$1,034,232.30",
+          "total_listed_value": "$1,034,232.30",
+          "quantity": "5",
+          "unit_price": "$206,846.46",
+          "unit_price_period": "Start Date: 2024-05-18 End Date: 2025-05-17",
+          "service_start_date": "Start Date: 2024-05-18",
+          "service_end_date": "End Date: 2025-05-17",
+          "invoicing_schedule_type": "Invoices are sent in advance in accordance with each line item\u2019s billing frequency.",
+          "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+          "special_notes": "Up to Customer Employee Size: 15,000"
+        }
+      },
+      {
+        "name": "Talent Intelligence Platform",
+        "sku_id": "a763df24-1ea6-4afc-a195-13ce52ea20cd",
+        "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+        "currency": "USD",
+        "total_listed_value": 98508.32,
+        "quantity": 1.0,
+        "unit_price": 98508.32,
+        "unit_price_period": "year",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2024-05-18",
+        "service_end_date": "2025-05-17",
+        "invoicing_schedule_type": "upfront",
+        "invoicing_frequency": null,
+        "invoicing_frequency_source": "ambiguous",
+        "payment_terms": "Net 55",
+        "special_notes": "Up to Customer Employee Size: 15,000",
+        "ambiguous_fields": {
+          "invoicing_frequency": {
+            "candidates": [
+              "one-time",
+              "yearly"
+            ],
+            "reason": "One price covers the whole 12-month term, so it is billed once; that fits both 'one-time' and 'yearly', and the document does not state the billing frequency."
+          }
+        },
+        "source_row": "Talent Intel. Platf. 1 $98,508.32 $98,508.32",
+        "evidence": {
+          "sku_code": "Talent Intel. Platf.",
+          "source_row": "Talent Intel. Platf. 1 $98,508.32 $98,508.32",
+          "currency": "$98,508.32",
+          "total_listed_value": "$98,508.32",
+          "quantity": "1",
+          "unit_price": "$98,508.32",
+          "unit_price_period": "Start Date: 2024-05-18 End Date: 2025-05-17",
+          "service_start_date": "Start Date: 2024-05-18",
+          "service_end_date": "End Date: 2025-05-17",
+          "invoicing_schedule_type": "Invoices are sent in advance in accordance with each line item\u2019s billing frequency.",
+          "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+          "special_notes": "Up to Customer Employee Size: 15,000"
+        }
+      },
+      {
+        "name": "Skills Portfolio",
+        "sku_id": "54d9788d-fa28-4cbf-847b-9aac7c6cab8f",
+        "sku_code": "SKILLS_PORTFOLIO",
+        "currency": "USD",
+        "total_listed_value": 571877.67,
+        "quantity": 3.0,
+        "unit_price": 190625.89,
+        "unit_price_period": "year",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2024-05-18",
+        "service_end_date": "2025-05-17",
+        "invoicing_schedule_type": "upfront",
+        "invoicing_frequency": null,
+        "invoicing_frequency_source": "ambiguous",
+        "payment_terms": "Net 55",
+        "special_notes": "Up to Customer Employee Size: 15,000",
+        "ambiguous_fields": {
+          "invoicing_frequency": {
+            "candidates": [
+              "one-time",
+              "yearly"
+            ],
+            "reason": "One price covers the whole 12-month term, so it is billed once; that fits both 'one-time' and 'yearly', and the document does not state the billing frequency."
+          }
+        },
+        "source_row": "Skills Portfolio 3 $190,625.89 $571,877.67",
+        "evidence": {
+          "sku_code": "Skills Portfolio",
+          "source_row": "Skills Portfolio 3 $190,625.89 $571,877.67",
+          "currency": "$571,877.67",
+          "total_listed_value": "$571,877.67",
+          "quantity": "3",
+          "unit_price": "$190,625.89",
+          "unit_price_period": "Start Date: 2024-05-18 End Date: 2025-05-17",
+          "service_start_date": "Start Date: 2024-05-18",
+          "service_end_date": "End Date: 2025-05-17",
+          "invoicing_schedule_type": "Invoices are sent in advance in accordance with each line item\u2019s billing frequency.",
+          "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+          "special_notes": "Up to Customer Employee Size: 15,000"
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "SANDBOX",
+      "TALENT_DESIGN"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "review_notes": [],
+    "meta": {
+      "source_pdf": "of-0034.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 2,
+      "submissions": 1,
+      "stop_note": null,
+      "seconds": 24.4,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 2645,
+        "cache_creation_input_tokens": 13293,
+        "cache_read_input_tokens": 12546
+      },
+      "cost_usd": 0.1555
+    }
+  }
+}

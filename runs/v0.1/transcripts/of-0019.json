@@ -1,0 +1,741 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON\n  name: Talent Intelligence Platform Premium Edition (Add-on)\n  description: Premium add-on to Talent Intelligence Platform\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION\n  name: Talent Acquisition\n  description: Subscription to Talent Acquisition module\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_ENTERPRISE\n  name: Talent Management Enterprise\n  description: Subscription to Talent Management Enterprise\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_INTELLIGENCE_PLATFORM\n  name: Talent Intelligence Platform\n  description: Subscription to the Talent Intelligence Platform\n  parsing_instructions: |\n    - For this and ALL items: use the Order Form Start Date as the contract term start (not the signature date).\n    - Revenue recognition for the mapped POB is straight-line by days across the service period.\n- code: PREMIUM_SUPPORT\n  name: Premium Support\n  description: Premium support subscription\n  parsing_instructions: |\n    - If minimum/maximum monthly hours are specified, capture them; otherwise leave quantity null.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: PROFESSIONAL_SERVICE\n  name: Professional Service\n  description: Professional services delivered on a usage/progress basis\n  parsing_instructions: |\n    - Capture delivery period and progress inputs (e.g., hours, milestones, percent complete) for percentage-of-completion.\n    - If dates are absent, align service dates with the related SOW or Order Form where available.\n- code: SIGNATURE_SUCCESS\n  name: Signature Success\n  description: Recurring subscription to Signature Success\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: SANDBOX\n  name: Sandbox\n  description: Sandbox environment access subscription\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: ELEVATE_SUCCESS_PLAN\n  name: Elevate Success Plan\n  description: Success plan subscription\n  parsing_instructions: |\n    - Identify any negative-valued contract items in a modification document; strike off the related contract item(s) effective on the modification date.\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: WHATSAPP_SMS_CREDITS\n  name: WhatsApp / SMS Credits\n  description: Recurring subscription for WhatsApp and SMS credits\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CANDIDATE_EXPERIENCE\n  name: Talent Acquisition Candidate Experience\n  description: Candidate experience component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CORE\n  name: Talent Acquisition Core\n  description: Core package of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CRM\n  name: Talent Acquisition CRM\n  description: CRM component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_CORE\n  name: Talent Management Core\n  description: Core package of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_LEADER_EXPERIENCE\n  name: Talent Management Leader Experience\n  description: Leader Experience component of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_DESIGN\n  name: Talent Design\n  description: Recurring subscription to Talent Design\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: COPILOT\n  name: Copilot\n  description: Recurring subscription to Copilot\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Overages - Talent Acquisition AI Interviewer Agent Add-on\n  description: Usage-based overages for the AI Interviewer Agent Add-on\n  parsing_instructions: |\n    - Revenue recognized based on actual usage consumption.\n    - Capture usage metrics as they occur for recognition.\n- code: SKILLS_PORTFOLIO\n  name: Skills Portfolio\n  description: Recurring subscription to Skills Portfolio\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Talent Acquisition AI Interviewer Agent Add-on\n  description: Recurring subscription to the AI Interviewer Agent Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_TALENT_TRACKING_ADDON\n  name: Talent Acquisition Talent Tracking Add-on\n  description: Recurring subscription to the Talent Tracking Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). If the document does not say, use null.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine).\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up, a quote not found). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0019.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0019.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                               Order Form - Subscription Services\n\nPrepared For: Riverstone Health                                                Quote Number: Q-970515\nAccount Executive: Alex Carter                                                 Offer Valid Through: 2022-12-25\n\n\n Sold/Ship To:                                                     Bi1l To:\n 6203 Enterprise Way, San Jose, CA 72979,                          Attn: Accounts Payable, 2549 Innovation\n USA                                                               Pkwy, San Jose, CA 95408, USA\n\n\n\n Primary Contact: Taylor Morgan                                    Billing Contact: Jordan Lee\n Primary Email: taylor@riverstonehealth.com                        Billing Email: ap@riverstonehealth.com\n\n\n\nStart Date: Nov 21, 2022                    End Date: 19 Nov 2024                     Up to Customer Employee Size: 25,000\n\nSUBSCRIPTION FEES\n\n 0ffering                                                   Qty            Unit Fee                          Total\n\n Talent Intel. Platf.                                        5             USD 202,138.11                   USD 2,021,381.10\n\n Talent Acquisition                                          1             USD 8,899.39                     USD 17,798.78\n\n Professional Service                                        1             USD 212,177.59                   USD 424,355.18\n\n Prem. Support                                               5             USD 217,308.66                   USD 2,173,086.60\n\n\n TOTAL SUBSCRIPTION                                                                                         USD 4,636,621.66\n\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\nINVOICING SCHEDULE\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Net 30 unless stated otherwise.\n\n\n\n\n                                                                                                                      Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on 12-Nov-2022. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Talent Acquisition AI Interviewer Agent Add-on,\nCopilot\n\nRiverstone Health                                                Nimbus Data Platforms, Inc.\nBy:                                                              By:\n               SIGNED ELECTRONICALLY                                          SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                        Name (Print): ___________________________\nTitle (Print): Finance Manager                                   Title (Print): Procurement Lead\nDate (Print): 2022-11-14                                         Date (Print): 2022-11-15\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: NO, PO exception form to be signed.\n\n\n\n\nConfidential - pricing subject to agreement.                                                                 Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISiwsKjgEIEhgCKkDdCb6rAJ/DHoz2QXWsHLDBD+3BqImeVEQCvFDyMBwU2sgP2nkANan0hy4u09LJoN3Q1ZtgElyh8qFzQ1RLmhdJMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWoAYWq1NUGEgwAuwvG5uFdManYjCsaDO1VO8m6jy511SZ5DCIwBXqw3jP4WR9u/b0cf/nnlrEQsmxPlOJM8Kv5wfNTZrWx+QFaADASgg+LS2pqR8yeKqkJBhohuif7VN10+rXpQ7riU6d9M/xOSOBqWDO6MjDfXN4L/k6CML82N/VAUc+iUiktOW1NjOWdbxiag2GrqRgSdtS/ToyUm1m4O5ylssmSEp+sGPfAudJ2QTKXQefaNzX8yiSS+64fbVsP5g4arC5BjrAVMDaoFdn/HE5fwrUnEkNAnJIhsJKgpJJuXRNuC3aZVX6MB639vZkkOPdZY/O/rdtb4cZavnR6BjZye2s885rNwRNVqyhaO6Bnicy7LTxp4IyMk34t6nAGcMpo3K9ZVTKDIGo/mBJ4Vxj3DO/Wb4cbwbs00NA0Ud8w2XE7y97HmkS9OMXqsxY/TQpImTTCwnxF183dSRpYVF+QS1/EoyjBa3Jh15dD7F4ew0tNZmRBJOnvUPf52pATwRDnvMeGoQzz4zTyCxJ7n30fQJ5CgRpl0xffnKW900S86oKMTXuM5Foc4COPs24VEp/Kzxf11xEVGE+rikLOc35elSxHaIpgPo5qW0TMdEHvuo74uvbRNNSkBCpTvuZlx51oATeftNry2kU5gQ2G5bHqfzOpt+a3+CvLcvQzrzC0Dyi8atEXDElmBhkY74GZfTtM90zW+tZ3n2MrOzzkL1bIoFIZvqx20t3BSLxI0IpT1JT6jVxKbR1pyrtJ75avEaJEQVhYOqyMI/4zp9dZoE+9jjHyNn1yJRo784J1vZPW5FxHNSfKz00p8ehIpNm7+s1s0b2GjTvmgiNscYHNd53AmLlZOyXPBok0B4EHSN/TbTTgCXRW9CqlX2W4tCmu2RMhmCrrk5CzZCmFATPanQZ/EKxZW912vjLXlKkECtVX8QIKx7rJUBF/QjnCt2gBUZ4drTz6gAhpHZ9fhtUs6/jqZUyZTe3LrCZzQUnSRr5Iu2RjCbmEiQgiUw7KHDBln6Q0QNt5ATzo8NE7uYYco9v0eDpipJ9J6dCvmIRs1sxEGo9DdYgB0+I9fK/jNaYGEWENuASk1h+24fFOQrwrkyZ26Fdgek38HgTLydcS8J81XGkjiquTdnHdWC4EP8QhOPsqlySL4COQSIK3WSvvQQBRpJlcumZ1nIEqIjvjES6C1Q9G8fycPhTKUWwiPGZ6RRCZhpRdK8x4to9GP9Wy0XNtJtXSGxJ9ACjbimcTyE1B7kJrxZC8XDtLNw/U/Md2BAUCCh7JUMhS7bzNzXX78xUByniHYZc96vXIgTG9CVRPzEqUP4pDucVxbsuK7zFMNgstAd0X12WRye/hlBTGqJYzxzEy6trAmp0lvrYTOo5pMNSueuNBg0pdXc6V9XUZRdPva3QTBp//YA64oRowIpnkStEA+h1uO6JUAOv0SI5UKaKtZiViPecRjsQZXx+bid/Me9d6FyxZT146lZbBgjW6k8d9w3ADyu3E68uF2LSYqR27idCjbxVHBkUSVbZqY0WvqA4yOWgln70g21GDg/Igxb0gB8iU/sgorHbhr8eSQiwg30K/f+oGBEGUadlg6l4ke90jtZoOKJv83Bs9zHz4+QqfGcryo/Nqjd6T6NjjDSPgjjHDNIB8ZyFeTrNVCiKjJk6noe2/kH/p+Cb2+r3KdW8zjgHn+keyqVNC3TwYAQ==",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01AwJhW3mYdJYQoRF3H49RLs",
+          "input": {
+            "expression": "2021381.10 + 17798.78 + 424355.18 + 2173086.60"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01Em9hR44yEFma8Y9svEPDbi",
+          "input": {
+            "expression": "5 * 202138.11 * 2"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01AwJhW3mYdJYQoRF3H49RLs",
+          "content": "2021381.10 + 17798.78 + 424355.18 + 2173086.60 = 4636621.66 (rounded to cents: 4636621.66)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01Em9hR44yEFma8Y9svEPDbi",
+          "content": "5 * 202138.11 * 2 = 2021381.10 (rounded to cents: 2021381.10)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_01WYWNJ6KMjTK72P6hePDEis",
+          "input": {
+            "submission": {
+              "order_form": {
+                "customer_name": "Riverstone Health",
+                "vendor_name": "Nimbus Data Platforms, Inc.",
+                "effective_date": "2022-11-12",
+                "contract_signed_date_buying_company": "2022-11-14",
+                "contract_signed_date_selling_company": "2022-11-15",
+                "currency": "USD",
+                "grand_total": 4636621.66,
+                "grand_total_label": "TOTAL SUBSCRIPTION",
+                "evidence": {
+                  "customer_name": "Prepared For: Riverstone Health",
+                  "vendor_name": "Nimbus Data Platforms, Inc.",
+                  "effective_date": "This order form becomes effective on 12-Nov-2022.",
+                  "contract_signed_date_buying_company": "Riverstone Health ... Date (Print): 2022-11-14",
+                  "contract_signed_date_selling_company": "Nimbus Data Platforms, Inc. ... Date (Print): 2022-11-15",
+                  "currency": "USD 4,636,621.66",
+                  "grand_total": "USD 4,636,621.66",
+                  "grand_total_label": "TOTAL SUBSCRIPTION"
+                }
+              },
+              "contract_items": [
+                {
+                  "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+                  "source_row": "Talent Intel. Platf. 5 USD 202,138.11 USD 2,021,381.10",
+                  "currency": "USD",
+                  "total_listed_value": 2021381.1,
+                  "quantity": 5,
+                  "unit_price": 202138.11,
+                  "unit_price_period": "year",
+                  "period_amounts": null,
+                  "discount": null,
+                  "service_start_date": "2022-11-21",
+                  "service_end_date": "2024-11-19",
+                  "invoicing_schedule_type": null,
+                  "invoicing_frequency": null,
+                  "payment_terms": "Net 30",
+                  "special_notes": null,
+                  "evidence": {
+                    "source_row": "Talent Intel. Platf.",
+                    "currency": "USD 202,138.11",
+                    "total_listed_value": "USD 2,021,381.10",
+                    "quantity": "5",
+                    "unit_price": "USD 202,138.11",
+                    "unit_price_period": "Start Date: Nov 21, 2022                    End Date: 19 Nov 2024",
+                    "service_start_date": "Start Date: Nov 21, 2022",
+                    "service_end_date": "End Date: 19 Nov 2024",
+                    "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                  }
+                },
+                {
+                  "sku_code": "TALENT_ACQUISITION",
+                  "source_row": "Talent Acquisition 1 USD 8,899.39 USD 17,798.78",
+                  "currency": "USD",
+                  "total_listed_value": 17798.78,
+                  "quantity": 1,
+                  "unit_price": 8899.39,
+                  "unit_price_period": "year",
+                  "period_amounts": null,
+                  "discount": null,
+                  "service_start_date": "2022-11-21",
+                  "service_end_date": "2024-11-19",
+                  "invoicing_schedule_type": null,
+                  "invoicing_frequency": null,
+                  "payment_terms": "Net 30",
+                  "special_notes": null,
+                  "evidence": {
+                    "source_row": "Talent Acquisition",
+                    "currency": "USD 8,899.39",
+                    "total_listed_value": "USD 17,798.78",
+                    "quantity": "1",
+                    "unit_price": "USD 8,899.39",
+                    "unit_price_period": "Start Date: Nov 21, 2022                    End Date: 19 Nov 2024",
+                    "service_start_date": "Start Date: Nov 21, 2022",
+                    "service_end_date": "End Date: 19 Nov 2024",
+                    "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                  }
+                },
+                {
+                  "sku_code": "PROFESSIONAL_SERVICE",
+                  "source_row": "Professional Service 1 USD 212,177.59 USD 424,355.18",
+                  "currency": "USD",
+                  "total_listed_value": 424355.18,
+                  "quantity": 1,
+                  "unit_price": 212177.59,
+                  "unit_price_period": "year",
+                  "period_amounts": null,
+                  "discount": null,
+                  "service_start_date": "2022-11-21",
+                  "service_end_date": "2024-11-19",
+                  "invoicing_schedule_type": null,
+                  "invoicing_frequency": null,
+                  "payment_terms": "Net 30",
+                  "special_notes": null,
+                  "evidence": {
+                    "source_row": "Professional Service",
+                    "currency": "USD 212,177.59",
+                    "total_listed_value": "USD 424,355.18",
+                    "quantity": "1",
+                    "unit_price": "USD 212,177.59",
+                    "unit_price_period": "Start Date: Nov 21, 2022                    End Date: 19 Nov 2024",
+                    "service_start_date": "Start Date: Nov 21, 2022",
+                    "service_end_date": "End Date: 19 Nov 2024",
+                    "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                  }
+                },
+                {
+                  "sku_code": "PREMIUM_SUPPORT",
+                  "source_row": "Prem. Support 5 USD 217,308.66 USD 2,173,086.60",
+                  "currency": "USD",
+                  "total_listed_value": 2173086.6,
+                  "quantity": 5,
+                  "unit_price": 217308.66,
+                  "unit_price_period": "year",
+                  "period_amounts": null,
+                  "discount": null,
+                  "service_start_date": "2022-11-21",
+                  "service_end_date": "2024-11-19",
+                  "invoicing_schedule_type": null,
+                  "invoicing_frequency": null,
+                  "payment_terms": "Net 30",
+                  "special_notes": null,
+                  "evidence": {
+                    "source_row": "Prem. Support",
+                    "currency": "USD 217,308.66",
+                    "total_listed_value": "USD 2,173,086.60",
+                    "quantity": "5",
+                    "unit_price": "USD 217,308.66",
+                    "unit_price_period": "Start Date: Nov 21, 2022                    End Date: 19 Nov 2024",
+                    "service_start_date": "Start Date: Nov 21, 2022",
+                    "service_end_date": "End Date: 19 Nov 2024",
+                    "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                  }
+                }
+              ],
+              "explicitly_excluded_skus": [
+                "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+                "COPILOT"
+              ],
+              "overrides": []
+            }
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01WYWNJ6KMjTK72P6hePDEis",
+          "content": "Schema errors (hard, must fix):\n3 validation errors for Submission\norder_form\n  Field required [type=missing, input_value={'submission': {'order_fo...LOT'], 'overrides': []}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\ncontract_items\n  Field required [type=missing, input_value={'submission': {'order_fo...LOT'], 'overrides': []}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing\nexplicitly_excluded_skus\n  Field required [type=missing, input_value={'submission': {'order_fo...LOT'], 'overrides': []}}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/missing",
+          "is_error": true
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_0166Hjk3KKX4kAkb4EoQcj1d",
+          "input": {
+            "order_form": {
+              "customer_name": "Riverstone Health",
+              "vendor_name": "Nimbus Data Platforms, Inc.",
+              "effective_date": "2022-11-12",
+              "contract_signed_date_buying_company": "2022-11-14",
+              "contract_signed_date_selling_company": "2022-11-15",
+              "currency": "USD",
+              "grand_total": 4636621.66,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Riverstone Health",
+                "vendor_name": "Nimbus Data Platforms, Inc.",
+                "effective_date": "This order form becomes effective on 12-Nov-2022.",
+                "contract_signed_date_buying_company": "Riverstone Health ... Date (Print): 2022-11-14",
+                "contract_signed_date_selling_company": "Nimbus Data Platforms, Inc. ... Date (Print): 2022-11-15",
+                "currency": "USD 4,636,621.66",
+                "grand_total": "USD 4,636,621.66",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+                "source_row": "Talent Intel. Platf. 5 USD 202,138.11 USD 2,021,381.10",
+                "currency": "USD",
+                "total_listed_value": 2021381.1,
+                "quantity": 5,
+                "unit_price": 202138.11,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2022-11-21",
+                "service_end_date": "2024-11-19",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Talent Intel. Platf.",
+                  "currency": "USD 202,138.11",
+                  "total_listed_value": "USD 2,021,381.10",
+                  "quantity": "5",
+                  "unit_price": "USD 202,138.11",
+                  "unit_price_period": "Start Date: Nov 21, 2022",
+                  "service_start_date": "Start Date: Nov 21, 2022",
+                  "service_end_date": "End Date: 19 Nov 2024",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "TALENT_ACQUISITION",
+                "source_row": "Talent Acquisition 1 USD 8,899.39 USD 17,798.78",
+                "currency": "USD",
+                "total_listed_value": 17798.78,
+                "quantity": 1,
+                "unit_price": 8899.39,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2022-11-21",
+                "service_end_date": "2024-11-19",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Talent Acquisition",
+                  "currency": "USD 8,899.39",
+                  "total_listed_value": "USD 17,798.78",
+                  "quantity": "1",
+                  "unit_price": "USD 8,899.39",
+                  "unit_price_period": "Start Date: Nov 21, 2022",
+                  "service_start_date": "Start Date: Nov 21, 2022",
+                  "service_end_date": "End Date: 19 Nov 2024",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "PROFESSIONAL_SERVICE",
+                "source_row": "Professional Service 1 USD 212,177.59 USD 424,355.18",
+                "currency": "USD",
+                "total_listed_value": 424355.18,
+                "quantity": 1,
+                "unit_price": 212177.59,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2022-11-21",
+                "service_end_date": "2024-11-19",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Professional Service",
+                  "currency": "USD 212,177.59",
+                  "total_listed_value": "USD 424,355.18",
+                  "quantity": "1",
+                  "unit_price": "USD 212,177.59",
+                  "unit_price_period": "Start Date: Nov 21, 2022",
+                  "service_start_date": "Start Date: Nov 21, 2022",
+                  "service_end_date": "End Date: 19 Nov 2024",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "PREMIUM_SUPPORT",
+                "source_row": "Prem. Support 5 USD 217,308.66 USD 2,173,086.60",
+                "currency": "USD",
+                "total_listed_value": 2173086.6,
+                "quantity": 5,
+                "unit_price": 217308.66,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2022-11-21",
+                "service_end_date": "2024-11-19",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Prem. Support",
+                  "currency": "USD 217,308.66",
+                  "total_listed_value": "USD 2,173,086.60",
+                  "quantity": "5",
+                  "unit_price": "USD 217,308.66",
+                  "unit_price_period": "Start Date: Nov 21, 2022",
+                  "service_start_date": "Start Date: Nov 21, 2022",
+                  "service_end_date": "End Date: 19 Nov 2024",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+              "COPILOT"
+            ],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_0166Hjk3KKX4kAkb4EoQcj1d",
+          "content": "Submission 1/3 not accepted.\nWarnings (fix if wrong; if correct as written, resubmit with an override {check, item_index, reason}):\n- [evidence_not_found] item None: quotes for ['contract_signed_date_buying_company', 'contract_signed_date_selling_company'] were not found verbatim in the document text layer. Quote exactly (a shorter exact quote is fine).",
+          "is_error": true
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAIS8AMKjgEIEhgCKkD+5MoGZmQtaY3XhoLCFisv1pjAbIbM8PWbe8hPw+MnvGfuW/y6XrwyiCCyT4Yg6WsEFhitko0oA3r7t9yUhmGJMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWoAa2q1NUGEgxJr6TYulPf+NApYPkaDED1Y8ej2cicM+TIxyIwGqhXeh5KXHkwTiFQq7PD9Y9CZJGDN32JgxAOZ/xyZWIzmAWpo9jolyV3Bzynqs+MKo4CQtA2pKTFuAOf3zqONuTjP4mkdcM9RaOxgkHV5jQ7NU6/LJyTEoe2VLxzHrnaWGxl64ABE0zZFp2GsGYt56o1KUNZEbSlATs9+eKhHRN03gN5lOB5WzHrv8tsB5+iJNUcOD7awlPjlbJcgCrggeeT1U2gIuGKfntY+fV3rK7gl4kSUKT6BXCq9x2ouvMOXZZCF5tH/U4JyrphJ0dCfUaqic5GTUk3NCPU+ArNljfUGPKtnAXxpyz1rBzFRSFh7h/oBWDuT3dxM0U8unw/zU3AGl8Lg6ujpeY1ouG1dpr7Q9uu0Xf70f62KL9XjTebHPziuxHB5+M2uGCwuNMnDkpAqWj3Lfxz+dasqNT6xESQGAE=",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01HjnVksP9zWmLuaaVMjNToo",
+          "input": {
+            "order_form": {
+              "customer_name": "Riverstone Health",
+              "vendor_name": "Nimbus Data Platforms, Inc.",
+              "effective_date": "2022-11-12",
+              "contract_signed_date_buying_company": "2022-11-14",
+              "contract_signed_date_selling_company": "2022-11-15",
+              "currency": "USD",
+              "grand_total": 4636621.66,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Riverstone Health",
+                "vendor_name": "Nimbus Data Platforms, Inc.",
+                "effective_date": "This order form becomes effective on 12-Nov-2022.",
+                "contract_signed_date_buying_company": "Date (Print): 2022-11-14",
+                "contract_signed_date_selling_company": "Date (Print): 2022-11-15",
+                "currency": "USD 4,636,621.66",
+                "grand_total": "USD 4,636,621.66",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+                "source_row": "Talent Intel. Platf. 5 USD 202,138.11 USD 2,021,381.10",
+                "currency": "USD",
+                "total_listed_value": 2021381.1,
+                "quantity": 5,
+                "unit_price": 202138.11,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2022-11-21",
+                "service_end_date": "2024-11-19",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Talent Intel. Platf.",
+                  "currency": "USD 202,138.11",
+                  "total_listed_value": "USD 2,021,381.10",
+                  "quantity": "5",
+                  "unit_price": "USD 202,138.11",
+                  "unit_price_period": "Start Date: Nov 21, 2022",
+                  "service_start_date": "Start Date: Nov 21, 2022",
+                  "service_end_date": "End Date: 19 Nov 2024",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "TALENT_ACQUISITION",
+                "source_row": "Talent Acquisition 1 USD 8,899.39 USD 17,798.78",
+                "currency": "USD",
+                "total_listed_value": 17798.78,
+                "quantity": 1,
+                "unit_price": 8899.39,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2022-11-21",
+                "service_end_date": "2024-11-19",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Talent Acquisition",
+                  "currency": "USD 8,899.39",
+                  "total_listed_value": "USD 17,798.78",
+                  "quantity": "1",
+                  "unit_price": "USD 8,899.39",
+                  "unit_price_period": "Start Date: Nov 21, 2022",
+                  "service_start_date": "Start Date: Nov 21, 2022",
+                  "service_end_date": "End Date: 19 Nov 2024",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "PROFESSIONAL_SERVICE",
+                "source_row": "Professional Service 1 USD 212,177.59 USD 424,355.18",
+                "currency": "USD",
+                "total_listed_value": 424355.18,
+                "quantity": 1,
+                "unit_price": 212177.59,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2022-11-21",
+                "service_end_date": "2024-11-19",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Professional Service",
+                  "currency": "USD 212,177.59",
+                  "total_listed_value": "USD 424,355.18",
+                  "quantity": "1",
+                  "unit_price": "USD 212,177.59",
+                  "unit_price_period": "Start Date: Nov 21, 2022",
+                  "service_start_date": "Start Date: Nov 21, 2022",
+                  "service_end_date": "End Date: 19 Nov 2024",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "PREMIUM_SUPPORT",
+                "source_row": "Prem. Support 5 USD 217,308.66 USD 2,173,086.60",
+                "currency": "USD",
+                "total_listed_value": 2173086.6,
+                "quantity": 5,
+                "unit_price": 217308.66,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2022-11-21",
+                "service_end_date": "2024-11-19",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Prem. Support",
+                  "currency": "USD 217,308.66",
+                  "total_listed_value": "USD 2,173,086.60",
+                  "quantity": "5",
+                  "unit_price": "USD 217,308.66",
+                  "unit_price_period": "Start Date: Nov 21, 2022",
+                  "service_start_date": "Start Date: Nov 21, 2022",
+                  "service_end_date": "End Date: 19 Nov 2024",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+              "COPILOT"
+            ],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01HjnVksP9zWmLuaaVMjNToo",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Riverstone Health",
+      "vendor_name": "Nimbus Data Platforms, Inc.",
+      "effective_date": "2022-11-12",
+      "contract_signed_date_buying_company": "2022-11-14",
+      "contract_signed_date_selling_company": "2022-11-15",
+      "currency": "USD",
+      "grand_total": 4636621.66,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Riverstone Health",
+        "vendor_name": "Nimbus Data Platforms, Inc.",
+        "effective_date": "This order form becomes effective on 12-Nov-2022.",
+        "contract_signed_date_buying_company": "Date (Print): 2022-11-14",
+        "contract_signed_date_selling_company": "Date (Print): 2022-11-15",
+        "currency": "USD 4,636,621.66",
+        "grand_total": "USD 4,636,621.66",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      }
+    },
+    "contract_items_count": 4,
+    "contract_items": [
+      {
+        "name": "Talent Intelligence Platform",
+        "sku_id": "a763df24-1ea6-4afc-a195-13ce52ea20cd",
+        "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+        "currency": "USD",
+        "total_listed_value": 2021381.1,
+        "quantity": 5.0,
+        "unit_price": 202138.11,
+        "unit_price_period": "year",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2022-11-21",
+        "service_end_date": "2024-11-19",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "yearly",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 30",
+        "special_notes": null,
+        "source_row": "Talent Intel. Platf. 5 USD 202,138.11 USD 2,021,381.10",
+        "evidence": {
+          "source_row": "Talent Intel. Platf.",
+          "currency": "USD 202,138.11",
+          "total_listed_value": "USD 2,021,381.10",
+          "quantity": "5",
+          "unit_price": "USD 202,138.11",
+          "unit_price_period": "Start Date: Nov 21, 2022",
+          "service_start_date": "Start Date: Nov 21, 2022",
+          "service_end_date": "End Date: 19 Nov 2024",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Talent Acquisition",
+        "sku_id": "d6f20b62-9bec-421b-8d33-489712746aee",
+        "sku_code": "TALENT_ACQUISITION",
+        "currency": "USD",
+        "total_listed_value": 17798.78,
+        "quantity": 1.0,
+        "unit_price": 8899.39,
+        "unit_price_period": "year",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2022-11-21",
+        "service_end_date": "2024-11-19",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "yearly",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 30",
+        "special_notes": null,
+        "source_row": "Talent Acquisition 1 USD 8,899.39 USD 17,798.78",
+        "evidence": {
+          "source_row": "Talent Acquisition",
+          "currency": "USD 8,899.39",
+          "total_listed_value": "USD 17,798.78",
+          "quantity": "1",
+          "unit_price": "USD 8,899.39",
+          "unit_price_period": "Start Date: Nov 21, 2022",
+          "service_start_date": "Start Date: Nov 21, 2022",
+          "service_end_date": "End Date: 19 Nov 2024",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Professional Service",
+        "sku_id": "2a4fa79f-0fb7-42a3-a4ad-143f3cce8e36",
+        "sku_code": "PROFESSIONAL_SERVICE",
+        "currency": "USD",
+        "total_listed_value": 424355.18,
+        "quantity": 1.0,
+        "unit_price": 212177.59,
+        "unit_price_period": "year",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2022-11-21",
+        "service_end_date": "2024-11-19",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "yearly",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 30",
+        "special_notes": null,
+        "source_row": "Professional Service 1 USD 212,177.59 USD 424,355.18",
+        "evidence": {
+          "source_row": "Professional Service",
+          "currency": "USD 212,177.59",
+          "total_listed_value": "USD 424,355.18",
+          "quantity": "1",
+          "unit_price": "USD 212,177.59",
+          "unit_price_period": "Start Date: Nov 21, 2022",
+          "service_start_date": "Start Date: Nov 21, 2022",
+          "service_end_date": "End Date: 19 Nov 2024",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Premium Support",
+        "sku_id": "2c825663-7215-4f20-883c-4e8099f64b8b",
+        "sku_code": "PREMIUM_SUPPORT",
+        "currency": "USD",
+        "total_listed_value": 2173086.6,
+        "quantity": 5.0,
+        "unit_price": 217308.66,
+        "unit_price_period": "year",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2022-11-21",
+        "service_end_date": "2024-11-19",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "yearly",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 30",
+        "special_notes": null,
+        "source_row": "Prem. Support 5 USD 217,308.66 USD 2,173,086.60",
+        "evidence": {
+          "source_row": "Prem. Support",
+          "currency": "USD 217,308.66",
+          "total_listed_value": "USD 2,173,086.60",
+          "quantity": "5",
+          "unit_price": "USD 217,308.66",
+          "unit_price_period": "Start Date: Nov 21, 2022",
+          "service_start_date": "Start Date: Nov 21, 2022",
+          "service_end_date": "End Date: 19 Nov 2024",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+      "COPILOT"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "meta": {
+      "source_pdf": "of-0019.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 4,
+      "submissions": 2,
+      "stop_note": null,
+      "seconds": 63.0,
+      "usage": {
+        "input_tokens": 8,
+        "output_tokens": 6983,
+        "cache_creation_input_tokens": 17569,
+        "cache_read_input_tokens": 40496
+      },
+      "cost_usd": 0.3047
+    }
+  }
+}

@@ -1,0 +1,293 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON\n  name: Talent Intelligence Platform Premium Edition (Add-on)\n  description: Premium add-on to Talent Intelligence Platform\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION\n  name: Talent Acquisition\n  description: Subscription to Talent Acquisition module\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_ENTERPRISE\n  name: Talent Management Enterprise\n  description: Subscription to Talent Management Enterprise\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_INTELLIGENCE_PLATFORM\n  name: Talent Intelligence Platform\n  description: Subscription to the Talent Intelligence Platform\n  parsing_instructions: |\n    - For this and ALL items: use the Order Form Start Date as the contract term start (not the signature date).\n    - Revenue recognition for the mapped POB is straight-line by days across the service period.\n- code: PREMIUM_SUPPORT\n  name: Premium Support\n  description: Premium support subscription\n  parsing_instructions: |\n    - If minimum/maximum monthly hours are specified, capture them; otherwise leave quantity null.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: PROFESSIONAL_SERVICE\n  name: Professional Service\n  description: Professional services delivered on a usage/progress basis\n  parsing_instructions: |\n    - Capture delivery period and progress inputs (e.g., hours, milestones, percent complete) for percentage-of-completion.\n    - If dates are absent, align service dates with the related SOW or Order Form where available.\n- code: SIGNATURE_SUCCESS\n  name: Signature Success\n  description: Recurring subscription to Signature Success\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: SANDBOX\n  name: Sandbox\n  description: Sandbox environment access subscription\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: ELEVATE_SUCCESS_PLAN\n  name: Elevate Success Plan\n  description: Success plan subscription\n  parsing_instructions: |\n    - Identify any negative-valued contract items in a modification document; strike off the related contract item(s) effective on the modification date.\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: WHATSAPP_SMS_CREDITS\n  name: WhatsApp / SMS Credits\n  description: Recurring subscription for WhatsApp and SMS credits\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CANDIDATE_EXPERIENCE\n  name: Talent Acquisition Candidate Experience\n  description: Candidate experience component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CORE\n  name: Talent Acquisition Core\n  description: Core package of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CRM\n  name: Talent Acquisition CRM\n  description: CRM component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_CORE\n  name: Talent Management Core\n  description: Core package of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_LEADER_EXPERIENCE\n  name: Talent Management Leader Experience\n  description: Leader Experience component of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_DESIGN\n  name: Talent Design\n  description: Recurring subscription to Talent Design\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: COPILOT\n  name: Copilot\n  description: Recurring subscription to Copilot\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Overages - Talent Acquisition AI Interviewer Agent Add-on\n  description: Usage-based overages for the AI Interviewer Agent Add-on\n  parsing_instructions: |\n    - Revenue recognized based on actual usage consumption.\n    - Capture usage metrics as they occur for recognition.\n- code: SKILLS_PORTFOLIO\n  name: Skills Portfolio\n  description: Recurring subscription to Skills Portfolio\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Talent Acquisition AI Interviewer Agent Add-on\n  description: Recurring subscription to the AI Interviewer Agent Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_TALENT_TRACKING_ADDON\n  name: Talent Acquisition Talent Tracking Add-on\n  description: Recurring subscription to the Talent Tracking Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). If the document does not say, use null.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0003.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0003.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                                  Sales Order Form\n\nPrepared For: Oakbridge Energy                                                 Quote Number: Q-143007\nAccount Executive: Taylor Morgan                                               Offer Valid Through: 2022-04-28\n\n\n Sold/Ship To:                                                     Bill To:\n 7023 Enterprise Way, Chicago, IL 46341,                           Attn: Accounts Payable, 1440 Mission\n USA                                                               Street, Chicago, IL 72937, USA\n\n\n\n Primary Contact: Taylor Morgan                                    Bil1ing Contact: Jamie Kim\n Primary Email: taylor@oakbridgeenergy.com                         Billing Email: ap@oakbridgeenergy.com\n\n\n\nStart Date: 2022-04-02                      End Date: 31 Mar 2024                       Up to Customer Employee Size: 10,000\n\nSUBSCRIPTION SERVICE FEES\n\n Offering                                                   Qty            Unit Price                      Total\n\n Elevate Success Plan                                        2             92,550.00 USD                   185,100.00 USD\n\n Talent Intel. Platf. Prem. Ed.                              1             240,248.05 USD                  240,248.05 USD\n (Add-on)\n\n TOTAL SUBSCRIPTION                                                                                        425,348.05 USD\n\nINVOICE PLAN\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Net 55 unless stated otherwise.\nProcurement summary: annualized bil1ing profile included for planning.\nIMPLEMENTATION SERVICES\nAs applicab1e, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\n\n\n\n                                                                                                                     Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on 2022-03-20. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Talent Intelligence Platform, Sandbox\n\nOakbridge Energy                                                 Acme Software Inc.\nBy:                                                              By:\n               SIGNED ELECTRONICALLY                                          SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                        Name (Print): ___________________________\nTitle (Print): Procurement Lead                                  Title (Print): VP Finance\nDate (Print): Mar 20, 2022                                       Date (Print): Mar 25, 2022\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: YES, copy to be provided.\n\n\n\n\nThis is a generated order form for evaluation.                                                               Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_018HHKgzww5UYtCmHMSjdfky",
+          "input": {
+            "expression": "185100.00 + 240248.05"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_014LekbZ7ecZvgapw2ph6jjB",
+          "input": {
+            "expression": "92550.00 * 2"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_018HHKgzww5UYtCmHMSjdfky",
+          "content": "185100.00 + 240248.05 = 425348.05 (rounded to cents: 425348.05)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_014LekbZ7ecZvgapw2ph6jjB",
+          "content": "92550.00 * 2 = 185100.0 (rounded to cents: 185100.00)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_01RVqGNswa6yewcAaSsprGnN",
+          "input": {
+            "order_form": {
+              "customer_name": "Oakbridge Energy",
+              "vendor_name": "Acme Software Inc.",
+              "effective_date": "2022-03-20",
+              "contract_signed_date_buying_company": "2022-03-20",
+              "contract_signed_date_selling_company": "2022-03-25",
+              "currency": "USD",
+              "grand_total": 425348.05,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Oakbridge Energy",
+                "vendor_name": "Acme Software Inc.",
+                "effective_date": "This order form becomes effective on 2022-03-20.",
+                "contract_signed_date_buying_company": "Oakbridge Energy...Date (Print): Mar 20, 2022",
+                "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): Mar 25, 2022",
+                "currency": "425,348.05 USD",
+                "grand_total": "TOTAL SUBSCRIPTION                                                                                        425,348.05 USD",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "ELEVATE_SUCCESS_PLAN",
+                "source_row": "Elevate Success Plan                                        2             92,550.00 USD                   185,100.00 USD",
+                "currency": "USD",
+                "total_listed_value": 185100.0,
+                "quantity": 2,
+                "unit_price": 92550.0,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2022-04-02",
+                "service_end_date": "2024-03-31",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 55",
+                "special_notes": null,
+                "evidence": {
+                  "currency": "92,550.00 USD",
+                  "total_listed_value": "185,100.00 USD",
+                  "quantity": "Elevate Success Plan                                        2",
+                  "unit_price": "92,550.00 USD",
+                  "unit_price_period": "Start Date: 2022-04-02                      End Date: 31 Mar 2024",
+                  "service_start_date": "Start Date: 2022-04-02",
+                  "service_end_date": "End Date: 31 Mar 2024",
+                  "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+                "source_row": "Talent Intel. Platf. Prem. Ed.                              1             240,248.05 USD                  240,248.05 USD (Add-on)",
+                "currency": "USD",
+                "total_listed_value": 240248.05,
+                "quantity": 1,
+                "unit_price": 240248.05,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2022-04-02",
+                "service_end_date": "2024-03-31",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 55",
+                "special_notes": null,
+                "evidence": {
+                  "currency": "240,248.05 USD",
+                  "total_listed_value": "240,248.05 USD",
+                  "quantity": "Talent Intel. Platf. Prem. Ed.                              1",
+                  "unit_price": "240,248.05 USD",
+                  "unit_price_period": "Start Date: 2022-04-02                      End Date: 31 Mar 2024",
+                  "service_start_date": "Start Date: 2022-04-02",
+                  "service_end_date": "End Date: 31 Mar 2024",
+                  "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "TALENT_INTELLIGENCE_PLATFORM",
+              "SANDBOX"
+            ],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01RVqGNswa6yewcAaSsprGnN",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Oakbridge Energy",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "2022-03-20",
+      "contract_signed_date_buying_company": "2022-03-20",
+      "contract_signed_date_selling_company": "2022-03-25",
+      "currency": "USD",
+      "grand_total": 425348.05,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Oakbridge Energy",
+        "vendor_name": "Acme Software Inc.",
+        "effective_date": "This order form becomes effective on 2022-03-20.",
+        "contract_signed_date_buying_company": "Oakbridge Energy...Date (Print): Mar 20, 2022",
+        "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): Mar 25, 2022",
+        "currency": "425,348.05 USD",
+        "grand_total": "TOTAL SUBSCRIPTION                                                                                        425,348.05 USD",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      },
+      "ambiguous_fields": {}
+    },
+    "contract_items_count": 2,
+    "contract_items": [
+      {
+        "name": "Elevate Success Plan",
+        "sku_id": "63d14b22-78d4-4cb0-9cd6-85127611f1d0",
+        "sku_code": "ELEVATE_SUCCESS_PLAN",
+        "currency": "USD",
+        "total_listed_value": 185100.0,
+        "quantity": 2.0,
+        "unit_price": 92550.0,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2022-04-02",
+        "service_end_date": "2024-03-31",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "one-time",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 55",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "source_row": "Elevate Success Plan                                        2             92,550.00 USD                   185,100.00 USD",
+        "evidence": {
+          "currency": "92,550.00 USD",
+          "total_listed_value": "185,100.00 USD",
+          "quantity": "Elevate Success Plan                                        2",
+          "unit_price": "92,550.00 USD",
+          "unit_price_period": "Start Date: 2022-04-02                      End Date: 31 Mar 2024",
+          "service_start_date": "Start Date: 2022-04-02",
+          "service_end_date": "End Date: 31 Mar 2024",
+          "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+        "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+        "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+        "currency": "USD",
+        "total_listed_value": 240248.05,
+        "quantity": 1.0,
+        "unit_price": 240248.05,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2022-04-02",
+        "service_end_date": "2024-03-31",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": "one-time",
+        "invoicing_frequency_source": "inferred_from_pricing",
+        "payment_terms": "Net 55",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "source_row": "Talent Intel. Platf. Prem. Ed.                              1             240,248.05 USD                  240,248.05 USD (Add-on)",
+        "evidence": {
+          "currency": "240,248.05 USD",
+          "total_listed_value": "240,248.05 USD",
+          "quantity": "Talent Intel. Platf. Prem. Ed.                              1",
+          "unit_price": "240,248.05 USD",
+          "unit_price_period": "Start Date: 2022-04-02                      End Date: 31 Mar 2024",
+          "service_start_date": "Start Date: 2022-04-02",
+          "service_end_date": "End Date: 31 Mar 2024",
+          "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "TALENT_INTELLIGENCE_PLATFORM",
+      "SANDBOX"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": null,
+        "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+      }
+    ],
+    "meta": {
+      "source_pdf": "of-0003.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 2,
+      "submissions": 1,
+      "stop_note": null,
+      "seconds": 22.4,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 2209,
+        "cache_creation_input_tokens": 13557,
+        "cache_read_input_tokens": 12593
+      },
+      "cost_usd": 0.1463
+    }
+  }
+}
