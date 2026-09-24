@@ -1,0 +1,133 @@
+{
+  "order_form": {
+    "customer_name": "Helio Manufacturing",
+    "vendor_name": "Northstar Systems LLC",
+    "effective_date": "2024-07-14",
+    "contract_signed_date_buying_company": "2024-07-21",
+    "contract_signed_date_selling_company": "2024-07-21",
+    "currency": "USD",
+    "grand_total": 694513.1,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Helio Manufacturing",
+      "vendor_name": "Northstar Systems LLC",
+      "effective_date": "This order form becomes effective on Jul 14, 2024.",
+      "contract_signed_date_buying_company": "Helio Manufacturing...Date (Print): 21-Jul-2024",
+      "contract_signed_date_selling_company": "Northstar Systems LLC...Date (Print): 21-Jul-2024",
+      "currency": "694,513.10 USD",
+      "grand_total": "TOTAL SUBSCRIPTION 694,513.10 USD",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {}
+  },
+  "contract_items_count": 2,
+  "contract_items": [
+    {
+      "name": "Premium Support",
+      "sku_id": "2c825663-7215-4f20-883c-4e8099f64b8b",
+      "sku_code": "PREMIUM_SUPPORT",
+      "currency": "USD",
+      "total_listed_value": 337166.12,
+      "quantity": 1.0,
+      "unit_price": 168583.06,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-08-13",
+      "service_end_date": "2026-08-12",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "yearly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Due on Receipt",
+      "special_notes": "Up to Customer Employee Size: 2,500",
+      "ambiguous_fields": {},
+      "source_row": "Prem. Support 1 168,583.06 USD 337,166.12 USD",
+      "evidence": {
+        "source_row": "Prem. Support 1 168,583.06 USD 337,166.12 USD",
+        "currency": "337,166.12 USD",
+        "total_listed_value": "337,166.12 USD",
+        "quantity": "Qty ... 1",
+        "unit_price": "168,583.06 USD",
+        "unit_price_period": "Start Date: 13-Aug-2024 End Date: 12 Aug 2026",
+        "service_start_date": "Start Date: 13-Aug-2024",
+        "service_end_date": "End Date: 12 Aug 2026",
+        "payment_terms": "Payment terms include Due on Receipt unless stated otherwise.",
+        "special_notes": "Up to Customer Employee Size: 2,500"
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+      "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+      "currency": "USD",
+      "total_listed_value": 357346.98,
+      "quantity": 1.0,
+      "unit_price": 178673.49,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-08-13",
+      "service_end_date": "2026-08-12",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "yearly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Due on Receipt",
+      "special_notes": "Up to Customer Employee Size: 2,500",
+      "ambiguous_fields": {},
+      "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 178,673.49 USD 357,346.98 USD",
+      "evidence": {
+        "source_row": "Talent Intel. Platf. Prem. Ed.\n(Add-on) 1 178,673.49 USD 357,346.98 USD",
+        "currency": "357,346.98 USD",
+        "total_listed_value": "357,346.98 USD",
+        "quantity": "Qty ... 1",
+        "unit_price": "178,673.49 USD",
+        "unit_price_period": "Start Date: 13-Aug-2024 End Date: 12 Aug 2026",
+        "service_start_date": "Start Date: 13-Aug-2024",
+        "service_end_date": "End Date: 12 Aug 2026",
+        "payment_terms": "Payment terms include Due on Receipt unless stated otherwise.",
+        "special_notes": "Up to Customer Employee Size: 2,500"
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "SKILLS_PORTFOLIO",
+    "ELEVATE_SUCCESS_PLAN"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": 1,
+      "message": "quotes for ['source_row'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0031.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 2,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 21.5,
+    "usage": {
+      "input_tokens": 4,
+      "output_tokens": 2132,
+      "cache_creation_input_tokens": 13709,
+      "cache_read_input_tokens": 12957
+    },
+    "cost_usd": 0.1455
+  }
+}

@@ -224,3 +224,16 @@ No API calls. Run the tests with `python -m unittest discover -s tests -t .` (21
   - A scanned PDF (no text layer) would have failed grounding on every amount. Now detected: the model is
     told to read the page images, grounding and quote checks are skipped, and the output carries a
     `no_text_layer` review note saying amounts could not be checked against document text.
+
+**Final results** (run `runs/v0.7`, full 50 forms on the committed v0.7 code, $8.18, ~70 s/form with
+6 in parallel, 50/50 accepted on the first submission, 0 needs_review, 0 overrides):
+- Item detection: precision 100%, recall 100% (132/132); near-twin forms 20, 100% / 100%.
+- Currency, total, quantity, unit price, service start and end dates, payment terms: 100% (exact to
+  the cent for money).
+- invoicing_frequency: 104/104 unflagged correct; 28 flagged ambiguous ("one-time", alternative
+  "yearly"), 19 of which match the ground-truth label.
+- Header: signature dates 100%; effective date 49/49 answered correct + 1 abstained (of-0032, likely
+  2024-06-04, which is the ground-truth value).
+- of-0048 (12/09/2022): start date answered correctly, unflagged - the v0.6 fix holds.
+- invoicing_schedule_type and special_notes: 0% - neither is present in the PDFs.
+- 65 non-blocking `evidence_not_found` review notes (quotes of wrapped rows / side-by-side blocks).

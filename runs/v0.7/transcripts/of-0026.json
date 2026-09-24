@@ -1,0 +1,430 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON\n  name: Talent Intelligence Platform Premium Edition (Add-on)\n  description: Premium add-on to Talent Intelligence Platform\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION\n  name: Talent Acquisition\n  description: Subscription to Talent Acquisition module\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_ENTERPRISE\n  name: Talent Management Enterprise\n  description: Subscription to Talent Management Enterprise\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_INTELLIGENCE_PLATFORM\n  name: Talent Intelligence Platform\n  description: Subscription to the Talent Intelligence Platform\n  parsing_instructions: |\n    - For this and ALL items: use the Order Form Start Date as the contract term start (not the signature date).\n    - Revenue recognition for the mapped POB is straight-line by days across the service period.\n- code: PREMIUM_SUPPORT\n  name: Premium Support\n  description: Premium support subscription\n  parsing_instructions: |\n    - If minimum/maximum monthly hours are specified, capture them; otherwise leave quantity null.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: PROFESSIONAL_SERVICE\n  name: Professional Service\n  description: Professional services delivered on a usage/progress basis\n  parsing_instructions: |\n    - Capture delivery period and progress inputs (e.g., hours, milestones, percent complete) for percentage-of-completion.\n    - If dates are absent, align service dates with the related SOW or Order Form where available.\n- code: SIGNATURE_SUCCESS\n  name: Signature Success\n  description: Recurring subscription to Signature Success\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: SANDBOX\n  name: Sandbox\n  description: Sandbox environment access subscription\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: ELEVATE_SUCCESS_PLAN\n  name: Elevate Success Plan\n  description: Success plan subscription\n  parsing_instructions: |\n    - Identify any negative-valued contract items in a modification document; strike off the related contract item(s) effective on the modification date.\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: WHATSAPP_SMS_CREDITS\n  name: WhatsApp / SMS Credits\n  description: Recurring subscription for WhatsApp and SMS credits\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CANDIDATE_EXPERIENCE\n  name: Talent Acquisition Candidate Experience\n  description: Candidate experience component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CORE\n  name: Talent Acquisition Core\n  description: Core package of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CRM\n  name: Talent Acquisition CRM\n  description: CRM component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_CORE\n  name: Talent Management Core\n  description: Core package of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_LEADER_EXPERIENCE\n  name: Talent Management Leader Experience\n  description: Leader Experience component of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_DESIGN\n  name: Talent Design\n  description: Recurring subscription to Talent Design\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: COPILOT\n  name: Copilot\n  description: Recurring subscription to Copilot\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Overages - Talent Acquisition AI Interviewer Agent Add-on\n  description: Usage-based overages for the AI Interviewer Agent Add-on\n  parsing_instructions: |\n    - Revenue recognized based on actual usage consumption.\n    - Capture usage metrics as they occur for recognition.\n- code: SKILLS_PORTFOLIO\n  name: Skills Portfolio\n  description: Recurring subscription to Skills Portfolio\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Talent Acquisition AI Interviewer Agent Add-on\n  description: Recurring subscription to the AI Interviewer Agent Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_TALENT_TRACKING_ADDON\n  name: Talent Acquisition Talent Tracking Add-on\n  description: Recurring subscription to the Talent Tracking Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). Billing \"in advance\" or \"in arrears\" describes timing within a period, not the schedule type or frequency. If the document does not say, use null.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Before treating a field as ambiguous, test each candidate reading against the rest of the document: the arithmetic of prices, quantities and the service term, and the other dates. A reading that contradicts the document is not a valid reading. If exactly one reading survives, use it and quote the deciding evidence. Closeness or typicality (e.g. a date being near the signature date) never eliminates a reading; it can only make one likely.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). If surrounding context makes one candidate more likely (e.g. its closeness to other dates in the document), give it as likely with that evidence in likely_reason; the field itself still stays null. Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0026.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0026.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                                ORDER FORM - SUBSCRIPTION SERVICES\n\nPrepared For: Brightwave Industries                                            Quote Number: Q-354848\nAccount Executive: Alex Carter                                                 Offer Valid Through: 2025-05-16\n\n\n Sold/Ship To:                                                     Bill To:\n 9730 Technology Drive, Denver, CO 31323,                          Attn: Accounts Payable, 7509 Innovation\n USA                                                               Pkwy, Denver, CO 71982, USA\n\n\n\n Primary Contact: Alex Carter                                      Billing Contact: Riley Singh\n Primary Email: alex@brightwaveindustries.com                      Billing Email: ap@brightwaveindustries.com\n\n\n\nStart Date: 05/01/2025                      End Date: Apr 30, 2026                      Up to Customer Employee Size: 5,000\n\nSUBSCRIPTION FEES\n\n Offering                                                   Qty            Unit Price                        Total Contract Value\n\n Talent Acquisition                                          5             USD 191,623.04                USD 958,115.20\n\n Talent Mgmt Core                                            3             USD 183,856.45                USD 551,569.35\n\n WhatsApp / SMS Credits                                      3             USD 162,044.75                USD 486,134.25\n\n\n TOTAL SUBSCRIPTION                                                                                      USD 1,995,818.80\n\nINVOICE PLAN\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Net 30 unless stated otherwise.\n\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\n\n\n\n                                                                                                                       Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on 2025-04-18. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Talent Intelligence Platform Premium Edition (Add-on),\nOverages - Talent Acquisition AI Interviewer Agent Add-on\n\nBrightwave Industries                                                Nimbus Data Platforms, Inc.\nBy:                                                                  By:\n               SIGNED ELECTRONICALLY                                               SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                            Name (Print): ___________________________\nTitle (Print): Procurement Lead                                      Title (Print): VP Finance\nDate (Print): 19-Apr-2025                                            Date (Print): 24-Apr-2025\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: NO, PO exception form to be signed.\n\n\n\n\nThis is a generated order form for evaluation.                                                                   Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISqAgKjgEIEhgCKkD1e6AHIJ2GqQ3VKF3ZDXEefSiT6+lF0I2QeTkzeiukZxfZAQ9XelM8+ODrvpgRxJkXlh2tU6NGQZ7vpdN925TvMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWoAdve1dUGEgxT8asWEuWgir2U5QgaDAs8/hMQU3rs7fSrNyIwF7Ows13Fo5Zvpz8k8Iep/LHDltcjE5FXnyeiseTkeW8S2rIyYXEXX91yXSkUA6GyKsYGNCV9dFXyNCL+FM4XDxmQQfQPqmms4aX7WEeZ1yhnXikXqebxXu+VG/NxeMObb1MMKQjqNPNYAHFYIP4CfBngcPQtWuNG3FlA4lwmgulpmfjclUz9hNrFWMVNAMOti8PkT2Llgy/GPRc12z2S5ydHflJ6vOBAo4Ylm8CSzv6VzuVOxRl8RY8dXOrPVz1L9I/vRapH0lEkILTmvgEwz55MWZ7wGbm802eg17tyFlTbvHfDYXVb9RcrT0y5zVKuEyQozxUcd+UcZdzfqIwTwH1JHFx86EByMNnB7N/DgaZocCc1QM9+14YttgaxjAKPABA6gr71H4Mfgo38sh8QTszBgv9S3vRYvfk779n40sDGLLIas7rp6PeUjy2rTKobUMkXMz/RpMlzzPNJrUMeAIo7rZpjQbY/HPnvRK6OdXOcxuwD3F48vF8jZWwptO+VG/XErtyIKFT436h+mUqxdAexlFPOvDY2X1OuhwwFh2q0ima+LtJZfE7UXS1VgqfyrP88dyLQj1CvJ+ANoCDVhgMiNCkj1sIAvpAMv4+oqRFdXkkjpPN45rd/pjec23iMEOKECKktfu18ifM/nET62adbjFqAMUFHP6m6TtRF82KojF53zs3TGzaMWSygXzrF3fcnYT6ORQVbZ6S7aSMOWIDeWGXAAq0bXCrg5g8sgcB8Loe8e8pG3e3LCJeDb6HFKpLBC3HV4ujwPjl7ebsTnqm7//w/B389+P1F+++2zp0cmnlUt6I8vCxsECAuqzAdtd5OPRu2kXn8OGOsxvp2nvn/mlitxP3Fuh8rYcF/UbiZ6CDXEztJvAgxQkcbIRVciJ2jxCBQ9QDv/kYYLYNUE4JvBTKvo/6mDzAfFjPzqdO6A+tGkIbat+QwNHoF+cit+m0jakUQgRxSULFFS/Fcq09ZMNkQ8HKafp5Ofap/vQiPlDjNsgz6r0JL8MUTtGkrYLVifPUzYYb180ApVLHfDD0CGwaQ18PoagfD3olXKDEBd/KSIh5yHGjH4HAKYm73mH+zerVi2f3pkLqIggRXFDNr/cvf7jcevYe/JEh/KBqJcfA7Qp15Ra8yhMvg13Ux06TK4764NHcJm7uM6FUIt3TEs0ATyVWeoxgB",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_015NVRY2TvHfiikHcwEXk8iR",
+          "input": {
+            "expression": "5*191623.04"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01HxFzFr4dpU9tjMNuoLgzbC",
+          "input": {
+            "expression": "3*183856.45"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01R5y7emNA3GtsxDCVFUWcHR",
+          "input": {
+            "expression": "3*162044.75"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01ELQQHSUyCnurzT44CKfffd",
+          "input": {
+            "expression": "958115.20+551569.35+486134.25"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_015NVRY2TvHfiikHcwEXk8iR",
+          "content": "5*191623.04 = 958115.20 (rounded to cents: 958115.20)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01HxFzFr4dpU9tjMNuoLgzbC",
+          "content": "3*183856.45 = 551569.35 (rounded to cents: 551569.35)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01R5y7emNA3GtsxDCVFUWcHR",
+          "content": "3*162044.75 = 486134.25 (rounded to cents: 486134.25)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01ELQQHSUyCnurzT44CKfffd",
+          "content": "958115.20+551569.35+486134.25 = 1995818.80 (rounded to cents: 1995818.80)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISuAIKjgEIEhgCKkClG/f2ad7CF3+tDHvwAW0o3J6qS+Pl38n6uf8ha79S12EPQ670apqHqX6GNbqPpLHOFQWZWwqP/LDd4H926rsMMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWoAd/e1dUGEgxgmdIebpfpjszmo6oaDJK2shV9Jasw19qIWyIw2zcyHhblXje70vMHxzjrY6JPPeYDD64GpydW2sKz+AlrcRXzZ21tMUPr/EdgkeV6KlfFI3oB+0SI4JCBJ9qUOg0j0sRJWDcGqmqL6+mMVf088nSYVWIrXne6D2PHRnySSVRQbVOOOBLOxH7BvOnJ3CEq6YUHu01kQlmGJIcxN5qv7PPVbeLr3eoYAQ==",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01PQVc71evCD3vAdpJ2FnoEo",
+          "input": {
+            "order_form": {
+              "customer_name": "Brightwave Industries",
+              "vendor_name": "Nimbus Data Platforms, Inc.",
+              "effective_date": "2025-04-18",
+              "contract_signed_date_buying_company": "2025-04-19",
+              "contract_signed_date_selling_company": "2025-04-24",
+              "currency": "USD",
+              "grand_total": 1995818.8,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Brightwave Industries",
+                "vendor_name": "Nimbus Data Platforms, Inc.",
+                "effective_date": "This order form becomes effective on 2025-04-18.",
+                "contract_signed_date_buying_company": "Brightwave Industries...Title (Print): Procurement Lead...Date (Print): 19-Apr-2025",
+                "contract_signed_date_selling_company": "Nimbus Data Platforms, Inc....Title (Print): VP Finance...Date (Print): 24-Apr-2025",
+                "currency": "USD 1,995,818.80",
+                "grand_total": "TOTAL SUBSCRIPTION                     USD 1,995,818.80",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "TALENT_ACQUISITION",
+                "source_row": "Talent Acquisition                                          5             USD 191,623.04                USD 958,115.20",
+                "currency": "USD",
+                "total_listed_value": 958115.2,
+                "quantity": 5,
+                "unit_price": 191623.04,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2025-05-01",
+                "service_end_date": "2026-04-30",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": "Up to Customer Employee Size: 5,000",
+                "evidence": {
+                  "sku_code": "Talent Acquisition",
+                  "source_row": "Talent Acquisition                5             USD 191,623.04                USD 958,115.20",
+                  "currency": "USD 958,115.20",
+                  "total_listed_value": "USD 958,115.20",
+                  "quantity": "5",
+                  "unit_price": "USD 191,623.04",
+                  "unit_price_period": "Start Date: 05/01/2025                      End Date: Apr 30, 2026",
+                  "service_start_date": "Start Date: 05/01/2025",
+                  "service_end_date": "End Date: Apr 30, 2026",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise.",
+                  "special_notes": "Up to Customer Employee Size: 5,000"
+                }
+              },
+              {
+                "sku_code": "TALENT_MANAGEMENT_CORE",
+                "source_row": "Talent Mgmt Core                                            3             USD 183,856.45                USD 551,569.35",
+                "currency": "USD",
+                "total_listed_value": 551569.35,
+                "quantity": 3,
+                "unit_price": 183856.45,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2025-05-01",
+                "service_end_date": "2026-04-30",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": "Up to Customer Employee Size: 5,000",
+                "evidence": {
+                  "sku_code": "Talent Mgmt Core",
+                  "source_row": "Talent Mgmt Core                 3             USD 183,856.45                USD 551,569.35",
+                  "currency": "USD 551,569.35",
+                  "total_listed_value": "USD 551,569.35",
+                  "quantity": "3",
+                  "unit_price": "USD 183,856.45",
+                  "unit_price_period": "Start Date: 05/01/2025                      End Date: Apr 30, 2026",
+                  "service_start_date": "Start Date: 05/01/2025",
+                  "service_end_date": "End Date: Apr 30, 2026",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise.",
+                  "special_notes": "Up to Customer Employee Size: 5,000"
+                }
+              },
+              {
+                "sku_code": "WHATSAPP_SMS_CREDITS",
+                "source_row": "WhatsApp / SMS Credits                                      3             USD 162,044.75                USD 486,134.25",
+                "currency": "USD",
+                "total_listed_value": 486134.25,
+                "quantity": 3,
+                "unit_price": 162044.75,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2025-05-01",
+                "service_end_date": "2026-04-30",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": "Up to Customer Employee Size: 5,000",
+                "evidence": {
+                  "sku_code": "WhatsApp / SMS Credits",
+                  "source_row": "WhatsApp / SMS Credits              3             USD 162,044.75                USD 486,134.25",
+                  "currency": "USD 486,134.25",
+                  "total_listed_value": "USD 486,134.25",
+                  "quantity": "3",
+                  "unit_price": "USD 162,044.75",
+                  "unit_price_period": "Start Date: 05/01/2025                      End Date: Apr 30, 2026",
+                  "service_start_date": "Start Date: 05/01/2025",
+                  "service_end_date": "End Date: Apr 30, 2026",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise.",
+                  "special_notes": "Up to Customer Employee Size: 5,000"
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON"
+            ],
+            "overrides": [],
+            "ambiguities": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01PQVc71evCD3vAdpJ2FnoEo",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Brightwave Industries",
+      "vendor_name": "Nimbus Data Platforms, Inc.",
+      "effective_date": "2025-04-18",
+      "contract_signed_date_buying_company": "2025-04-19",
+      "contract_signed_date_selling_company": "2025-04-24",
+      "currency": "USD",
+      "grand_total": 1995818.8,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Brightwave Industries",
+        "vendor_name": "Nimbus Data Platforms, Inc.",
+        "effective_date": "This order form becomes effective on 2025-04-18.",
+        "contract_signed_date_buying_company": "Brightwave Industries...Title (Print): Procurement Lead...Date (Print): 19-Apr-2025",
+        "contract_signed_date_selling_company": "Nimbus Data Platforms, Inc....Title (Print): VP Finance...Date (Print): 24-Apr-2025",
+        "currency": "USD 1,995,818.80",
+        "grand_total": "TOTAL SUBSCRIPTION                     USD 1,995,818.80",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      },
+      "ambiguous_fields": {}
+    },
+    "contract_items_count": 3,
+    "contract_items": [
+      {
+        "name": "Talent Acquisition",
+        "sku_id": "d6f20b62-9bec-421b-8d33-489712746aee",
+        "sku_code": "TALENT_ACQUISITION",
+        "currency": "USD",
+        "total_listed_value": 958115.2,
+        "quantity": 5.0,
+        "unit_price": 191623.04,
+        "unit_price_period": "year",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2025-05-01",
+        "service_end_date": "2026-04-30",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "one-time",
+          "source": "inferred_from_pricing",
+          "ambiguous": true,
+          "alternatives": [
+            "yearly"
+          ],
+          "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+        },
+        "payment_terms": "Net 30",
+        "special_notes": "Up to Customer Employee Size: 5,000",
+        "ambiguous_fields": {},
+        "source_row": "Talent Acquisition                                          5             USD 191,623.04                USD 958,115.20",
+        "evidence": {
+          "sku_code": "Talent Acquisition",
+          "source_row": "Talent Acquisition                5             USD 191,623.04                USD 958,115.20",
+          "currency": "USD 958,115.20",
+          "total_listed_value": "USD 958,115.20",
+          "quantity": "5",
+          "unit_price": "USD 191,623.04",
+          "unit_price_period": "Start Date: 05/01/2025                      End Date: Apr 30, 2026",
+          "service_start_date": "Start Date: 05/01/2025",
+          "service_end_date": "End Date: Apr 30, 2026",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise.",
+          "special_notes": "Up to Customer Employee Size: 5,000"
+        }
+      },
+      {
+        "name": "Talent Management Core",
+        "sku_id": "35be6eb9-d0b6-472d-8d5a-65f2aae8c375",
+        "sku_code": "TALENT_MANAGEMENT_CORE",
+        "currency": "USD",
+        "total_listed_value": 551569.35,
+        "quantity": 3.0,
+        "unit_price": 183856.45,
+        "unit_price_period": "year",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2025-05-01",
+        "service_end_date": "2026-04-30",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "one-time",
+          "source": "inferred_from_pricing",
+          "ambiguous": true,
+          "alternatives": [
+            "yearly"
+          ],
+          "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+        },
+        "payment_terms": "Net 30",
+        "special_notes": "Up to Customer Employee Size: 5,000",
+        "ambiguous_fields": {},
+        "source_row": "Talent Mgmt Core                                            3             USD 183,856.45                USD 551,569.35",
+        "evidence": {
+          "sku_code": "Talent Mgmt Core",
+          "source_row": "Talent Mgmt Core                 3             USD 183,856.45                USD 551,569.35",
+          "currency": "USD 551,569.35",
+          "total_listed_value": "USD 551,569.35",
+          "quantity": "3",
+          "unit_price": "USD 183,856.45",
+          "unit_price_period": "Start Date: 05/01/2025                      End Date: Apr 30, 2026",
+          "service_start_date": "Start Date: 05/01/2025",
+          "service_end_date": "End Date: Apr 30, 2026",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise.",
+          "special_notes": "Up to Customer Employee Size: 5,000"
+        }
+      },
+      {
+        "name": "WhatsApp / SMS Credits",
+        "sku_id": "1d910302-7e31-4e37-9a4b-b14d244af7c5",
+        "sku_code": "WHATSAPP_SMS_CREDITS",
+        "currency": "USD",
+        "total_listed_value": 486134.25,
+        "quantity": 3.0,
+        "unit_price": 162044.75,
+        "unit_price_period": "year",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2025-05-01",
+        "service_end_date": "2026-04-30",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "one-time",
+          "source": "inferred_from_pricing",
+          "ambiguous": true,
+          "alternatives": [
+            "yearly"
+          ],
+          "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+        },
+        "payment_terms": "Net 30",
+        "special_notes": "Up to Customer Employee Size: 5,000",
+        "ambiguous_fields": {},
+        "source_row": "WhatsApp / SMS Credits                                      3             USD 162,044.75                USD 486,134.25",
+        "evidence": {
+          "sku_code": "WhatsApp / SMS Credits",
+          "source_row": "WhatsApp / SMS Credits              3             USD 162,044.75                USD 486,134.25",
+          "currency": "USD 486,134.25",
+          "total_listed_value": "USD 486,134.25",
+          "quantity": "3",
+          "unit_price": "USD 162,044.75",
+          "unit_price_period": "Start Date: 05/01/2025                      End Date: Apr 30, 2026",
+          "service_start_date": "Start Date: 05/01/2025",
+          "service_end_date": "End Date: Apr 30, 2026",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise.",
+          "special_notes": "Up to Customer Employee Size: 5,000"
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+      "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": null,
+        "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+      }
+    ],
+    "meta": {
+      "source_pdf": "of-0026.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 2,
+      "submissions": 1,
+      "stop_note": null,
+      "seconds": 26.3,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 2741,
+        "cache_creation_input_tokens": 13870,
+        "cache_read_input_tokens": 13034
+      },
+      "cost_usd": 0.1617
+    }
+  }
+}
