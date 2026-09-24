@@ -62,6 +62,8 @@ class Ambiguity(BaseModel):
     field: str = Field(description="Name of the field left null because it is ambiguous")
     candidates: List[str] = Field(description="The readings the document supports")
     reason: str = Field(description="Why the document does not decide between them")
+    likely: Optional[str] = Field(default=None, description="The candidate context makes more likely, if any")
+    likely_reason: Optional[str] = Field(default=None, description="The contextual evidence for the likely candidate")
 
 
 class Submission(BaseModel):

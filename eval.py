@@ -35,6 +35,22 @@ def field_equal(name, pred, gold) -> bool:
     return norm_text(pred) == norm_text(gold)
 
 
+def read_field(obj: dict, name: str):
+    """(value, bucket): bucket is 'unflagged', 'flagged' (value given but marked ambiguous right next to
+    it) or 'abstained' (left null because ambiguous)."""
+    raw = obj.get(name)
+    if isinstance(raw, dict) and "value" in raw:  # invoicing_frequency block
+        value, flagged = raw["value"], bool(raw.get("ambiguous"))
+    else:
+        value, flagged = raw, name in (obj.get("ambiguous_fields") or {})
+    if not flagged:
+        return value, "unflagged"
+    return value, ("abstained" if value is None else "flagged")
+
+
+BUCKETS = ("unflagged", "flagged", "abstained")
+
+
 def match_items(pred, gold):
     """Pair items by SKU code; with repeated SKUs, pair by closest total value."""
     pairs, unmatched_pred = [], list(range(len(pred)))
@@ -77,14 +93,23 @@ def main():
     args = ap.parse_args()
 
     catalog = json.loads((args.dataset / "sku_catalog.json").read_text())
-    field_hits, field_totals, field_abstain = Counter(), Counter(), Counter()
+    stats = defaultdict(lambda: {b: [0, 0] for b in BUCKETS})  # field -> bucket -> [hits, total]
     field_misses = defaultdict(list)
-    header_hits, header_misses = Counter(), defaultdict(list)
     tp = fp = fn = 0
     twin = Counter()
     perfect_forms, needs_review, freq_source = 0, 0, Counter()
     errors, n_forms, cost = [], 0, 0.0
     item_errors = []
+
+    def score(f, obj, gold_value, label) -> bool:
+        value, bucket = read_field(obj, f)
+        hit = field_equal(f, value, gold_value)
+        stats[f][bucket][0] += hit
+        stats[f][bucket][1] += 1
+        if not hit:
+            tag = {"unflagged": "", "flagged": " [flagged ambiguous]", "abstained": " ABSTAINED"}[bucket]
+            field_misses[f].append(f"{label}:{tag} pred={value!r} gold={gold_value!r}")
+        return hit
 
     for out_path in sorted((args.run_dir / "outputs").glob("*.json")):
         form = out_path.stem
@@ -108,27 +133,16 @@ def main():
         form_perfect = not up and not ug
         for pi, gi in pairs:
             p, g = p_items[pi], g_items[gi]
-            freq_source[p.get("invoicing_frequency_source")] += 1
+            freq = p.get("invoicing_frequency")
+            freq_source[freq.get("source") if isinstance(freq, dict) else p.get("invoicing_frequency_source")] += 1
             for f in ITEM_FIELDS:
-                field_totals[f] += 1
-                if field_equal(f, p.get(f), g.get(f)):
-                    field_hits[f] += 1
-                    continue
-                form_perfect = False
-                if p.get(f) is None and f in (p.get("ambiguous_fields") or {}):
-                    field_abstain[f] += 1
-                    field_misses[f].append(f"{form} {g['sku_code']}: ABSTAINED (ambiguous) gold={g.get(f)!r}")
-                else:
-                    field_misses[f].append(f"{form} {g['sku_code']}: pred={p.get(f)!r} gold={g.get(f)!r}")
+                form_perfect &= score(f, p, g.get(f), f"{form} {g['sku_code']}")
         header = pred.get("order_form") or {}
         for f in HEADER_FIELDS:
-            if field_equal(f, header.get(f), gold.get(f)):
-                header_hits[f] += 1
-            else:
-                form_perfect = False
-                header_misses[f].append(f"{form}: pred={header.get(f)!r} gold={gold.get(f)!r}")
+            form_perfect &= score(f, header, gold.get(f), form)
         perfect_forms += form_perfect
 
+    ratio = lambda hits, total: hits / total if total else None
     prec = tp / (tp + fp) if tp + fp else 0
     rec = tp / (tp + fn) if tp + fn else 0
     f1 = 2 * prec * rec / (prec + rec) if prec + rec else 0
@@ -139,11 +153,9 @@ def main():
         "forms": n_forms,
         "items": {"tp": tp, "fp": fp, "fn": fn, "precision": prec, "recall": rec, "f1": f1},
         "near_twin_forms": {"forms": twin["forms"], "precision": twin_p, "recall": twin_r},
-        "item_fields": {f: field_hits[f] / field_totals[f] if field_totals[f] else None for f in ITEM_FIELDS},
-        "item_fields_answered": {f: field_hits[f] / (field_totals[f] - field_abstain[f])
-                                 if field_totals[f] - field_abstain[f] else None for f in ITEM_FIELDS},
-        "item_fields_abstained": {f: field_abstain[f] for f in ITEM_FIELDS},
-        "header_fields": {f: header_hits[f] / n_forms if n_forms else None for f in HEADER_FIELDS},
+        "fields": {f: {"overall": ratio(sum(stats[f][b][0] for b in BUCKETS), sum(stats[f][b][1] for b in BUCKETS)),
+                       **{b: {"accuracy": ratio(*stats[f][b]), "n": stats[f][b][1]} for b in BUCKETS}}
+                   for f in ITEM_FIELDS + HEADER_FIELDS},
         "forms_fully_correct": perfect_forms,
         "needs_review": needs_review,
         "invoicing_frequency_source": dict(freq_source),
@@ -157,22 +169,25 @@ def main():
           f"Precision {prec:.1%} | Recall {rec:.1%} | F1 {f1:.1%} (TP {tp}, FP {fp}, FN {fn})", "",
           f"Near-twin forms (a non-sold catalog name overlaps a sold one): {twin['forms']} forms, "
           f"precision {twin_p:.1%}, recall {twin_r:.1%}", "",
-          "## Field accuracy (matched items)", "",
-          "Abstained = left null and flagged ambiguous (counted wrong in Accuracy, excluded from Answered).", "",
-          "| Field | Accuracy | Answered accuracy | Abstained |", "|---|---|---|---|"]
-    md += [f"| {f} | {v:.1%} | {(result['item_fields_answered'][f] or 0):.1%} | {field_abstain[f]} |"
-           for f, v in result["item_fields"].items() if v is not None]
-    md += ["", "## Header accuracy", "", "| Field | Accuracy |", "|---|---|"]
-    md += [f"| {f} | {v:.1%} |" for f, v in result["header_fields"].items() if v is not None]
-    md += ["", f"invoicing_frequency source: {dict(freq_source)}", "", "## Failures", ""]
+          "## Field accuracy", "",
+          "Overall counts every matched item (abstentions count as wrong). The other columns split it by how "
+          "the output was marked: unflagged answers, answers flagged ambiguous (value given with the ambiguity "
+          "next to it), and abstentions (left null because ambiguous).", ""]
+    fmt = lambda b: "-" if not b["n"] else f"{b['accuracy']:.1%} (n={b['n']})"
+    for title, fields in (("Contract items", ITEM_FIELDS), ("Order form header", HEADER_FIELDS)):
+        md += [f"### {title}", "", "| Field | Overall | Unflagged | Flagged ambiguous | Abstained |",
+               "|---|---|---|---|---|"]
+        for f in fields:
+            r = result["fields"][f]
+            md.append(f"| {f} | {r['overall']:.1%} | {fmt(r['unflagged'])} | {fmt(r['flagged'])} | "
+                      f"{r['abstained']['n'] or '-'} |")
+        md.append("")
+    md += [f"invoicing_frequency source: {dict(freq_source)}", "", "## Failures", ""]
     if item_errors:
         md += ["### Item detection"] + [f"- {e}" for e in item_errors] + [""]
-    for f in ITEM_FIELDS:
+    for f in ITEM_FIELDS + HEADER_FIELDS:
         if field_misses[f]:
             md += [f"### {f} ({len(field_misses[f])})"] + [f"- {m}" for m in field_misses[f]] + [""]
-    for f in HEADER_FIELDS:
-        if header_misses[f]:
-            md += [f"### {f} ({len(header_misses[f])})"] + [f"- {m}" for m in header_misses[f]] + [""]
     (args.run_dir / "eval.md").write_text("\n".join(md))
     print("\n".join(md[:30]))
 

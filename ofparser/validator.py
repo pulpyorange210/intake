@@ -180,6 +180,8 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
         else:
             err("bad_ambiguity", a.item_index, f"ambiguity item_index {a.item_index} does not exist.")
             continue
+        if a.likely is not None and a.likely not in a.candidates:
+            err("bad_ambiguity", a.item_index, f"ambiguity 'likely' value {a.likely!r} is not one of its candidates.")
         if a.field not in fields:
             err("bad_ambiguity", a.item_index,
                 f"ambiguity field {a.field!r} is not a field of {where}. Item fields need the item's index.")

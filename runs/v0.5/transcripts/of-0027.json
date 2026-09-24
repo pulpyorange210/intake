@@ -1,0 +1,407 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON\n  name: Talent Intelligence Platform Premium Edition (Add-on)\n  description: Premium add-on to Talent Intelligence Platform\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION\n  name: Talent Acquisition\n  description: Subscription to Talent Acquisition module\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_ENTERPRISE\n  name: Talent Management Enterprise\n  description: Subscription to Talent Management Enterprise\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_INTELLIGENCE_PLATFORM\n  name: Talent Intelligence Platform\n  description: Subscription to the Talent Intelligence Platform\n  parsing_instructions: |\n    - For this and ALL items: use the Order Form Start Date as the contract term start (not the signature date).\n    - Revenue recognition for the mapped POB is straight-line by days across the service period.\n- code: PREMIUM_SUPPORT\n  name: Premium Support\n  description: Premium support subscription\n  parsing_instructions: |\n    - If minimum/maximum monthly hours are specified, capture them; otherwise leave quantity null.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: PROFESSIONAL_SERVICE\n  name: Professional Service\n  description: Professional services delivered on a usage/progress basis\n  parsing_instructions: |\n    - Capture delivery period and progress inputs (e.g., hours, milestones, percent complete) for percentage-of-completion.\n    - If dates are absent, align service dates with the related SOW or Order Form where available.\n- code: SIGNATURE_SUCCESS\n  name: Signature Success\n  description: Recurring subscription to Signature Success\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: SANDBOX\n  name: Sandbox\n  description: Sandbox environment access subscription\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: ELEVATE_SUCCESS_PLAN\n  name: Elevate Success Plan\n  description: Success plan subscription\n  parsing_instructions: |\n    - Identify any negative-valued contract items in a modification document; strike off the related contract item(s) effective on the modification date.\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: WHATSAPP_SMS_CREDITS\n  name: WhatsApp / SMS Credits\n  description: Recurring subscription for WhatsApp and SMS credits\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CANDIDATE_EXPERIENCE\n  name: Talent Acquisition Candidate Experience\n  description: Candidate experience component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CORE\n  name: Talent Acquisition Core\n  description: Core package of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CRM\n  name: Talent Acquisition CRM\n  description: CRM component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_CORE\n  name: Talent Management Core\n  description: Core package of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_LEADER_EXPERIENCE\n  name: Talent Management Leader Experience\n  description: Leader Experience component of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_DESIGN\n  name: Talent Design\n  description: Recurring subscription to Talent Design\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: COPILOT\n  name: Copilot\n  description: Recurring subscription to Copilot\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Overages - Talent Acquisition AI Interviewer Agent Add-on\n  description: Usage-based overages for the AI Interviewer Agent Add-on\n  parsing_instructions: |\n    - Revenue recognized based on actual usage consumption.\n    - Capture usage metrics as they occur for recognition.\n- code: SKILLS_PORTFOLIO\n  name: Skills Portfolio\n  description: Recurring subscription to Skills Portfolio\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Talent Acquisition AI Interviewer Agent Add-on\n  description: Recurring subscription to the AI Interviewer Agent Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_TALENT_TRACKING_ADDON\n  name: Talent Acquisition Talent Tracking Add-on\n  description: Recurring subscription to the Talent Tracking Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). Billing \"in advance\" or \"in arrears\" describes timing within a period, not the schedule type or frequency. If the document does not say, use null.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). If surrounding context makes one candidate more likely (e.g. its closeness to other dates in the document), give it as likely with that evidence in likely_reason; the field itself still stays null. Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0027.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0027.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                                Order Form - Subscription Services\n\nPrepared For: Meridian Financial Services                                      Quote Number: Q-197690\nAccount Executive: Morgan Diaz                                                 Offer Valid Through: 2024-12-05\n\n\n Sold/Ship To:                                                     Bill To:\n 2864 Enterprise Way, Austin, TX 65906,                            Attn: Accounts Payable, 2493 Innovation\n USA                                                               Pkwy, Austin, TX 12739, USA\n\n\n\n Primary Contact: Casey Patel                                      Billing Contact: Taylor Morgan\n Primary Email: casey@meridianfinancialservices.com                Billing Email: ap@meridianfinancialservices.com\n\n\n\n5tart Date: 10 Dec 2024                     End Date: 09 Dec 2027                     Up to Customer Employee Size: 25,000\n\nSUBSCRIPTION SERVICE FEES\n\n Product/Service                                            Qty            Unit Fee                          Total Contract Value\n\n Talent Intelligence Platform                                2             USD 198,342.61                USD 396,685.22\n Premium Edition (Add-on)\n Premium Support                                             3             USD 236,722.33                USD 710,166.99\n\n Sandbox                                                     1             USD 162,710.11                USD 162,710.11\n\n\n TOTAL SUBSCRIPTION                                                                                      USD 1,269,562.32\n\nINVOICE PLAN\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Net 30 unless stated otherwise.\nProcurement summary: annualized billing profile included for planning.\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\n\n\n\n                                                                                                                       Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on Nov 16, 2024. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatica1ly renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Ta1ent Acquisition Candidate Experience, Talent\nAcquisition\n\nMeridian Financial Services                                      Pioneer Intelligence Ltd.\nBy:                                                              By:\n               SIGNED ELECTRONICALLY                                          SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                        Name (Print): ___________________________\nTitle (Print): Procurement Lead                                  Title (Print): Finance Manager\nDate (Print): Nov 21, 2024                                       Date (Print): Nov 26, 2024\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: NO, P0 exception form to be signed.\n\n\n\n\nConfidential - pricing subject to agreement.                                                                 Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01NWFbnTn4JJpqLaegR6YUUy",
+          "input": {
+            "expression": "396685.22 + 710166.99 + 162710.11"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_0153AdP8E26ivCnQevpL7GYz",
+          "input": {
+            "expression": "198342.61*2"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01KuLzw7w9CMV13No8DKvsXW",
+          "input": {
+            "expression": "236722.33*3"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01NWFbnTn4JJpqLaegR6YUUy",
+          "content": "396685.22 + 710166.99 + 162710.11 = 1269562.32 (rounded to cents: 1269562.32)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_0153AdP8E26ivCnQevpL7GYz",
+          "content": "198342.61*2 = 396685.22 (rounded to cents: 396685.22)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01KuLzw7w9CMV13No8DKvsXW",
+          "content": "236722.33*3 = 710166.99 (rounded to cents: 710166.99)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISiAIKjgEIEhgCKkAIpCsy0M9CzV08t/8DZET6S8APuoD6fT2sZDhVVbLQP6+Lx6znHM56y0ukp+2QRJ7HTDQGTHohMExbn7vwlGFDMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWoAdak1dUGEgxmThKGo6/nsxGffC4aDLpODvmZHFXPO7VZxSIw11so435epqVKGPw1jzHHACsvgDTkKk4dqwIUAYlW6FD13gUEqS/K5xcC6WLI4qHzKieqCEv97NmYBJKIIh0S616NL3nSgZmbX+g0ujkKB+j+gYC6++Gr2XQYAQ==",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01H5oZTdCvTcenA3H1aFuYsM",
+          "input": {
+            "order_form": {
+              "customer_name": "Meridian Financial Services",
+              "vendor_name": "Pioneer Intelligence Ltd.",
+              "effective_date": "2024-11-16",
+              "contract_signed_date_buying_company": "2024-11-21",
+              "contract_signed_date_selling_company": "2024-11-26",
+              "currency": "USD",
+              "grand_total": 1269562.32,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Meridian Financial Services",
+                "vendor_name": "Pioneer Intelligence Ltd.",
+                "effective_date": "This order form becomes effective on Nov 16, 2024.",
+                "contract_signed_date_buying_company": "Meridian Financial Services...Date (Print): Nov 21, 2024",
+                "contract_signed_date_selling_company": "Pioneer Intelligence Ltd....Date (Print): Nov 26, 2024",
+                "currency": "USD 1,269,562.32",
+                "grand_total": "TOTAL SUBSCRIPTION                     USD 1,269,562.32",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+                "source_row": "Talent Intelligence Platform Premium Edition (Add-on)   2   USD 198,342.61   USD 396,685.22",
+                "currency": "USD",
+                "total_listed_value": 396685.22,
+                "quantity": 2,
+                "unit_price": 198342.61,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2024-12-10",
+                "service_end_date": "2027-12-09",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Talent Intelligence Platform Premium Edition (Add-on)",
+                  "source_row": "Talent Intelligence Platform Premium Edition (Add-on)...2...USD 198,342.61...USD 396,685.22",
+                  "currency": "USD 198,342.61",
+                  "total_listed_value": "USD 396,685.22",
+                  "quantity": "2",
+                  "unit_price": "USD 198,342.61",
+                  "unit_price_period": "Unit Fee...Total Contract Value",
+                  "service_start_date": "5tart Date: 10 Dec 2024",
+                  "service_end_date": "End Date: 09 Dec 2027",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "PREMIUM_SUPPORT",
+                "source_row": "Premium Support   3   USD 236,722.33   USD 710,166.99",
+                "currency": "USD",
+                "total_listed_value": 710166.99,
+                "quantity": 3,
+                "unit_price": 236722.33,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2024-12-10",
+                "service_end_date": "2027-12-09",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Premium Support",
+                  "source_row": "Premium Support...3...USD 236,722.33...USD 710,166.99",
+                  "currency": "USD 236,722.33",
+                  "total_listed_value": "USD 710,166.99",
+                  "quantity": "3",
+                  "unit_price": "USD 236,722.33",
+                  "unit_price_period": "Unit Fee...Total Contract Value",
+                  "service_start_date": "5tart Date: 10 Dec 2024",
+                  "service_end_date": "End Date: 09 Dec 2027",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "SANDBOX",
+                "source_row": "Sandbox   1   USD 162,710.11   USD 162,710.11",
+                "currency": "USD",
+                "total_listed_value": 162710.11,
+                "quantity": 1,
+                "unit_price": 162710.11,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2024-12-10",
+                "service_end_date": "2027-12-09",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Sandbox",
+                  "source_row": "Sandbox...1...USD 162,710.11...USD 162,710.11",
+                  "currency": "USD 162,710.11",
+                  "total_listed_value": "USD 162,710.11",
+                  "quantity": "1",
+                  "unit_price": "USD 162,710.11",
+                  "unit_price_period": "Unit Fee...Total Contract Value",
+                  "service_start_date": "5tart Date: 10 Dec 2024",
+                  "service_end_date": "End Date: 09 Dec 2027",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE",
+              "TALENT_ACQUISITION"
+            ],
+            "ambiguities": [],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01H5oZTdCvTcenA3H1aFuYsM",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Meridian Financial Services",
+      "vendor_name": "Pioneer Intelligence Ltd.",
+      "effective_date": "2024-11-16",
+      "contract_signed_date_buying_company": "2024-11-21",
+      "contract_signed_date_selling_company": "2024-11-26",
+      "currency": "USD",
+      "grand_total": 1269562.32,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Meridian Financial Services",
+        "vendor_name": "Pioneer Intelligence Ltd.",
+        "effective_date": "This order form becomes effective on Nov 16, 2024.",
+        "contract_signed_date_buying_company": "Meridian Financial Services...Date (Print): Nov 21, 2024",
+        "contract_signed_date_selling_company": "Pioneer Intelligence Ltd....Date (Print): Nov 26, 2024",
+        "currency": "USD 1,269,562.32",
+        "grand_total": "TOTAL SUBSCRIPTION                     USD 1,269,562.32",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      },
+      "ambiguous_fields": {}
+    },
+    "contract_items_count": 3,
+    "contract_items": [
+      {
+        "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+        "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+        "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+        "currency": "USD",
+        "total_listed_value": 396685.22,
+        "quantity": 2.0,
+        "unit_price": 198342.61,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2024-12-10",
+        "service_end_date": "2027-12-09",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "one-time",
+          "source": "inferred_from_pricing",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 30",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "source_row": "Talent Intelligence Platform Premium Edition (Add-on)   2   USD 198,342.61   USD 396,685.22",
+        "evidence": {
+          "sku_code": "Talent Intelligence Platform Premium Edition (Add-on)",
+          "source_row": "Talent Intelligence Platform Premium Edition (Add-on)...2...USD 198,342.61...USD 396,685.22",
+          "currency": "USD 198,342.61",
+          "total_listed_value": "USD 396,685.22",
+          "quantity": "2",
+          "unit_price": "USD 198,342.61",
+          "unit_price_period": "Unit Fee...Total Contract Value",
+          "service_start_date": "5tart Date: 10 Dec 2024",
+          "service_end_date": "End Date: 09 Dec 2027",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Premium Support",
+        "sku_id": "2c825663-7215-4f20-883c-4e8099f64b8b",
+        "sku_code": "PREMIUM_SUPPORT",
+        "currency": "USD",
+        "total_listed_value": 710166.99,
+        "quantity": 3.0,
+        "unit_price": 236722.33,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2024-12-10",
+        "service_end_date": "2027-12-09",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "one-time",
+          "source": "inferred_from_pricing",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 30",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "source_row": "Premium Support   3   USD 236,722.33   USD 710,166.99",
+        "evidence": {
+          "sku_code": "Premium Support",
+          "source_row": "Premium Support...3...USD 236,722.33...USD 710,166.99",
+          "currency": "USD 236,722.33",
+          "total_listed_value": "USD 710,166.99",
+          "quantity": "3",
+          "unit_price": "USD 236,722.33",
+          "unit_price_period": "Unit Fee...Total Contract Value",
+          "service_start_date": "5tart Date: 10 Dec 2024",
+          "service_end_date": "End Date: 09 Dec 2027",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Sandbox",
+        "sku_id": "bc8b9193-a684-41c5-ac83-c0356cbcb7f3",
+        "sku_code": "SANDBOX",
+        "currency": "USD",
+        "total_listed_value": 162710.11,
+        "quantity": 1.0,
+        "unit_price": 162710.11,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2024-12-10",
+        "service_end_date": "2027-12-09",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "one-time",
+          "source": "inferred_from_pricing",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 30",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "source_row": "Sandbox   1   USD 162,710.11   USD 162,710.11",
+        "evidence": {
+          "sku_code": "Sandbox",
+          "source_row": "Sandbox...1...USD 162,710.11...USD 162,710.11",
+          "currency": "USD 162,710.11",
+          "total_listed_value": "USD 162,710.11",
+          "quantity": "1",
+          "unit_price": "USD 162,710.11",
+          "unit_price_period": "Unit Fee...Total Contract Value",
+          "service_start_date": "5tart Date: 10 Dec 2024",
+          "service_end_date": "End Date: 09 Dec 2027",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE",
+      "TALENT_ACQUISITION"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": null,
+        "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+      },
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": 0,
+        "message": "quotes for ['sku_code', 'source_row'] were not found verbatim in the text layer"
+      }
+    ],
+    "meta": {
+      "source_pdf": "of-0027.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 2,
+      "submissions": 1,
+      "stop_note": null,
+      "seconds": 33.8,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 3029,
+        "cache_creation_input_tokens": 14245,
+        "cache_read_input_tokens": 12932
+      },
+      "cost_usd": 0.1712
+    }
+  }
+}

@@ -119,3 +119,46 @@ correct, and abstains on 28 (the one-time vs yearly cases). v0.2 and v0.3 are me
 **Results** (targeted rerun of the 6 affected forms, `runs/v0.4-check`, $0.89): invoicing_schedule_type
 is null on all 6; no misplaced ambiguity entries. Removes the one accidental schedule-type match
 (of-0018) - accepted, since it came from text that doesn't support it.
+
+## v0.5 - ambiguity shown next to the value, with hints (2026-09-24)
+
+The principle behind the ambiguity rule, as clarified by me: the output must never look
+like it knows something it doesn't. Giving a value is fine if the uncertainty is impossible to miss.
+
+**What**
+- `invoicing_frequency` is now always a block: `{value, source, ambiguous, alternatives, reason}`.
+  Always a block (not only when ambiguous) so downstream code sees one type. The flag sits next to the
+  value, so anything reading only that field still sees the ambiguity.
+  - `source`: `stated` (explicit billing text), `inferred_from_pricing` (fallback), or
+    `document_ambiguous` (the model found conflicting readings; value null).
+  - The 12-month single-price case now gives `value: "one-time"` with `ambiguous: true`,
+    `alternatives: ["yearly"]`, and a reason stating the fact: one invoice for the full amount over the
+    term. v0.3 returned null, which threw away the known fact (one invoice) because the label was
+    unclear. "one-time" is the primary label because a single price covering the whole term is one
+    invoice for the whole term - the same rule that labels 24/36-month single-price items one-time.
+- Ambiguity entries (model side) can carry `likely` + `likely_reason`: when context favours one
+  candidate (e.g. of-0032's 06/04/2024 effective date is 3 days before the 07 Jun 2024 signature), the
+  hint is recorded. The field itself stays null. Validator: `likely` must be one of the candidates.
+- Other fields stay plain values; when ambiguous they are null, with candidates/likely/reason in the
+  item's `ambiguous_fields`.
+- Eval splits every field into unflagged answers, flagged-ambiguous answers, and abstentions, so flagged
+  answers are never blended into the headline accuracy.
+
+**Expected impact** (ground truth replay): invoicing_frequency 104 unflagged (all correct) + 28 flagged
+(19 match the ground-truth label, 9 don't - both labels are valid for those items).
+
+**Results** (run `runs/v0.5`, 50 forms, $8.14, 49/50 accepted on the first submission):
+- Item detection 100% / 100%; near-twin forms 20, 100% / 100%. Currency, totals, quantity, unit price,
+  end date, payment terms, signature dates: 100%. invoicing_schedule_type: null everywhere (0%).
+- invoicing_frequency: 101/104 unflagged correct (the 3 misses are null, see of-0048 below);
+  28 flagged ambiguous (one-time, alternative yearly), of which 19 match the ground-truth label.
+- effective_date: of-0032 abstained again, now with `likely: 2024-06-04` ("consistent with the
+  07 Jun 2024 signature") - as intended.
+- New: of-0048 prints the start date as "12/09/2022" and the model abstained on service_start_date
+  for all 3 items (candidates 2022-12-09 / 2022-09-12, likely Dec 9). In v0.3 it answered Dec 9
+  unflagged - run-to-run variation. But Sep 12 is not actually a valid reading: it gives a 453-day term
+  in which the 4 billing periods implied by the prices would be 3.75 months each, and it starts before
+  the 10 Nov effective date. Abstaining here overstates the ambiguity. The null start date also left
+  those 3 items without a frequency.
+- The one retry: of-0048's first submission used a descriptive field name in an ambiguity entry;
+  `bad_ambiguity` caught it and the model fixed it.

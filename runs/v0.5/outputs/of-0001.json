@@ -1,0 +1,189 @@
+{
+  "order_form": {
+    "customer_name": "Orchid Logistics",
+    "vendor_name": "Acme Software Inc.",
+    "effective_date": "2026-07-29",
+    "contract_signed_date_buying_company": "2026-08-05",
+    "contract_signed_date_selling_company": "2026-08-08",
+    "currency": "USD",
+    "grand_total": 607643.58,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Orchid Logistics",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "This order form becomes effective on 29-Jul-2026.",
+      "contract_signed_date_buying_company": "Orchid Logistics...Date (Print): Aug 05, 2026",
+      "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): Aug 08, 2026",
+      "currency": "607,643.58 USD",
+      "grand_total": "TOTAL SUBSCRIPTION 607,643.58 USD",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {}
+  },
+  "contract_items_count": 3,
+  "contract_items": [
+    {
+      "name": "Talent Acquisition Core",
+      "sku_id": "89ab57ac-9aad-49a5-b9f5-4b99698dd292",
+      "sku_code": "TALENT_ACQUISITION_CORE",
+      "currency": "USD",
+      "total_listed_value": 197510.77,
+      "quantity": 1.0,
+      "unit_price": 197510.77,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-08-01",
+      "service_end_date": "2027-07-31",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": true,
+        "alternatives": [
+          "yearly"
+        ],
+        "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "source_row": "Talent Acquisition Core 1 197,510.77 USD 197,510.77 USD",
+      "evidence": {
+        "sku_code": "Talent Acquisition Core",
+        "source_row": "Talent Acquisition Core 1 197,510.77 USD 197,510.77 USD",
+        "currency": "197,510.77 USD",
+        "total_listed_value": "197,510.77 USD",
+        "quantity": "Qty ... 1",
+        "unit_price": "Unit Fee 197,510.77 USD",
+        "unit_price_period": "Start Date: 01-Aug-2026 End Date: 31 Jul 2027",
+        "service_start_date": "Start Date: 01-Aug-2026",
+        "service_end_date": "End Date: 31 Jul 2027",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+      "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+      "currency": "USD",
+      "total_listed_value": 167214.88,
+      "quantity": 1.0,
+      "unit_price": 167214.88,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-08-01",
+      "service_end_date": "2027-07-31",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": true,
+        "alternatives": [
+          "yearly"
+        ],
+        "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 167,214.88 USD 167,214.88 USD",
+      "evidence": {
+        "sku_code": "Talent Intel. Platf. Prem. Ed. (Add-on)",
+        "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 167,214.88 USD 167,214.88 USD",
+        "currency": "167,214.88 USD",
+        "total_listed_value": "167,214.88 USD",
+        "quantity": "1",
+        "unit_price": "167,214.88 USD",
+        "unit_price_period": "Start Date: 01-Aug-2026 End Date: 31 Jul 2027",
+        "service_start_date": "Start Date: 01-Aug-2026",
+        "service_end_date": "End Date: 31 Jul 2027",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Professional Service",
+      "sku_id": "2a4fa79f-0fb7-42a3-a4ad-143f3cce8e36",
+      "sku_code": "PROFESSIONAL_SERVICE",
+      "currency": "USD",
+      "total_listed_value": 242917.93,
+      "quantity": 1.0,
+      "unit_price": 242917.93,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-08-01",
+      "service_end_date": "2027-07-31",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": true,
+        "alternatives": [
+          "yearly"
+        ],
+        "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "source_row": "Professiona1 Service 1 242,917.93 USD 242,917.93 USD",
+      "evidence": {
+        "sku_code": "Professiona1 Service",
+        "source_row": "Professiona1 Service 1 242,917.93 USD 242,917.93 USD",
+        "currency": "242,917.93 USD",
+        "total_listed_value": "242,917.93 USD",
+        "quantity": "1",
+        "unit_price": "242,917.93 USD",
+        "unit_price_period": "Start Date: 01-Aug-2026 End Date: 31 Jul 2027",
+        "service_start_date": "Start Date: 01-Aug-2026",
+        "service_end_date": "End Date: 31 Jul 2027",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "SANDBOX",
+    "TALENT_ACQUISITION"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": null,
+      "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+    },
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": 0,
+      "message": "quotes for ['unit_price'] were not found verbatim in the text layer"
+    },
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": 1,
+      "message": "quotes for ['sku_code', 'source_row'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0001.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 2,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 28.3,
+    "usage": {
+      "input_tokens": 4,
+      "output_tokens": 2613,
+      "cache_creation_input_tokens": 13617,
+      "cache_read_input_tokens": 12883
+    },
+    "cost_usd": 0.1569
+  }
+}

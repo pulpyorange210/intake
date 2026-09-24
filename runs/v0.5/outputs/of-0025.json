@@ -1,0 +1,143 @@
+{
+  "order_form": {
+    "customer_name": "Meridian Financial Services",
+    "vendor_name": "Acme Software Inc.",
+    "effective_date": "2025-02-16",
+    "contract_signed_date_buying_company": "2025-02-21",
+    "contract_signed_date_selling_company": "2025-02-24",
+    "currency": "USD",
+    "grand_total": 481906.36,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Meridian Financial Services",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "This order form becomes effective on 02/16/2025.",
+      "contract_signed_date_buying_company": "Meridian Financial Services...Date (Print): 21-Feb-2025",
+      "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): 24-Feb-2025",
+      "currency": "$103,891.40",
+      "grand_total": "TOTAL SUBSCRIPTION $481,906.36",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {}
+  },
+  "contract_items_count": 2,
+  "contract_items": [
+    {
+      "name": "Talent Management Enterprise",
+      "sku_id": "4e976929-ebff-4189-b7ab-1b650edabc4e",
+      "sku_code": "TALENT_MANAGEMENT_ENTERPRISE",
+      "currency": "USD",
+      "total_listed_value": 103891.4,
+      "quantity": 1.0,
+      "unit_price": 103891.4,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-03-18",
+      "service_end_date": "2026-03-17",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": true,
+        "alternatives": [
+          "yearly"
+        ],
+        "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+      },
+      "payment_terms": "Net 55",
+      "special_notes": "Up to Customer Employee Size: 2,500",
+      "ambiguous_fields": {},
+      "source_row": "Talent Mgmt Ent. 1 $103,891.40 $103,891.40",
+      "evidence": {
+        "source_row": "Talent Mgmt Ent. 1 $103,891.40 $103,891.40",
+        "currency": "$103,891.40",
+        "total_listed_value": "$103,891.40",
+        "quantity": "Qty...1",
+        "unit_price": "Rate...$103,891.40",
+        "unit_price_period": "Start Date: 18 Mar 2025 End Date: 17 Mar 2026",
+        "service_start_date": "Start Date: 18 Mar 2025",
+        "service_end_date": "End Date: 17 Mar 2026",
+        "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+        "special_notes": "Up to Customer Employee Size: 2,500"
+      }
+    },
+    {
+      "name": "Talent Acquisition Candidate Experience",
+      "sku_id": "436af129-f59f-4be4-aa40-e50f90046516",
+      "sku_code": "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE",
+      "currency": "USD",
+      "total_listed_value": 378014.96,
+      "quantity": 2.0,
+      "unit_price": 189007.48,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-03-18",
+      "service_end_date": "2026-03-17",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": true,
+        "alternatives": [
+          "yearly"
+        ],
+        "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+      },
+      "payment_terms": "Net 55",
+      "special_notes": "Up to Customer Employee Size: 2,500",
+      "ambiguous_fields": {},
+      "source_row": "Talent Acquisition Candidate Experience 2 $189,007.48 $378,014.96",
+      "evidence": {
+        "source_row": "Talent Acquisition Candidate...Experience 2 $189,007.48 $378,014.96",
+        "currency": "$189,007.48",
+        "total_listed_value": "$378,014.96",
+        "quantity": "Qty...2",
+        "unit_price": "Rate...$189,007.48",
+        "unit_price_period": "Start Date: 18 Mar 2025 End Date: 17 Mar 2026",
+        "service_start_date": "Start Date: 18 Mar 2025",
+        "service_end_date": "End Date: 17 Mar 2026",
+        "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+        "special_notes": "Up to Customer Employee Size: 2,500"
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "TALENT_ACQUISITION_CRM",
+    "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": null,
+      "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+    },
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": 1,
+      "message": "quotes for ['source_row'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0025.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 2,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 18.1,
+    "usage": {
+      "input_tokens": 4,
+      "output_tokens": 1958,
+      "cache_creation_input_tokens": 13343,
+      "cache_read_input_tokens": 12756
+    },
+    "cost_usd": 0.1387
+  }
+}

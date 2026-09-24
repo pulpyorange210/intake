@@ -1,0 +1,168 @@
+{
+  "order_form": {
+    "customer_name": "Riverstone Health",
+    "vendor_name": "Acme Software Inc.",
+    "effective_date": "2026-11-21",
+    "contract_signed_date_buying_company": "2026-11-22",
+    "contract_signed_date_selling_company": "2026-11-27",
+    "currency": "USD",
+    "grand_total": 478894.34,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Riverstone Health",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "This order form becomes effective on 11/21/2026.",
+      "contract_signed_date_buying_company": "Riverstone Health...Date (Print): 22-Nov-2026",
+      "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): 27-Nov-2026",
+      "currency": "USD 478,894.34",
+      "grand_total": "TOTAL SUBSCRIPTION USD 478,894.34",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {}
+  },
+  "contract_items_count": 3,
+  "contract_items": [
+    {
+      "name": "Signature Success",
+      "sku_id": "6e0247a7-ae3b-49ef-971e-feb0641cf52d",
+      "sku_code": "SIGNATURE_SUCCESS",
+      "currency": "USD",
+      "total_listed_value": 53299.04,
+      "quantity": 2.0,
+      "unit_price": 26649.52,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-12-06",
+      "service_end_date": "2028-12-04",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "source_row": "Signature Success 2 USD 26,649.52 USD 53,299.04",
+      "evidence": {
+        "source_row": "Signature Success 2 USD 26,649.52 USD 53,299.04",
+        "currency": "USD 26,649.52",
+        "total_listed_value": "USD 53,299.04",
+        "quantity": "Qty...2",
+        "unit_price": "USD 26,649.52",
+        "unit_price_period": "Start Date: Dec 06, 2026 End Date: 04-Dec-2028...Unit Price...Total Contract Value",
+        "service_start_date": "Start Date: Dec 06, 2026",
+        "service_end_date": "End Date: 04-Dec-2028",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Elevate Success Plan",
+      "sku_id": "63d14b22-78d4-4cb0-9cd6-85127611f1d0",
+      "sku_code": "ELEVATE_SUCCESS_PLAN",
+      "currency": "USD",
+      "total_listed_value": 319520.0,
+      "quantity": 5.0,
+      "unit_price": 63904.0,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-12-06",
+      "service_end_date": "2028-12-04",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "source_row": "Elevate Success Plan 5 USD 63,904.00 USD 319,520.00",
+      "evidence": {
+        "source_row": "Elevate Success Plan 5 USD 63,904.00 USD 319,520.00",
+        "currency": "USD 63,904.00",
+        "total_listed_value": "USD 319,520.00",
+        "quantity": "Qty...5",
+        "unit_price": "USD 63,904.00",
+        "unit_price_period": "Start Date: Dec 06, 2026 End Date: 04-Dec-2028...Unit Price...Total Contract Value",
+        "service_start_date": "Start Date: Dec 06, 2026",
+        "service_end_date": "End Date: 04-Dec-2028",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Professional Service",
+      "sku_id": "2a4fa79f-0fb7-42a3-a4ad-143f3cce8e36",
+      "sku_code": "PROFESSIONAL_SERVICE",
+      "currency": "USD",
+      "total_listed_value": 106075.3,
+      "quantity": 1.0,
+      "unit_price": 106075.3,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-12-06",
+      "service_end_date": "2028-12-04",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "source_row": "Professional Service 1 USD 106,075.30 USD 106,075.30",
+      "evidence": {
+        "source_row": "Professional Service 1 USD 106,075.30 USD 106,075.30",
+        "currency": "USD 106,075.30",
+        "total_listed_value": "USD 106,075.30",
+        "quantity": "Qty...1",
+        "unit_price": "USD 106,075.30",
+        "unit_price_period": "Start Date: Dec 06, 2026 End Date: 04-Dec-2028...Unit Price...Total Contract Value",
+        "service_start_date": "Start Date: Dec 06, 2026",
+        "service_end_date": "End Date: 04-Dec-2028",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "TALENT_ACQUISITION_CORE",
+    "TALENT_ACQUISITION_CRM"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": null,
+      "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0046.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 2,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 27.0,
+    "usage": {
+      "input_tokens": 4,
+      "output_tokens": 2727,
+      "cache_creation_input_tokens": 13851,
+      "cache_read_input_tokens": 12795
+    },
+    "cost_usd": 0.1612
+  }
+}

@@ -59,8 +59,10 @@ not stated. For signature dates, work out which party is the customer (buyer) an
 vendor (seller), then attribute each signature date to the party named in its signature block.
 - Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. \
 Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, \
-and why the document doesn't decide). Missing information is null without an ambiguity entry; \
-ambiguities are for conflicting or equally valid readings.
+and why the document doesn't decide). If surrounding context makes one candidate more likely \
+(e.g. its closeness to other dates in the document), give it as likely with that evidence in \
+likely_reason; the field itself still stays null. Missing information is null without an \
+ambiguity entry; ambiguities are for conflicting or equally valid readings.
 - evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed \
 by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). \
 To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a \

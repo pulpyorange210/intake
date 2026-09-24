@@ -1,0 +1,220 @@
+{
+  "forms": 50,
+  "items": {
+    "tp": 132,
+    "fp": 0,
+    "fn": 0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1": 1.0
+  },
+  "near_twin_forms": {
+    "forms": 20,
+    "precision": 1.0,
+    "recall": 1.0
+  },
+  "fields": {
+    "currency": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "total_listed_value": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "quantity": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "unit_price": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "service_start_date": {
+      "overall": 0.9772727272727273,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 129
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": 0.0,
+        "n": 3
+      }
+    },
+    "service_end_date": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "invoicing_schedule_type": {
+      "overall": 0.0,
+      "unflagged": {
+        "accuracy": 0.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "invoicing_frequency": {
+      "overall": 0.9090909090909091,
+      "unflagged": {
+        "accuracy": 0.9711538461538461,
+        "n": 104
+      },
+      "flagged": {
+        "accuracy": 0.6785714285714286,
+        "n": 28
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "payment_terms": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "special_notes": {
+      "overall": 0.0,
+      "unflagged": {
+        "accuracy": 0.0,
+        "n": 132
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "effective_date": {
+      "overall": 0.98,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 49
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": 0.0,
+        "n": 1
+      }
+    },
+    "contract_signed_date_buying_company": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 50
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    },
+    "contract_signed_date_selling_company": {
+      "overall": 1.0,
+      "unflagged": {
+        "accuracy": 1.0,
+        "n": 50
+      },
+      "flagged": {
+        "accuracy": null,
+        "n": 0
+      },
+      "abstained": {
+        "accuracy": null,
+        "n": 0
+      }
+    }
+  },
+  "forms_fully_correct": 0,
+  "needs_review": 0,
+  "invoicing_frequency_source": {
+    "inferred_from_pricing": 129,
+    "null": 3
+  },
+  "total_cost_usd": 8.1425
+}

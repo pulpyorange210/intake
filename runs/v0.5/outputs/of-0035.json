@@ -1,0 +1,206 @@
+{
+  "order_form": {
+    "customer_name": "Oakbridge Energy",
+    "vendor_name": "Northstar Systems LLC",
+    "effective_date": "2023-04-27",
+    "contract_signed_date_buying_company": "2023-04-28",
+    "contract_signed_date_selling_company": "2023-04-29",
+    "currency": "USD",
+    "grand_total": 17418863.88,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Oakbridge Energy",
+      "vendor_name": "Northstar Systems LLC",
+      "effective_date": "This order form becomes effective on 2023-04-27.",
+      "contract_signed_date_buying_company": "Oakbridge Energy...Title (Print): Procurement Lead...Date (Print): Apr 28, 2023",
+      "contract_signed_date_selling_company": "Northstar Systems LLC...Title (Print): VP Finance...Date (Print): Apr 29, 2023",
+      "currency": "$17,418,863.88",
+      "grand_total": "TOTAL SUBSCRIPTION                $17,418,863.88",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {}
+  },
+  "contract_items_count": 4,
+  "contract_items": [
+    {
+      "name": "Talent Acquisition",
+      "sku_id": "d6f20b62-9bec-421b-8d33-489712746aee",
+      "sku_code": "TALENT_ACQUISITION",
+      "currency": "USD",
+      "total_listed_value": 7144980.12,
+      "quantity": 3.0,
+      "unit_price": 198471.67,
+      "unit_price_period": "quarter",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-04-28",
+      "service_end_date": "2026-04-26",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "quarterly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Due on Receipt",
+      "special_notes": "Up to Customer Employee Size: 2,500",
+      "ambiguous_fields": {},
+      "source_row": "Talent Acquisition 3 $198,471.67 $7,144,980.12",
+      "evidence": {
+        "source_row": "Talent Acquisition 3 $198,471.67 $7,144,980.12",
+        "currency": "$7,144,980.12",
+        "total_listed_value": "$7,144,980.12",
+        "quantity": "3",
+        "unit_price": "$198,471.67",
+        "unit_price_period": "Start Date: 2023-04-28 End Date: 04/26/2026",
+        "service_start_date": "Start Date: 2023-04-28",
+        "service_end_date": "End Date: 04/26/2026",
+        "payment_terms": "Payment terms include Due on Receipt unless stated otherwise.",
+        "special_notes": "Up to Customer Employee Size: 2,500"
+      }
+    },
+    {
+      "name": "Premium Support",
+      "sku_id": "2c825663-7215-4f20-883c-4e8099f64b8b",
+      "sku_code": "PREMIUM_SUPPORT",
+      "currency": "USD",
+      "total_listed_value": 651341.76,
+      "quantity": 1.0,
+      "unit_price": 54278.48,
+      "unit_price_period": "quarter",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-04-28",
+      "service_end_date": "2026-04-26",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "quarterly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Due on Receipt",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "source_row": "Prem. Support 1 $54,278.48 $651,341.76",
+      "evidence": {
+        "source_row": "Prem. Support 1 $54,278.48 $651,341.76",
+        "currency": "$651,341.76",
+        "total_listed_value": "$651,341.76",
+        "quantity": "1",
+        "unit_price": "$54,278.48",
+        "unit_price_period": "Start Date: 2023-04-28 End Date: 04/26/2026",
+        "service_start_date": "Start Date: 2023-04-28",
+        "service_end_date": "End Date: 04/26/2026",
+        "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Acquisition Candidate Experience",
+      "sku_id": "436af129-f59f-4be4-aa40-e50f90046516",
+      "sku_code": "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE",
+      "currency": "USD",
+      "total_listed_value": 7089112.8,
+      "quantity": 5.0,
+      "unit_price": 118151.88,
+      "unit_price_period": "quarter",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-04-28",
+      "service_end_date": "2026-04-26",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "quarterly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Due on Receipt",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "source_row": "Talent Acquisition Candidate Experience 5 $118,151.88 $7,089,112.80",
+      "evidence": {
+        "source_row": "Talent Acquisition Candidate                                5             $118,151.88                     $7,089,112.80",
+        "currency": "$7,089,112.80",
+        "total_listed_value": "$7,089,112.80",
+        "quantity": "5",
+        "unit_price": "$118,151.88",
+        "unit_price_period": "Start Date: 2023-04-28 End Date: 04/26/2026",
+        "service_start_date": "Start Date: 2023-04-28",
+        "service_end_date": "End Date: 04/26/2026",
+        "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform",
+      "sku_id": "a763df24-1ea6-4afc-a195-13ce52ea20cd",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+      "currency": "USD",
+      "total_listed_value": 2533429.2,
+      "quantity": 1.0,
+      "unit_price": 211119.1,
+      "unit_price_period": "quarter",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-04-28",
+      "service_end_date": "2026-04-26",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "quarterly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Due on Receipt",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "source_row": "Talent Intel. Platf. 1 $211,119.10 $2,533,429.20",
+      "evidence": {
+        "source_row": "Talent Intel. Platf. 1 $211,119.10 $2,533,429.20",
+        "currency": "$2,533,429.20",
+        "total_listed_value": "$2,533,429.20",
+        "quantity": "1",
+        "unit_price": "$211,119.10",
+        "unit_price_period": "Start Date: 2023-04-28 End Date: 04/26/2026",
+        "service_start_date": "Start Date: 2023-04-28",
+        "service_end_date": "End Date: 04/26/2026",
+        "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "ELEVATE_SUCCESS_PLAN",
+    "SKILLS_PORTFOLIO"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": 2,
+      "message": "quotes for ['source_row'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0035.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 3,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 359.8,
+    "usage": {
+      "input_tokens": 6,
+      "output_tokens": 3647,
+      "cache_creation_input_tokens": 28797,
+      "cache_read_input_tokens": 12901
+    },
+    "cost_usd": 0.2776
+  }
+}

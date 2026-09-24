@@ -1,7 +1,7 @@
 """Turn an accepted submission into the final output record."""
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from .catalog import Catalog
 from .schema import ContractItem, Submission
@@ -10,53 +10,62 @@ from .validator import Issue, parse_iso, price_ratio, term_months, RATIO_TOLERAN
 PERIOD_MONTHS_TO_FREQUENCY = {1: "monthly", 3: "quarterly", 6: "biannually", 12: "yearly"}
 
 
-def infer_frequency(item: ContractItem) -> Tuple[Optional[str], Optional[dict]]:
+def frequency_block(value=None, source=None, alternatives=(), reason=None) -> dict:
+    """invoicing_frequency is always this block, so the ambiguity flag sits next to the value."""
+    return {"value": value, "source": source, "ambiguous": bool(alternatives) or (value is None and bool(reason)),
+            "alternatives": list(alternatives), "reason": reason}
+
+
+def infer_frequency(item: ContractItem) -> dict:
     """Fallback when the document says nothing about billing: one invoice per pricing period.
 
-    Returns (frequency, ambiguity) where ambiguity is {"candidates", "reason"} or None. A single price covering the whole term is one invoice,
-    which is "one-time" - but if the term is itself exactly one standard period (e.g. 12 months),
-    the matching periodic label ("yearly") is equally valid, so we return no answer and say why.
+    A single price covering the whole term is one invoice for the full amount, labelled "one-time".
+    If the term is itself exactly one standard period (e.g. 12 months), the periodic label ("yearly")
+    describes the same single invoice equally well, so the value is flagged ambiguous with that
+    alternative next to it.
     """
+    none = frequency_block()
     ratio = price_ratio(item)
     if ratio is None or item.period_amounts or not (item.service_start_date and item.service_end_date):
-        return None, None
+        return none
     n = ratio.to_integral_value()
     if n < 1 or abs(ratio - n) > RATIO_TOLERANCE:
-        return None, None
+        return none
     try:
         months = term_months(parse_iso(item.service_start_date), parse_iso(item.service_end_date))
     except ValueError:
-        return None, None
+        return none
     if n == 1:
         if months in PERIOD_MONTHS_TO_FREQUENCY:
             label = PERIOD_MONTHS_TO_FREQUENCY[months]
-            return None, {"candidates": ["one-time", label],
-                          "reason": f"One price covers the whole {months}-month term, so it is billed once; that fits "
-                                    f"both 'one-time' and '{label}', and the document does not state the billing frequency."}
-        return "one-time", None
+            return frequency_block(
+                "one-time", "inferred_from_pricing", [label],
+                f"One invoice for the full amount over the {months}-month term (a single price covers the whole "
+                f"term; the document does not state billing). 'one-time' and '{label}' both describe this; the "
+                f"document doesn't distinguish them.")
+        return frequency_block("one-time", "inferred_from_pricing")
     period = months / int(n)
-    return (PERIOD_MONTHS_TO_FREQUENCY.get(period) if period == int(period) else None), None
+    label = PERIOD_MONTHS_TO_FREQUENCY.get(period) if period == int(period) else None
+    return frequency_block(label, "inferred_from_pricing") if label else none
 
 
 def build_output(sub: Submission, catalog: Catalog, unresolved: List[Issue], notes: List[Issue] = ()) -> dict:
     ambiguous: Dict[Optional[int], Dict[str, dict]] = {}
     for a in sub.ambiguities:
-        ambiguous.setdefault(a.item_index, {})[a.field] = {"candidates": a.candidates, "reason": a.reason}
+        ambiguous.setdefault(a.item_index, {})[a.field] = {
+            "candidates": a.candidates, "likely": a.likely, "likely_reason": a.likely_reason, "reason": a.reason}
 
     items = []
     for idx, item in enumerate(sub.contract_items):
         sku = catalog.by_code.get(item.sku_code, {})
         item_ambiguous = dict(ambiguous.get(idx, {}))
-        frequency, frequency_source = item.invoicing_frequency, "stated" if item.invoicing_frequency else None
-        if frequency is None and "invoicing_frequency" not in item_ambiguous:
-            frequency, ambiguity = infer_frequency(item)
-            if frequency:
-                frequency_source = "inferred_from_pricing"
-            elif ambiguity:
-                frequency_source = "ambiguous"
-                item_ambiguous["invoicing_frequency"] = ambiguity
-        elif "invoicing_frequency" in item_ambiguous:
-            frequency_source = "ambiguous"
+        model_flag = item_ambiguous.pop("invoicing_frequency", None)
+        if item.invoicing_frequency:
+            frequency = frequency_block(item.invoicing_frequency, "stated")
+        elif model_flag:
+            frequency = frequency_block(None, "document_ambiguous", model_flag["candidates"], model_flag["reason"])
+        else:
+            frequency = infer_frequency(item)
         items.append({
             "name": sku.get("name"),
             "sku_id": sku.get("id"),
@@ -72,7 +81,6 @@ def build_output(sub: Submission, catalog: Catalog, unresolved: List[Issue], not
             "service_end_date": item.service_end_date,
             "invoicing_schedule_type": item.invoicing_schedule_type,
             "invoicing_frequency": frequency,
-            "invoicing_frequency_source": frequency_source,
             "payment_terms": item.payment_terms,
             "special_notes": item.special_notes,
             "ambiguous_fields": item_ambiguous,

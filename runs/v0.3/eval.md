@@ -8,30 +8,32 @@ Precision 100.0% | Recall 100.0% | F1 100.0% (TP 132, FP 0, FN 0)
 
 Near-twin forms (a non-sold catalog name overlaps a sold one): 20 forms, precision 100.0%, recall 100.0%
 
-## Field accuracy (matched items)
+## Field accuracy
 
-Abstained = left null and flagged ambiguous (counted wrong in Accuracy, excluded from Answered).
+Overall counts every matched item (abstentions count as wrong). The other columns split it by how the output was marked: unflagged answers, answers flagged ambiguous (value given with the ambiguity next to it), and abstentions (left null because ambiguous).
 
-| Field | Accuracy | Answered accuracy | Abstained |
-|---|---|---|---|
-| currency | 100.0% | 100.0% | 0 |
-| total_listed_value | 100.0% | 100.0% | 0 |
-| quantity | 100.0% | 100.0% | 0 |
-| unit_price | 100.0% | 100.0% | 0 |
-| service_start_date | 100.0% | 100.0% | 0 |
-| service_end_date | 100.0% | 100.0% | 0 |
-| invoicing_schedule_type | 0.8% | 0.8% | 2 |
-| invoicing_frequency | 78.8% | 100.0% | 28 |
-| payment_terms | 100.0% | 100.0% | 0 |
-| special_notes | 0.0% | 0.0% | 0 |
+### Contract items
 
-## Header accuracy
+| Field | Overall | Unflagged | Flagged ambiguous | Abstained |
+|---|---|---|---|---|
+| currency | 100.0% | 100.0% (n=132) | - | - |
+| total_listed_value | 100.0% | 100.0% (n=132) | - | - |
+| quantity | 100.0% | 100.0% (n=132) | - | - |
+| unit_price | 100.0% | 100.0% (n=132) | - | - |
+| service_start_date | 100.0% | 100.0% (n=132) | - | - |
+| service_end_date | 100.0% | 100.0% (n=132) | - | - |
+| invoicing_schedule_type | 0.8% | 0.8% (n=130) | - | 2 |
+| invoicing_frequency | 78.8% | 100.0% (n=104) | - | 28 |
+| payment_terms | 100.0% | 100.0% (n=132) | - | - |
+| special_notes | 0.0% | 0.0% (n=132) | - | - |
 
-| Field | Accuracy |
-|---|---|
-| effective_date | 98.0% |
-| contract_signed_date_buying_company | 100.0% |
-| contract_signed_date_selling_company | 100.0% |
+### Order form header
+
+| Field | Overall | Unflagged | Flagged ambiguous | Abstained |
+|---|---|---|---|---|
+| effective_date | 98.0% | 100.0% (n=49) | - | 1 |
+| contract_signed_date_buying_company | 100.0% | 100.0% (n=50) | - | - |
+| contract_signed_date_selling_company | 100.0% | 100.0% (n=50) | - | - |
 
 invoicing_frequency source: {'ambiguous': 28, 'inferred_from_pricing': 104}
 
@@ -136,8 +138,8 @@ invoicing_frequency source: {'ambiguous': 28, 'inferred_from_pricing': 104}
 - of-0037 TALENT_INTELLIGENCE_PLATFORM: pred=None gold='hybrid'
 - of-0037 TALENT_ACQUISITION: pred=None gold='hybrid'
 - of-0038 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='recurring'
-- of-0039 WHATSAPP_SMS_CREDITS: ABSTAINED (ambiguous) gold='hybrid'
-- of-0039 PREMIUM_SUPPORT: ABSTAINED (ambiguous) gold='hybrid'
+- of-0039 WHATSAPP_SMS_CREDITS: ABSTAINED pred=None gold='hybrid'
+- of-0039 PREMIUM_SUPPORT: ABSTAINED pred=None gold='hybrid'
 - of-0040 TALENT_MANAGEMENT_ENTERPRISE: pred=None gold='upfront'
 - of-0040 TALENT_ACQUISITION: pred=None gold='upfront'
 - of-0041 WHATSAPP_SMS_CREDITS: pred=None gold='upfront'
@@ -171,34 +173,34 @@ invoicing_frequency source: {'ambiguous': 28, 'inferred_from_pricing': 104}
 - of-0050 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='upfront'
 
 ### invoicing_frequency (28)
-- of-0001 TALENT_ACQUISITION_CORE: ABSTAINED (ambiguous) gold='one-time'
-- of-0001 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: ABSTAINED (ambiguous) gold='one-time'
-- of-0001 PROFESSIONAL_SERVICE: ABSTAINED (ambiguous) gold='one-time'
-- of-0004 PROFESSIONAL_SERVICE: ABSTAINED (ambiguous) gold='yearly'
-- of-0004 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: ABSTAINED (ambiguous) gold='yearly'
-- of-0007 PREMIUM_SUPPORT: ABSTAINED (ambiguous) gold='one-time'
-- of-0007 TALENT_MANAGEMENT_ENTERPRISE: ABSTAINED (ambiguous) gold='one-time'
-- of-0007 SANDBOX: ABSTAINED (ambiguous) gold='one-time'
-- of-0007 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: ABSTAINED (ambiguous) gold='one-time'
-- of-0010 TALENT_ACQUISITION: ABSTAINED (ambiguous) gold='one-time'
-- of-0010 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: ABSTAINED (ambiguous) gold='one-time'
-- of-0013 TALENT_ACQUISITION_CRM: ABSTAINED (ambiguous) gold='one-time'
-- of-0016 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: ABSTAINED (ambiguous) gold='yearly'
-- of-0016 TALENT_INTELLIGENCE_PLATFORM: ABSTAINED (ambiguous) gold='yearly'
-- of-0025 TALENT_MANAGEMENT_ENTERPRISE: ABSTAINED (ambiguous) gold='yearly'
-- of-0025 TALENT_ACQUISITION_CANDIDATE_EXPERIENCE: ABSTAINED (ambiguous) gold='yearly'
-- of-0026 TALENT_ACQUISITION: ABSTAINED (ambiguous) gold='yearly'
-- of-0026 TALENT_MANAGEMENT_CORE: ABSTAINED (ambiguous) gold='yearly'
-- of-0026 WHATSAPP_SMS_CREDITS: ABSTAINED (ambiguous) gold='yearly'
-- of-0034 TALENT_MANAGEMENT_ENTERPRISE: ABSTAINED (ambiguous) gold='one-time'
-- of-0034 TALENT_INTELLIGENCE_PLATFORM: ABSTAINED (ambiguous) gold='one-time'
-- of-0034 SKILLS_PORTFOLIO: ABSTAINED (ambiguous) gold='one-time'
-- of-0040 TALENT_MANAGEMENT_ENTERPRISE: ABSTAINED (ambiguous) gold='one-time'
-- of-0040 TALENT_ACQUISITION: ABSTAINED (ambiguous) gold='one-time'
-- of-0041 WHATSAPP_SMS_CREDITS: ABSTAINED (ambiguous) gold='one-time'
-- of-0041 ELEVATE_SUCCESS_PLAN: ABSTAINED (ambiguous) gold='one-time'
-- of-0041 TALENT_ACQUISITION_CORE: ABSTAINED (ambiguous) gold='one-time'
-- of-0041 PROFESSIONAL_SERVICE: ABSTAINED (ambiguous) gold='one-time'
+- of-0001 TALENT_ACQUISITION_CORE: ABSTAINED pred=None gold='one-time'
+- of-0001 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: ABSTAINED pred=None gold='one-time'
+- of-0001 PROFESSIONAL_SERVICE: ABSTAINED pred=None gold='one-time'
+- of-0004 PROFESSIONAL_SERVICE: ABSTAINED pred=None gold='yearly'
+- of-0004 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: ABSTAINED pred=None gold='yearly'
+- of-0007 PREMIUM_SUPPORT: ABSTAINED pred=None gold='one-time'
+- of-0007 TALENT_MANAGEMENT_ENTERPRISE: ABSTAINED pred=None gold='one-time'
+- of-0007 SANDBOX: ABSTAINED pred=None gold='one-time'
+- of-0007 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: ABSTAINED pred=None gold='one-time'
+- of-0010 TALENT_ACQUISITION: ABSTAINED pred=None gold='one-time'
+- of-0010 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: ABSTAINED pred=None gold='one-time'
+- of-0013 TALENT_ACQUISITION_CRM: ABSTAINED pred=None gold='one-time'
+- of-0016 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: ABSTAINED pred=None gold='yearly'
+- of-0016 TALENT_INTELLIGENCE_PLATFORM: ABSTAINED pred=None gold='yearly'
+- of-0025 TALENT_MANAGEMENT_ENTERPRISE: ABSTAINED pred=None gold='yearly'
+- of-0025 TALENT_ACQUISITION_CANDIDATE_EXPERIENCE: ABSTAINED pred=None gold='yearly'
+- of-0026 TALENT_ACQUISITION: ABSTAINED pred=None gold='yearly'
+- of-0026 TALENT_MANAGEMENT_CORE: ABSTAINED pred=None gold='yearly'
+- of-0026 WHATSAPP_SMS_CREDITS: ABSTAINED pred=None gold='yearly'
+- of-0034 TALENT_MANAGEMENT_ENTERPRISE: ABSTAINED pred=None gold='one-time'
+- of-0034 TALENT_INTELLIGENCE_PLATFORM: ABSTAINED pred=None gold='one-time'
+- of-0034 SKILLS_PORTFOLIO: ABSTAINED pred=None gold='one-time'
+- of-0040 TALENT_MANAGEMENT_ENTERPRISE: ABSTAINED pred=None gold='one-time'
+- of-0040 TALENT_ACQUISITION: ABSTAINED pred=None gold='one-time'
+- of-0041 WHATSAPP_SMS_CREDITS: ABSTAINED pred=None gold='one-time'
+- of-0041 ELEVATE_SUCCESS_PLAN: ABSTAINED pred=None gold='one-time'
+- of-0041 TALENT_ACQUISITION_CORE: ABSTAINED pred=None gold='one-time'
+- of-0041 PROFESSIONAL_SERVICE: ABSTAINED pred=None gold='one-time'
 
 ### special_notes (132)
 - of-0001 TALENT_ACQUISITION_CORE: pred=None gold='Annual uplift terms included as agreed.'
@@ -335,4 +337,4 @@ invoicing_frequency source: {'ambiguous': 28, 'inferred_from_pricing': 104}
 - of-0050 TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON: pred=None gold='Customer-specific pricing approved.'
 
 ### effective_date (1)
-- of-0032: pred=None gold='2024-06-04'
+- of-0032: ABSTAINED pred=None gold='2024-06-04'
