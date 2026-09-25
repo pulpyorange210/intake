@@ -72,27 +72,7 @@ What's behind the flagged and empty cells:
   of note as the example ("Up to 25,000 employee size"). The ground truth has unrelated phrases
   that aren't tied to anything in the form.
 
-### The real example form
-
-A real (redacted) order form, run against the 5-SKU catalog with no changes to the code
-(`runs/example`, $0.32). Compared with the expected answer:
-
-- **Items:** the 3 expected items were found, and nothing else. Implementation services are delivered
-  by a partner, so Professional Services (SKU-004) was left out and listed as explicitly excluded.
-  The Data Analytics Add-on (SKU-005) isn't on the form and wasn't extracted.
-- **Match exactly:** totals (each the sum of Year 1 to 3), unit prices, quantity, currency, service
-  dates, schedule type (recurring) and invoicing frequency (yearly). Billing is actually stated on this
-  form ("Invoices are sent Annually"), unlike the synthetic ones, so it's the only live test of the
-  "stated billing wins" path.
-- **Payment terms:** "Net 55 from the date of the invoice" against the expected "Net 55". Same term,
-  quoted in full.
-- **Special notes:** the form prints "Up to Customer Employee Size: 25,000" once, at the top next to the
-  start date, not on any line. The parser put it on all three items; The spec puts it on the platform
-  licence only. Which items a form-level note belongs to is a judgement call. I didn't tune the prompt
-  for one example.
-- **Header:** the form prints no effective date. The checker sent the model back to look, the model
-  confirmed it isn't there and said why, and the form is marked `needs_review` with that note on the
-  field. The customer name is empty because it's redacted in the PDF.
+The real example form is covered below, under "Testing the decisions on a real form".
 
 ### Read the 100%s with care
 
@@ -244,6 +224,24 @@ fixed:
 - **Scanned PDFs weren't supported.** A PDF with no text layer would have failed every check. Now it's
   detected: the model reads the page images instead, and the output carries a note that the amounts
   couldn't be checked against the document text.
+
+## Testing the decisions on a real form
+
+The example is a real (redacted) order form with a different layout and a different 5-SKU
+catalog. I ran it with no code changes (`runs/example`, $0.32). The 3 expected items were found and
+nothing else, and every amount, date, schedule type and frequency matches the expected answer.
+
+| On the real form | Decision behind it |
+|---|---|
+| Worked on a new layout and catalog with no changes | Only general fixes |
+| Services delivered by a partner were left out | Only items the form actually sells |
+| Redacted customer name left empty, not guessed | No hallucination |
+| No effective date printed: the model was sent back to look, confirmed it's not there, and the form is marked for review | Blank checker |
+| "Invoices are sent Annually" was used as the frequency | Stated billing wins |
+
+Two small differences: payment terms are quoted in full ("Net 55 from the date of the invoice" vs
+"Net 55"), and a note printed once at the top of the form ("Up to Customer Employee Size: 25,000") went
+on all 3 items instead of just the platform licence.
 
 ## Running it
 
