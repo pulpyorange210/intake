@@ -5,48 +5,89 @@ plus the contract items, each mapped to a SKU in the catalog. Built on the Claud
 the model reads the document, does its arithmetic through a tool, and submits its answer to a checker
 that sends it back if something doesn't add up.
 
+## The ground rule: don't pretend to know
+
+This output feeds accounting, so a confident wrong value is worse than an honest "not sure". The one
+rule the whole project is built on: **the output must never look like it knows something it doesn't.**
+In practice that means:
+
+- **Only catalog items.** The model picks from the SKU list; it can't invent items. Anything the form
+  says isn't sold (e.g. services delivered by a partner) stays out.
+- **Every amount has to be in the document.** An amount is rejected unless it's printed in the PDF or
+  is the result of arithmetic on printed numbers, done through a `compute` tool rather than in the
+  model's head.
+- **Ambiguity is shown, not resolved by guessing.** When the document supports more than one reading,
+  the field is either left empty with the candidate readings listed, or given with `ambiguous: true`
+  and the alternatives right next to the value. Nothing downstream can read that field without also
+  seeing the doubt.
+- **"Likely" is not "known".** A reading only gets ruled out if it contradicts something else in the
+  document. If one reading is just more plausible, that's recorded as a hint, and the field stays
+  flagged.
+- **Missing stays missing.** If a field isn't in the document, it's left empty. I didn't fill it
+  with the most common value from the ground truth, even where that would have scored better.
+- **Every value comes with the quote it was read from**, so anyone can check it.
+
 ## Results
 
-Measured on the 50 synthetic order forms in `synthetic_order_form_dataset_50/` (`runs/v0.7`, cost $8.18 total,
-about a minute per form).
+Measured on the 50 synthetic order forms in `synthetic_order_form_dataset_50/` (`runs/v0.7`, $8.18 total, about a
+minute per form). All 50 passed the checker; none were flagged for review.
 
-**Finding the right items:** 132 of 132 contract items found, no extra items (100% precision and recall).
-This includes 20 forms where a catalog item that isn't sold has a very similar name to one that is.
+**Finding the right items:** 132 of 132 contract items found, no extra items. That includes 20 forms
+where a catalog item that isn't sold has a very similar name to one that is.
 
-**Field accuracy** (per matched item, against the ground truth):
+**Fields**, per item (132 items, 50 forms for the header fields). Each answer lands in exactly one
+column, so nothing flagged is counted in the "correct" column:
 
-| Field | Accuracy |
-|---|---|
-| Currency, total value, quantity, unit price | 100% (money compared exactly, to the cent) |
-| Service start / end date | 100% |
-| Payment terms | 100% |
-| Invoicing frequency | 104/104 correct, plus 28 flagged as ambiguous (see below) |
-| Effective date | 49/49 correct, 1 left blank as ambiguous |
-| Buyer / seller signature dates | 100% |
-| Invoicing schedule type | 0% |
-| Special notes | 0% |
+| Field | Answered, correct | Answered, flagged ambiguous | Left empty (ambiguous) | Wrong |
+|---|---|---|---|---|
+| Currency, total, quantity, unit price | 132 | - | - | - |
+| Service start / end date | 132 | - | - | - |
+| Payment terms | 132 | - | - | - |
+| Invoicing frequency | 104 | 28 | - | - |
+| Effective date | 49 | - | 1 | - |
+| Buyer / seller signature dates | 50 | - | - | - |
+| Invoicing schedule type | - | - | - | 132 (left empty, not in the documents) |
+| Special notes | - | - | - | 132 (doesn't match the ground truth) |
 
-Some honest caveats:
+What's behind the flagged and empty cells:
 
-- These are the same 50 forms I used while developing, so the numbers are on the optimistic side.
-  I tried to keep every fix general (no phrases copied from these PDFs in the code or prompts), but
-  it hasn't been tested on a different set of forms.
-- **Invoicing schedule type and special notes** score 0% because the ground-truth values for them
-  aren't in the PDFs. The parser leaves schedule type empty rather than guessing. For special notes it
-  picks up the form's "Up to Customer Employee Size" line, the same kind of note as the example
-  ("Up to 25,000 employee size"), but the ground truth has unrelated phrases there.
-- **Invoicing frequency:** 28 items have one price covering exactly 12 months. That's one invoice,
-  but "one-time" and "yearly" both describe it, and nothing in the document settles which. The output
-  says "one-time" and marks it ambiguous with "yearly" as the alternative. 19 of the 28 match the
-  ground-truth label.
-- **Effective date:** one form prints `06/04/2024` and nothing else in it tells you whether that's
-  June 4 or April 6. The parser leaves it blank, marks it ambiguous, and notes June 4 as the likely
-  reading because the form was signed June 7. June 4 is the correct answer.
-- The real example form (`edge_cases/example_order_form_redacted/`) hasn't been run,
+- **Invoicing frequency (28 flagged):** these items have one price covering exactly 12 months. That's
+  one invoice, but "one-time" and "yearly" both describe it, and nothing in the document settles which.
+  The output says "one-time" and flags "yearly" as the alternative. The ground truth says "one-time" for
+  19 of them and "yearly" for 9, so the dataset itself doesn't agree on a single rule. If you only
+  count a flagged answer as right when it matches the ground truth, frequency is 93.2%.
+- **Effective date (1 empty):** one form prints `06/04/2024` and nothing else in it tells you whether
+  that's June 4 or April 6. The parser leaves it empty and notes June 4 as the likely reading, since the
+  form was signed June 7. June 4 is the right answer, but we don't count it, because the output didn't
+  commit to it. That's 98% if you count the empty one as wrong.
+- **Invoicing schedule type:** the forms never say whether billing is upfront, recurring, hybrid etc.;
+  the ground truth has values anyway. The parser leaves it empty rather than guess.
+- **Special notes:** the parser picks up the form's "Up to Customer Employee Size" line, the same kind
+  of note as the example ("Up to 25,000 employee size"). The ground truth has unrelated phrases
+  that aren't tied to anything in the form.
+
+### Read the 100%s with care
+
+- **There's no held-out set.** I developed on these same 50 forms, so these numbers are optimistic.
+- **The forms all come from one template** with a clean text layer. Getting amounts and dates right on
+  that is a much easier test than real order forms from different vendors.
+- **Some fixes came from looking at failures on this data.** Each one is written up in `CHANGELOG.md`
+  with the reason it's general. The main ones:
+  - Using a printed Qty column even where a SKU's parsing instruction said to leave quantity empty (v0.3).
+    That was a judgement call about what the instruction meant. It also happened to match the ground
+    truth, and I'd rather say that than leave it out.
+  - Flagging the one-time/yearly case as ambiguous (v0.3). This *lowered* the score at the time, from
+    90.2% to 78.8%, because a guess that was right some of the time became an honest flag.
+  - Testing each reading of a date like `12/09/2022` against the rest of the document before calling it
+    ambiguous (v0.6).
+- **What I checked to avoid fitting the template:** no headings, labels or sentences from these PDFs
+  appear in the code or prompts; number parsing handles other formats (`1.234,56`, `1 234,56`); scanned
+  PDFs are handled, with a note that their amounts couldn't be checked against text. The grader was
+  also tested, and a bug that let 1-cent errors pass was fixed before the final run.
+- **The real example form** (`edge_cases/example_order_form_redacted/`) hasn't been run yet,
   because the PDF wasn't in the materials I had. The catalog and expected answer are there, ready.
 
-The full breakdown with every failure is in `runs/v0.7/eval.md`, and `CHANGELOG.md` walks through each
-version, what went wrong and what I changed.
+The full breakdown with every failure is in `runs/v0.7/eval.md`.
 
 ## Running it
 
