@@ -16,6 +16,9 @@ In practice that means:
 - **Every amount has to be in the document.** An amount is rejected unless it's printed in the PDF or
   is the result of arithmetic on printed numbers, done through a `compute` tool rather than in the
   model's head.
+- **Every date has to be in the document too.** A date must be printed in the PDF in some format, or be
+  calculated from a printed date (e.g. end date = start date + term), with the calculation recorded next
+  to it and re-checked. Otherwise the model is sent back to look again.
 - **Ambiguity is shown, not resolved by guessing.** When the document supports more than one reading,
   the field is either left empty with the candidate readings listed, or given with `ambiguous: true`
   and the alternatives right next to the value. Nothing downstream can read that field without also
@@ -23,14 +26,17 @@ In practice that means:
 - **"Likely" is not "known".** A reading only gets ruled out if it contradicts something else in the
   document. If one reading is just more plausible, that's recorded as a hint, and the field stays
   flagged.
-- **Missing stays missing.** If a field isn't in the document, it's left empty. I didn't fill it
-  with the most common value from the ground truth, even where that would have scored better.
+- **Missing stays missing, and says so.** If a field isn't in the document, it's left empty. I didn't
+  fill it with the most common value from the ground truth, even where that would have scored better.
+  If an important field is empty (a total, quantity, currency, service date, effective date or
+  signature date), the form is marked `needs_review` and the field gets a note saying why it's empty.
 - **Every value comes with the quote it was read from**, so anyone can check it.
 
 ## Results
 
-Measured on the 50 synthetic order forms in `synthetic_order_form_dataset_50/` (`runs/v0.7`, $8.18 total, about a
-minute per form). All 50 passed the checker; none were flagged for review.
+Measured on the 50 synthetic order forms in `synthetic_order_form_dataset_50/` (`runs/v0.8`, $8.40 total, about
+30 seconds per form). All 50 passed the checker on the first try. One form (of-0032, below) is marked
+`needs_review` because its effective date is ambiguous.
 
 **Finding the right items:** 132 of 132 contract items found, no extra items. That includes 20 forms
 where a catalog item that isn't sold has a very similar name to one that is.
@@ -87,7 +93,7 @@ What's behind the flagged and empty cells:
 - **The real example form** (`edge_cases/example_order_form_redacted/`) hasn't been run yet,
   because the PDF wasn't in the materials I had. The catalog and expected answer are there, ready.
 
-The full breakdown with every failure is in `runs/v0.7/eval.md`.
+The full breakdown with every failure is in `runs/v0.8/eval.md`.
 
 ## Running it
 
@@ -104,6 +110,9 @@ export ANTHROPIC_API_KEY=...
 
 # score a run against the ground truth
 .venv/bin/python eval.py runs/mine
+
+# re-check a saved run with the current checker (no API calls)
+.venv/bin/python replay.py runs/mine
 
 # tests (no API calls)
 .venv/bin/python -m unittest discover -s tests -t .
@@ -139,14 +148,17 @@ PDF -> text layer + the PDF itself -> agent loop -> checker -> post-processing -
     result from document numbers, a SKU that isn't in the catalog, invalid or reversed dates.
   - Warnings the model must fix or explain: unit price x quantity doesn't divide evenly into the
     total, an odd billing period length, items not adding up to the grand total, a required value
-    left empty.
+    left empty, a date that isn't printed in the document and isn't a checked calculation from one.
 - **`ofparser/postprocess.py`**: turns the accepted submission into the final output. The main job is
   invoicing frequency: use it if the document states it, otherwise infer it from how the price
-  is split (e.g. four quarterly prices -> quarterly), and mark it ambiguous when two labels fit.
+  is split (e.g. four quarterly prices -> quarterly), and mark it ambiguous when two labels fit. It also
+  notes every empty important field and sets `needs_review` for it.
 - **`ofparser/schema.py`**: the output structure (Pydantic models).
 - **`ofparser/compute.py`**: the arithmetic behind the `compute` tool.
 - **`eval.py`**: scores a run against the ground truth. It matches items by SKU, compares fields
   exactly, and reports ambiguous answers separately so they don't inflate the main numbers.
+- **`replay.py`**: runs a saved run's transcripts through the current checker, to see what a code
+  change would flag without paying for a new run.
 
 ## Output
 
@@ -191,4 +203,6 @@ example:
 
 When a field is ambiguous it's either left empty with the candidate readings listed under
 `ambiguous_fields`, or, for invoicing frequency, given with `ambiguous: true` and the alternatives
-next to it. Either way the output never looks more certain than it is.
+next to it. An empty important field also gets an entry in `missing_fields` saying why (ambiguous, or
+not found, with the model's reason if it gave one), and a calculated date shows its calculation under
+`inferred_dates`. Either way the output never looks more certain than it is.

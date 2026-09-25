@@ -237,3 +237,41 @@ No API calls. Run the tests with `python -m unittest discover -s tests -t .` (21
 - of-0048 (12/09/2022): start date answered correctly, unflagged - the v0.6 fix holds.
 - invoicing_schedule_type and special_notes: 0% - neither is present in the PDFs.
 - 65 non-blocking `evidence_not_found` review notes (quotes of wrapped rows / side-by-side blocks).
+
+## v0.8 - flag important blanks, catch dates not printed in the document (2026-09-25)
+
+**What**
+- Important blanks are flagged. A blank currency, total, quantity, service date, effective date or
+  signature date sets `needs_review: true` and gets a `missing_fields` entry on that field (status
+  `ambiguous` or `not_found`, with the ambiguity reason or the model's override reason, or "no reason
+  given"). This applies even when the model explained the blank. Motivation: an overridden
+  `missing_value` warning used to give a clean-looking output with an empty total. Not flagged: fields
+  blank by design (invoicing schedule type, special notes) and the one-time/yearly frequencies, which
+  have a value with the ambiguity next to it.
+- The `missing_value` warning now also covers the three header dates (they were not checked at all).
+- Dates are grounded like amounts. Every date must be printed in the PDF in some common format
+  (ISO, numeric with / - ., "Aug 08, 2025", "8th of August 2025", "12-Dec-2023", ...), matched on the
+  value, not the quote. A numeric date whose day and month can swap (06/04/2024) counts as present
+  for both readings; choosing between them stays with the ambiguity rule. A date that is not printed
+  needs an `inferred_dates` entry (a printed `from_date` plus `add_months` / `add_days` and an
+  explanation), which the checker recomputes. Otherwise `date_not_in_document` goes back to the model.
+  Motivation: a date with no source only produced a non-blocking `evidence_not_found` note, so a
+  plausible made-up date could pass. An overridden `date_not_in_document` also sets `needs_review`.
+  Skipped for scanned PDFs, like amount grounding.
+- `replay.py`: re-runs a saved run's transcripts (compute calls and submissions, in order) through the
+  current checker and post-processing, no API calls.
+- 17 new tests (38 total).
+
+**Replay of v0.7 before the live run** (no API cost): only of-0032 is flagged `needs_review` (its
+ambiguous effective date); 0 date warnings; no other issues on any final submission. All 50
+ground-truth submissions also pass the new date check, so every true date is printed in its PDF.
+
+**Results** (run `runs/v0.8`, full 50 forms on commit `34a7e1e`, $8.40, ~28 s/form with 6 in parallel,
+50/50 accepted on the first submission, 0 overrides, 0 inferred dates):
+- Every field score is identical to v0.7: item detection 100% / 100%; currency, total, quantity, unit
+  price, service dates, payment terms 100%; invoicing_frequency 104/104 unflagged + 28 flagged;
+  effective date 49/49 + 1 abstention (of-0032, likely 2024-06-04); signature dates 100%;
+  schedule type and special notes 0%.
+- needs_review: 1 form (of-0032, effective date ambiguous), was 0 in v0.7. This is the intended change:
+  the blank was always there, it is now impossible to miss.
+- 63 non-blocking `evidence_not_found` notes (65 in v0.7).

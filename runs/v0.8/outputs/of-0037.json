@@ -1,0 +1,217 @@
+{
+  "order_form": {
+    "customer_name": "Oakbridge Energy",
+    "vendor_name": "Acme Software Inc.",
+    "effective_date": "2022-06-09",
+    "contract_signed_date_buying_company": "2022-06-09",
+    "contract_signed_date_selling_company": "2022-06-10",
+    "currency": "USD",
+    "grand_total": 1560426.09,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Oakbridge Energy",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "This order form becomes effective on Jun 09, 2022.",
+      "contract_signed_date_buying_company": "Oakbridge Energy...Date (Print): Jun 09, 2022",
+      "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): Jun 10, 2022",
+      "currency": "1,560,426.09 USD",
+      "grand_total": "TOTAL SUBSCRIPTION 1,560,426.09 USD",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {},
+    "missing_fields": {},
+    "inferred_dates": {}
+  },
+  "contract_items_count": 4,
+  "contract_items": [
+    {
+      "name": "Professional Service",
+      "sku_id": "2a4fa79f-0fb7-42a3-a4ad-143f3cce8e36",
+      "sku_code": "PROFESSIONAL_SERVICE",
+      "currency": "USD",
+      "total_listed_value": 253197.27,
+      "quantity": 3.0,
+      "unit_price": 28133.03,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2022-07-05",
+      "service_end_date": "2025-07-03",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "yearly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Professional 5ervice 3 28,133.03 USD 253,197.27 USD",
+      "evidence": {
+        "currency": "253,197.27 USD",
+        "total_listed_value": "253,197.27 USD",
+        "quantity": "Professional 5ervice 3",
+        "unit_price": "28,133.03 USD",
+        "unit_price_period": "Start Date: 05-Jul-2022 End Date: 03-Jul-2025",
+        "service_start_date": "Start Date: 05-Jul-2022",
+        "service_end_date": "End Date: 03-Jul-2025",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+      "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+      "currency": "USD",
+      "total_listed_value": 223873.08,
+      "quantity": 1.0,
+      "unit_price": 74624.36,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2022-07-05",
+      "service_end_date": "2025-07-03",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "yearly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 74,624.36 USD 223,873.08 USD",
+      "evidence": {
+        "currency": "223,873.08 USD",
+        "total_listed_value": "223,873.08 USD",
+        "quantity": "Talent Intel. Platf. Prem. Ed.\n(Add-on) 1",
+        "unit_price": "74,624.36 USD",
+        "unit_price_period": "Start Date: 05-Jul-2022 End Date: 03-Jul-2025",
+        "service_start_date": "Start Date: 05-Jul-2022",
+        "service_end_date": "End Date: 03-Jul-2025",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform",
+      "sku_id": "a763df24-1ea6-4afc-a195-13ce52ea20cd",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+      "currency": "USD",
+      "total_listed_value": 880724.16,
+      "quantity": 3.0,
+      "unit_price": 97858.24,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2022-07-05",
+      "service_end_date": "2025-07-03",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "yearly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent lntel. Platf. 3 97,858.24 USD 880,724.16 USD",
+      "evidence": {
+        "currency": "880,724.16 USD",
+        "total_listed_value": "880,724.16 USD",
+        "quantity": "Talent lntel. Platf. 3",
+        "unit_price": "97,858.24 USD",
+        "unit_price_period": "Start Date: 05-Jul-2022 End Date: 03-Jul-2025",
+        "service_start_date": "Start Date: 05-Jul-2022",
+        "service_end_date": "End Date: 03-Jul-2025",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Acquisition",
+      "sku_id": "d6f20b62-9bec-421b-8d33-489712746aee",
+      "sku_code": "TALENT_ACQUISITION",
+      "currency": "USD",
+      "total_listed_value": 202631.58,
+      "quantity": 1.0,
+      "unit_price": 67543.86,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2022-07-05",
+      "service_end_date": "2025-07-03",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "yearly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Acquisition 1 67,543.86 USD 202,631.58 USD",
+      "evidence": {
+        "currency": "202,631.58 USD",
+        "total_listed_value": "202,631.58 USD",
+        "quantity": "Talent Acquisition 1",
+        "unit_price": "67,543.86 USD",
+        "unit_price_period": "Start Date: 05-Jul-2022 End Date: 03-Jul-2025",
+        "service_start_date": "Start Date: 05-Jul-2022",
+        "service_end_date": "End Date: 03-Jul-2025",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "COPILOT",
+    "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": null,
+      "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+    },
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": 1,
+      "message": "quotes for ['quantity', 'source_row'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0037.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 3,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 32.7,
+    "usage": {
+      "input_tokens": 6,
+      "output_tokens": 3332,
+      "cache_creation_input_tokens": 15087,
+      "cache_read_input_tokens": 28405
+    },
+    "cost_usd": 0.1918
+  }
+}

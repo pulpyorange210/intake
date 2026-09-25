@@ -1,0 +1,421 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON\n  name: Talent Intelligence Platform Premium Edition (Add-on)\n  description: Premium add-on to Talent Intelligence Platform\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION\n  name: Talent Acquisition\n  description: Subscription to Talent Acquisition module\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_ENTERPRISE\n  name: Talent Management Enterprise\n  description: Subscription to Talent Management Enterprise\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_INTELLIGENCE_PLATFORM\n  name: Talent Intelligence Platform\n  description: Subscription to the Talent Intelligence Platform\n  parsing_instructions: |\n    - For this and ALL items: use the Order Form Start Date as the contract term start (not the signature date).\n    - Revenue recognition for the mapped POB is straight-line by days across the service period.\n- code: PREMIUM_SUPPORT\n  name: Premium Support\n  description: Premium support subscription\n  parsing_instructions: |\n    - If minimum/maximum monthly hours are specified, capture them; otherwise leave quantity null.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: PROFESSIONAL_SERVICE\n  name: Professional Service\n  description: Professional services delivered on a usage/progress basis\n  parsing_instructions: |\n    - Capture delivery period and progress inputs (e.g., hours, milestones, percent complete) for percentage-of-completion.\n    - If dates are absent, align service dates with the related SOW or Order Form where available.\n- code: SIGNATURE_SUCCESS\n  name: Signature Success\n  description: Recurring subscription to Signature Success\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: SANDBOX\n  name: Sandbox\n  description: Sandbox environment access subscription\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: ELEVATE_SUCCESS_PLAN\n  name: Elevate Success Plan\n  description: Success plan subscription\n  parsing_instructions: |\n    - Identify any negative-valued contract items in a modification document; strike off the related contract item(s) effective on the modification date.\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: WHATSAPP_SMS_CREDITS\n  name: WhatsApp / SMS Credits\n  description: Recurring subscription for WhatsApp and SMS credits\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CANDIDATE_EXPERIENCE\n  name: Talent Acquisition Candidate Experience\n  description: Candidate experience component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CORE\n  name: Talent Acquisition Core\n  description: Core package of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CRM\n  name: Talent Acquisition CRM\n  description: CRM component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_CORE\n  name: Talent Management Core\n  description: Core package of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_LEADER_EXPERIENCE\n  name: Talent Management Leader Experience\n  description: Leader Experience component of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_DESIGN\n  name: Talent Design\n  description: Recurring subscription to Talent Design\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: COPILOT\n  name: Copilot\n  description: Recurring subscription to Copilot\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Overages - Talent Acquisition AI Interviewer Agent Add-on\n  description: Usage-based overages for the AI Interviewer Agent Add-on\n  parsing_instructions: |\n    - Revenue recognized based on actual usage consumption.\n    - Capture usage metrics as they occur for recognition.\n- code: SKILLS_PORTFOLIO\n  name: Skills Portfolio\n  description: Recurring subscription to Skills Portfolio\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Talent Acquisition AI Interviewer Agent Add-on\n  description: Recurring subscription to the AI Interviewer Agent Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_TALENT_TRACKING_ADDON\n  name: Talent Acquisition Talent Tracking Add-on\n  description: Recurring subscription to the Talent Tracking Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- Every date you give must be printed in the document (in any format). If a date is not printed but follows from one that is (e.g. an end date from a start date and a stated term), add an inferred_dates entry: the printed from_date, the add_months / add_days that produce the value, and an explanation quoting the text it relies on. The calculation is re-checked. Never supply a date that is neither printed nor calculated from a printed date; leave it null.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). Billing \"in advance\" or \"in arrears\" describes timing within a period, not the schedule type or frequency. If the document does not say, use null.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Before treating a field as ambiguous, test each candidate reading against the rest of the document: the arithmetic of prices, quantities and the service term, and the other dates. A reading that contradicts the document is not a valid reading. If exactly one reading survives, use it and quote the deciding evidence. Closeness or typicality (e.g. a date being near the signature date) never eliminates a reading; it can only make one likely.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). If surrounding context makes one candidate more likely (e.g. its closeness to other dates in the document), give it as likely with that evidence in likely_reason; the field itself still stays null. Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0022.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0022.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                                Customer Order Schedule\n\nPrepared For: Atlas Retail Group                                               Quote Number: Q-378066\nAccount Executive: Alex Carter                                                 Offer Valid Through: 2026-03-17\n\n\n Sold/Ship To:                                                     Bill To:\n 3120 Enterprise Way, San Francisco, CA                            Attn: Accounts Payable, 286 Technology\n 19935, USA                                                        Drive, San Francisco, CA 56029, USA\n\n\n\n Primary Contact: Alex Carter                                      Billing Contact: Jamie Kim\n Primary Email: alex@atlasretailgroup.com                          Billing Email: ap@atlasretailgroup.com\n\n\n\nStart Date: Mar 10, 2026                    End Date: 2029-03-08                      Up to Customer Employee Size: 50,000\n\nSUBSCRIPTlON SERVICE FEES\n\n Offering                                                   Qty            Rate                             Total Contract Value\n\n Talent Mgmt Ent.                                            3             USD 148,343.01                   USD 5,340,348.36\n\n Talent Intel. Platf.                                        1             USD 152,832.62                   USD 1,833,991.44\n\n Talent Design                                               3             USD 38,453.07                    USD 1,384,310.52\n\n\n TOTAL SUBSCRIPTION                                                                                         USD 8,558,650.32\n\nINVOICE PLAN\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Net 30 unless stated otherwise.\n\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\n\n\n\n                                                                                                                      Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on Feb 23, 2026. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Talent Acquisition Candidate Experience, Copilot\n\nAtlas Retail Group                                               Pioneer Intelligence Ltd.\nBy:                                                              By:\n               SIGNED ELECTRONICALLY                                          SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                        Name (Print): ___________________________\nTitle (Print): Controller                                        Title (Print): Finance Manager\nDate (Print): 23-Feb-2026                                        Date (Print): 24-Feb-2026\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: YES, copy to be provided.\n\n\n\n\nConfidential - pricing subject to agreement.                                                                 Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01AnNjYGucfTH73ZfsLFoWDT",
+          "input": {
+            "expression": "148343.01*3*12"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_0168TUcM8EmCP4bZcdyXSJ7Y",
+          "input": {
+            "expression": "152832.62*1*12"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01K93rKbiG3Fhgnm8T2P4TDg",
+          "input": {
+            "expression": "38453.07*3*12"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_017L9XcC65zEQPWvf7pdvfjz",
+          "input": {
+            "expression": "5340348.36+1833991.44+1384310.52"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01AnNjYGucfTH73ZfsLFoWDT",
+          "content": "148343.01*3*12 = 5340348.36 (rounded to cents: 5340348.36)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_0168TUcM8EmCP4bZcdyXSJ7Y",
+          "content": "152832.62*1*12 = 1833991.44 (rounded to cents: 1833991.44)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01K93rKbiG3Fhgnm8T2P4TDg",
+          "content": "38453.07*3*12 = 1384310.52 (rounded to cents: 1384310.52)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_017L9XcC65zEQPWvf7pdvfjz",
+          "content": "5340348.36+1833991.44+1384310.52 = 8558650.32 (rounded to cents: 8558650.32)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAIS0AQKkwMIEhgCKkCX9lil6B9rUu9aA0uZ1Hca4/9QgnlleNwNL/VDuM7dz5D8/d6LXQuBlFf4RhPpKIUbowGSuY7//dRNlh7tBPcFMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWoAYPK2dUGwgFeCBAQABowAcTOAgKEA083CB0SBaRZBCatCv4UCvpPCiQFCu0OA083C17+C2DeC04RC3xGBCatIAIyBBJxzyU6BAw7vMBCBP451S1KBFRF/EVQAloE2QXhVmAEaAFwAdoBoAEKFnByZWZpeF9iZWZvcmVfYmxvY2tfdjESIBF3QPNKwNbMZRj1SNHKcyqfcmG30kYgJvFgTLBelarSIkCsoafAI2hrFvI46vp7e2twZpV/cJ7/SEB8BcV04h/ZVJ7WU9Qqylv0vS7mw/Ay3wzUXBq0phMljKj8X2Sd1DeVMiDCwBPIapyS4i+Wbz2GF3aPi3pEyQKtzAl7+h4JivtOH0gDEgw4errR29+o6eUsKdwaDK0nVfPlatOoULY1sCIwxV7bM9Shuak4LJrh6wc1aERCNLgGCIVUT8aFc1ZMZ1bagftrjLR+aFiIhi1epc9/KmoVfCmCnDM/7nJZ2iV3gNOmwpFr+7WiRjMJ/LorCPVxlezM+69AhgCdrDZs3LFjoH5o/D/BaUEaSCTY7QWedltazr0qpBHc0QEEqNH8uiQyyD6ClRzmbYkDCJ6i6nfct5BBLSM327uKwRroGAE=",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01P1Pm4VVDdHb5rwD3PRmn61",
+          "input": {
+            "order_form": {
+              "customer_name": "Atlas Retail Group",
+              "vendor_name": "Pioneer Intelligence Ltd.",
+              "effective_date": "2026-02-23",
+              "contract_signed_date_buying_company": "2026-02-23",
+              "contract_signed_date_selling_company": "2026-02-24",
+              "currency": "USD",
+              "grand_total": 8558650.32,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Atlas Retail Group",
+                "vendor_name": "Pioneer Intelligence Ltd.",
+                "effective_date": "This order form becomes effective on Feb 23, 2026.",
+                "contract_signed_date_buying_company": "Atlas Retail Group...Date (Print): 23-Feb-2026",
+                "contract_signed_date_selling_company": "Pioneer Intelligence Ltd....Date (Print): 24-Feb-2026",
+                "currency": "USD 8,558,650.32",
+                "grand_total": "TOTAL SUBSCRIPTION                     USD 8,558,650.32",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "TALENT_MANAGEMENT_ENTERPRISE",
+                "source_row": "Talent Mgmt Ent.  3  USD 148,343.01  USD 5,340,348.36",
+                "currency": "USD",
+                "total_listed_value": 5340348.36,
+                "quantity": 3,
+                "unit_price": 148343.01,
+                "unit_price_period": "quarter",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-03-10",
+                "service_end_date": "2029-03-08",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": "Up to Customer Employee Size: 50,000",
+                "evidence": {
+                  "currency": "USD 148,343.01",
+                  "total_listed_value": "USD 5,340,348.36",
+                  "quantity": "Talent Mgmt Ent.    3",
+                  "unit_price": "USD 148,343.01",
+                  "unit_price_period": "Start Date: Mar 10, 2026    End Date: 2029-03-08",
+                  "service_start_date": "Start Date: Mar 10, 2026",
+                  "service_end_date": "End Date: 2029-03-08",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise.",
+                  "special_notes": "Up to Customer Employee Size: 50,000"
+                }
+              },
+              {
+                "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+                "source_row": "Talent Intel. Platf.  1  USD 152,832.62  USD 1,833,991.44",
+                "currency": "USD",
+                "total_listed_value": 1833991.44,
+                "quantity": 1,
+                "unit_price": 152832.62,
+                "unit_price_period": "quarter",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-03-10",
+                "service_end_date": "2029-03-08",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": "Up to Customer Employee Size: 50,000",
+                "evidence": {
+                  "currency": "USD 152,832.62",
+                  "total_listed_value": "USD 1,833,991.44",
+                  "quantity": "Talent Intel. Platf.     1",
+                  "unit_price": "USD 152,832.62",
+                  "unit_price_period": "Start Date: Mar 10, 2026    End Date: 2029-03-08",
+                  "service_start_date": "Start Date: Mar 10, 2026",
+                  "service_end_date": "End Date: 2029-03-08",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise.",
+                  "special_notes": "Up to Customer Employee Size: 50,000"
+                }
+              },
+              {
+                "sku_code": "TALENT_DESIGN",
+                "source_row": "Talent Design  3  USD 38,453.07  USD 1,384,310.52",
+                "currency": "USD",
+                "total_listed_value": 1384310.52,
+                "quantity": 3,
+                "unit_price": 38453.07,
+                "unit_price_period": "quarter",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-03-10",
+                "service_end_date": "2029-03-08",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": "Up to Customer Employee Size: 50,000",
+                "evidence": {
+                  "currency": "USD 38,453.07",
+                  "total_listed_value": "USD 1,384,310.52",
+                  "quantity": "Talent Design      3",
+                  "unit_price": "USD 38,453.07",
+                  "unit_price_period": "Start Date: Mar 10, 2026    End Date: 2029-03-08",
+                  "service_start_date": "Start Date: Mar 10, 2026",
+                  "service_end_date": "End Date: 2029-03-08",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise.",
+                  "special_notes": "Up to Customer Employee Size: 50,000"
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE",
+              "COPILOT"
+            ],
+            "ambiguities": [],
+            "inferred_dates": [],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01P1Pm4VVDdHb5rwD3PRmn61",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Atlas Retail Group",
+      "vendor_name": "Pioneer Intelligence Ltd.",
+      "effective_date": "2026-02-23",
+      "contract_signed_date_buying_company": "2026-02-23",
+      "contract_signed_date_selling_company": "2026-02-24",
+      "currency": "USD",
+      "grand_total": 8558650.32,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Atlas Retail Group",
+        "vendor_name": "Pioneer Intelligence Ltd.",
+        "effective_date": "This order form becomes effective on Feb 23, 2026.",
+        "contract_signed_date_buying_company": "Atlas Retail Group...Date (Print): 23-Feb-2026",
+        "contract_signed_date_selling_company": "Pioneer Intelligence Ltd....Date (Print): 24-Feb-2026",
+        "currency": "USD 8,558,650.32",
+        "grand_total": "TOTAL SUBSCRIPTION                     USD 8,558,650.32",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      },
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {}
+    },
+    "contract_items_count": 3,
+    "contract_items": [
+      {
+        "name": "Talent Management Enterprise",
+        "sku_id": "4e976929-ebff-4189-b7ab-1b650edabc4e",
+        "sku_code": "TALENT_MANAGEMENT_ENTERPRISE",
+        "currency": "USD",
+        "total_listed_value": 5340348.36,
+        "quantity": 3.0,
+        "unit_price": 148343.01,
+        "unit_price_period": "quarter",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2026-03-10",
+        "service_end_date": "2029-03-08",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "quarterly",
+          "source": "inferred_from_pricing",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 30",
+        "special_notes": "Up to Customer Employee Size: 50,000",
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Talent Mgmt Ent.  3  USD 148,343.01  USD 5,340,348.36",
+        "evidence": {
+          "currency": "USD 148,343.01",
+          "total_listed_value": "USD 5,340,348.36",
+          "quantity": "Talent Mgmt Ent.    3",
+          "unit_price": "USD 148,343.01",
+          "unit_price_period": "Start Date: Mar 10, 2026    End Date: 2029-03-08",
+          "service_start_date": "Start Date: Mar 10, 2026",
+          "service_end_date": "End Date: 2029-03-08",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise.",
+          "special_notes": "Up to Customer Employee Size: 50,000"
+        }
+      },
+      {
+        "name": "Talent Intelligence Platform",
+        "sku_id": "a763df24-1ea6-4afc-a195-13ce52ea20cd",
+        "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+        "currency": "USD",
+        "total_listed_value": 1833991.44,
+        "quantity": 1.0,
+        "unit_price": 152832.62,
+        "unit_price_period": "quarter",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2026-03-10",
+        "service_end_date": "2029-03-08",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "quarterly",
+          "source": "inferred_from_pricing",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 30",
+        "special_notes": "Up to Customer Employee Size: 50,000",
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Talent Intel. Platf.  1  USD 152,832.62  USD 1,833,991.44",
+        "evidence": {
+          "currency": "USD 152,832.62",
+          "total_listed_value": "USD 1,833,991.44",
+          "quantity": "Talent Intel. Platf.     1",
+          "unit_price": "USD 152,832.62",
+          "unit_price_period": "Start Date: Mar 10, 2026    End Date: 2029-03-08",
+          "service_start_date": "Start Date: Mar 10, 2026",
+          "service_end_date": "End Date: 2029-03-08",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise.",
+          "special_notes": "Up to Customer Employee Size: 50,000"
+        }
+      },
+      {
+        "name": "Talent Design",
+        "sku_id": "b9d6a351-d317-46c4-be4e-8df01866127a",
+        "sku_code": "TALENT_DESIGN",
+        "currency": "USD",
+        "total_listed_value": 1384310.52,
+        "quantity": 3.0,
+        "unit_price": 38453.07,
+        "unit_price_period": "quarter",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2026-03-10",
+        "service_end_date": "2029-03-08",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "quarterly",
+          "source": "inferred_from_pricing",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 30",
+        "special_notes": "Up to Customer Employee Size: 50,000",
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Talent Design  3  USD 38,453.07  USD 1,384,310.52",
+        "evidence": {
+          "currency": "USD 38,453.07",
+          "total_listed_value": "USD 1,384,310.52",
+          "quantity": "Talent Design      3",
+          "unit_price": "USD 38,453.07",
+          "unit_price_period": "Start Date: Mar 10, 2026    End Date: 2029-03-08",
+          "service_start_date": "Start Date: Mar 10, 2026",
+          "service_end_date": "End Date: 2029-03-08",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise.",
+          "special_notes": "Up to Customer Employee Size: 50,000"
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE",
+      "COPILOT"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": null,
+        "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+      }
+    ],
+    "meta": {
+      "source_pdf": "of-0022.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 2,
+      "submissions": 1,
+      "stop_note": null,
+      "seconds": 40.2,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 3900,
+        "cache_creation_input_tokens": 15675,
+        "cache_read_input_tokens": 13501
+      },
+      "cost_usd": 0.2022
+    }
+  }
+}

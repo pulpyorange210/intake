@@ -1,0 +1,393 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON\n  name: Talent Intelligence Platform Premium Edition (Add-on)\n  description: Premium add-on to Talent Intelligence Platform\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION\n  name: Talent Acquisition\n  description: Subscription to Talent Acquisition module\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_ENTERPRISE\n  name: Talent Management Enterprise\n  description: Subscription to Talent Management Enterprise\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_INTELLIGENCE_PLATFORM\n  name: Talent Intelligence Platform\n  description: Subscription to the Talent Intelligence Platform\n  parsing_instructions: |\n    - For this and ALL items: use the Order Form Start Date as the contract term start (not the signature date).\n    - Revenue recognition for the mapped POB is straight-line by days across the service period.\n- code: PREMIUM_SUPPORT\n  name: Premium Support\n  description: Premium support subscription\n  parsing_instructions: |\n    - If minimum/maximum monthly hours are specified, capture them; otherwise leave quantity null.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: PROFESSIONAL_SERVICE\n  name: Professional Service\n  description: Professional services delivered on a usage/progress basis\n  parsing_instructions: |\n    - Capture delivery period and progress inputs (e.g., hours, milestones, percent complete) for percentage-of-completion.\n    - If dates are absent, align service dates with the related SOW or Order Form where available.\n- code: SIGNATURE_SUCCESS\n  name: Signature Success\n  description: Recurring subscription to Signature Success\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: SANDBOX\n  name: Sandbox\n  description: Sandbox environment access subscription\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: ELEVATE_SUCCESS_PLAN\n  name: Elevate Success Plan\n  description: Success plan subscription\n  parsing_instructions: |\n    - Identify any negative-valued contract items in a modification document; strike off the related contract item(s) effective on the modification date.\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: WHATSAPP_SMS_CREDITS\n  name: WhatsApp / SMS Credits\n  description: Recurring subscription for WhatsApp and SMS credits\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CANDIDATE_EXPERIENCE\n  name: Talent Acquisition Candidate Experience\n  description: Candidate experience component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CORE\n  name: Talent Acquisition Core\n  description: Core package of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_CRM\n  name: Talent Acquisition CRM\n  description: CRM component of Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_CORE\n  name: Talent Management Core\n  description: Core package of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_MANAGEMENT_LEADER_EXPERIENCE\n  name: Talent Management Leader Experience\n  description: Leader Experience component of Talent Management\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_DESIGN\n  name: Talent Design\n  description: Recurring subscription to Talent Design\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: COPILOT\n  name: Copilot\n  description: Recurring subscription to Copilot\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Overages - Talent Acquisition AI Interviewer Agent Add-on\n  description: Usage-based overages for the AI Interviewer Agent Add-on\n  parsing_instructions: |\n    - Revenue recognized based on actual usage consumption.\n    - Capture usage metrics as they occur for recognition.\n- code: SKILLS_PORTFOLIO\n  name: Skills Portfolio\n  description: Recurring subscription to Skills Portfolio\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON\n  name: Talent Acquisition AI Interviewer Agent Add-on\n  description: Recurring subscription to the AI Interviewer Agent Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n- code: TALENT_ACQUISITION_TALENT_TRACKING_ADDON\n  name: Talent Acquisition Talent Tracking Add-on\n  description: Recurring subscription to the Talent Tracking Add-on for Talent Acquisition\n  parsing_instructions: |\n    - Use Order Form Start Date for service start.\n    - Revenue recognition for the mapped POB is straight-line by days.\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- Every date you give must be printed in the document (in any format). If a date is not printed but follows from one that is (e.g. an end date from a start date and a stated term), add an inferred_dates entry: the printed from_date, the add_months / add_days that produce the value, and an explanation quoting the text it relies on. The calculation is re-checked. Never supply a date that is neither printed nor calculated from a printed date; leave it null.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). Billing \"in advance\" or \"in arrears\" describes timing within a period, not the schedule type or frequency. If the document does not say, use null.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Before treating a field as ambiguous, test each candidate reading against the rest of the document: the arithmetic of prices, quantities and the service term, and the other dates. A reading that contradicts the document is not a valid reading. If exactly one reading survives, use it and quote the deciding evidence. Closeness or typicality (e.g. a date being near the signature date) never eliminates a reading; it can only make one likely.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). If surrounding context makes one candidate more likely (e.g. its closeness to other dates in the document), give it as likely with that evidence in likely_reason; the field itself still stays null. Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0046.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0046.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                               Order Form - Subscription Services\n\nPrepared For: Riverstone Health                                               Quote Number: Q-231722\nAccount Executive: Riley 5ingh                                                Offer Valid Through: 2027-01-02\n\n\nSold/Ship To:                                                     Bi1l To:\n8473 Technology Drive, Chicago, IL                                Attn: Accounts Payable, 5901 Market\n32599, USA                                                        Street, Chicago, lL 67895, USA\n\n\n\nPrimary Contact: Alex Carter                                      Billing Contact: Casey Patel\nPrimary Email: alex@riverstonehealth.com                          Bi1ling Email: ap@riverstonehealth.com\n\n\n\nStart Date: Dec 06, 2026                   End Date: 04-Dec-2028                       Up to Customer Employee Size: 2,500\n\nLICENSE AND SERVICE FEES\n\nSKU Description                                            Qty            Unit Price                       Total Contract Value\n\nSignature Success                                           2             USD 26,649.52                    USD 53,299.04\n\nElevate Success Plan                                        5             USD 63,904.00                    USD 319,520.00\n\nProfessional Service                                        1             USD 106,075.30                   USD 106,075.30\n\n\nTOTAL SUBSCRIPTION                                                                                         USD 478,894.34\n\nINVOICE PLAN\nInvoices are sent in advance in accordance with each line item\u2019s bi1ling frequency. Payment\nterms include Net 30 unless stated otherwise.\n\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\n\n\n\n                                                                                                                     Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master 5ubscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on 11/21/2026. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatica1ly renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legal1y binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Talent Acquisition Core, Talent Acquisition CRM\n\nRiverstone Health                                                Acme Software Inc.\nBy:                                                              By:\n               SIGNED ELECTRONICALLY                                          SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                        Name (Print): ___________________________\nTitle (Print): Procurement Lead                                  Title (Print): Procurement Lead\nDate (Print): 22-Nov-2026                                        Date (Print): 27-Nov-2026\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: YES, copy to be provided.\n\n\n\n\nThis is a generated order form for evaluation.                                                               Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_013BcDd24otFTwSbV78tTjcW",
+          "input": {
+            "expression": "53299.04 + 319520.00 + 106075.30"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01S9VEUBZ8A2ogR2wUdPMGxN",
+          "input": {
+            "expression": "2 * 26649.52"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01PHzrRHX7GEgpMshoeiE2K1",
+          "input": {
+            "expression": "5 * 63904.00"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_013BcDd24otFTwSbV78tTjcW",
+          "content": "53299.04 + 319520.00 + 106075.30 = 478894.34 (rounded to cents: 478894.34)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01S9VEUBZ8A2ogR2wUdPMGxN",
+          "content": "2 * 26649.52 = 53299.04 (rounded to cents: 53299.04)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01PHzrRHX7GEgpMshoeiE2K1",
+          "content": "5 * 63904.00 = 319520.0 (rounded to cents: 319520.00)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_01YWCEMvFsq6FHRfBA2nmi7f",
+          "input": {
+            "order_form": {
+              "customer_name": "Riverstone Health",
+              "vendor_name": "Acme Software Inc.",
+              "effective_date": "2026-11-21",
+              "contract_signed_date_buying_company": "2026-11-22",
+              "contract_signed_date_selling_company": "2026-11-27",
+              "currency": "USD",
+              "grand_total": 478894.34,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Riverstone Health",
+                "vendor_name": "Acme Software Inc.",
+                "effective_date": "This order form becomes effective on 11/21/2026.",
+                "contract_signed_date_buying_company": "Riverstone Health...Date (Print): 22-Nov-2026",
+                "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): 27-Nov-2026",
+                "currency": "USD 478,894.34",
+                "grand_total": "USD 478,894.34",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "SIGNATURE_SUCCESS",
+                "source_row": "Signature Success                                           2             USD 26,649.52                    USD 53,299.04",
+                "currency": "USD",
+                "total_listed_value": 53299.04,
+                "quantity": 2,
+                "unit_price": 26649.52,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-12-06",
+                "service_end_date": "2028-12-04",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "currency": "USD 26,649.52",
+                  "total_listed_value": "USD 53,299.04",
+                  "quantity": "Signature Success                                           2",
+                  "unit_price": "USD 26,649.52",
+                  "unit_price_period": "Signature Success 2 USD 26,649.52 USD 53,299.04",
+                  "service_start_date": "Start Date: Dec 06, 2026",
+                  "service_end_date": "End Date: 04-Dec-2028",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "ELEVATE_SUCCESS_PLAN",
+                "source_row": "Elevate Success Plan                                        5             USD 63,904.00                    USD 319,520.00",
+                "currency": "USD",
+                "total_listed_value": 319520.0,
+                "quantity": 5,
+                "unit_price": 63904.0,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-12-06",
+                "service_end_date": "2028-12-04",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "currency": "USD 63,904.00",
+                  "total_listed_value": "USD 319,520.00",
+                  "quantity": "Elevate Success Plan                                        5",
+                  "unit_price": "USD 63,904.00",
+                  "unit_price_period": "Elevate Success Plan 5 USD 63,904.00 USD 319,520.00",
+                  "service_start_date": "Start Date: Dec 06, 2026",
+                  "service_end_date": "End Date: 04-Dec-2028",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "PROFESSIONAL_SERVICE",
+                "source_row": "Professional Service                                        1             USD 106,075.30                   USD 106,075.30",
+                "currency": "USD",
+                "total_listed_value": 106075.3,
+                "quantity": 1,
+                "unit_price": 106075.3,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2026-12-06",
+                "service_end_date": "2028-12-04",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": null,
+                "evidence": {
+                  "currency": "USD 106,075.30",
+                  "total_listed_value": "USD 106,075.30",
+                  "quantity": "Professional Service                                        1",
+                  "unit_price": "USD 106,075.30",
+                  "unit_price_period": "Professional Service 1 USD 106,075.30 USD 106,075.30",
+                  "service_start_date": "Start Date: Dec 06, 2026",
+                  "service_end_date": "End Date: 04-Dec-2028",
+                  "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "TALENT_ACQUISITION_CORE",
+              "TALENT_ACQUISITION_CRM"
+            ],
+            "ambiguities": [],
+            "inferred_dates": [],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01YWCEMvFsq6FHRfBA2nmi7f",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Riverstone Health",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "2026-11-21",
+      "contract_signed_date_buying_company": "2026-11-22",
+      "contract_signed_date_selling_company": "2026-11-27",
+      "currency": "USD",
+      "grand_total": 478894.34,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Riverstone Health",
+        "vendor_name": "Acme Software Inc.",
+        "effective_date": "This order form becomes effective on 11/21/2026.",
+        "contract_signed_date_buying_company": "Riverstone Health...Date (Print): 22-Nov-2026",
+        "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): 27-Nov-2026",
+        "currency": "USD 478,894.34",
+        "grand_total": "USD 478,894.34",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      },
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {}
+    },
+    "contract_items_count": 3,
+    "contract_items": [
+      {
+        "name": "Signature Success",
+        "sku_id": "6e0247a7-ae3b-49ef-971e-feb0641cf52d",
+        "sku_code": "SIGNATURE_SUCCESS",
+        "currency": "USD",
+        "total_listed_value": 53299.04,
+        "quantity": 2.0,
+        "unit_price": 26649.52,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2026-12-06",
+        "service_end_date": "2028-12-04",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "one-time",
+          "source": "inferred_from_pricing",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 30",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Signature Success                                           2             USD 26,649.52                    USD 53,299.04",
+        "evidence": {
+          "currency": "USD 26,649.52",
+          "total_listed_value": "USD 53,299.04",
+          "quantity": "Signature Success                                           2",
+          "unit_price": "USD 26,649.52",
+          "unit_price_period": "Signature Success 2 USD 26,649.52 USD 53,299.04",
+          "service_start_date": "Start Date: Dec 06, 2026",
+          "service_end_date": "End Date: 04-Dec-2028",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Elevate Success Plan",
+        "sku_id": "63d14b22-78d4-4cb0-9cd6-85127611f1d0",
+        "sku_code": "ELEVATE_SUCCESS_PLAN",
+        "currency": "USD",
+        "total_listed_value": 319520.0,
+        "quantity": 5.0,
+        "unit_price": 63904.0,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2026-12-06",
+        "service_end_date": "2028-12-04",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "one-time",
+          "source": "inferred_from_pricing",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 30",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Elevate Success Plan                                        5             USD 63,904.00                    USD 319,520.00",
+        "evidence": {
+          "currency": "USD 63,904.00",
+          "total_listed_value": "USD 319,520.00",
+          "quantity": "Elevate Success Plan                                        5",
+          "unit_price": "USD 63,904.00",
+          "unit_price_period": "Elevate Success Plan 5 USD 63,904.00 USD 319,520.00",
+          "service_start_date": "Start Date: Dec 06, 2026",
+          "service_end_date": "End Date: 04-Dec-2028",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Professional Service",
+        "sku_id": "2a4fa79f-0fb7-42a3-a4ad-143f3cce8e36",
+        "sku_code": "PROFESSIONAL_SERVICE",
+        "currency": "USD",
+        "total_listed_value": 106075.3,
+        "quantity": 1.0,
+        "unit_price": 106075.3,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2026-12-06",
+        "service_end_date": "2028-12-04",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "one-time",
+          "source": "inferred_from_pricing",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 30",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Professional Service                                        1             USD 106,075.30                   USD 106,075.30",
+        "evidence": {
+          "currency": "USD 106,075.30",
+          "total_listed_value": "USD 106,075.30",
+          "quantity": "Professional Service                                        1",
+          "unit_price": "USD 106,075.30",
+          "unit_price_period": "Professional Service 1 USD 106,075.30 USD 106,075.30",
+          "service_start_date": "Start Date: Dec 06, 2026",
+          "service_end_date": "End Date: 04-Dec-2028",
+          "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "TALENT_ACQUISITION_CORE",
+      "TALENT_ACQUISITION_CRM"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": null,
+        "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+      }
+    ],
+    "meta": {
+      "source_pdf": "of-0046.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 2,
+      "submissions": 1,
+      "stop_note": null,
+      "seconds": 22.6,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 2452,
+        "cache_creation_input_tokens": 14367,
+        "cache_read_input_tokens": 13468
+      },
+      "cost_usd": 0.1578
+    }
+  }
+}
