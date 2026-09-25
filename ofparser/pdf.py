@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import base64
+import calendar
+import datetime as dt
 import re
 import shutil
 import subprocess
@@ -62,6 +64,55 @@ def numbers_in(text: str) -> Set[Decimal]:
             except InvalidOperation:
                 continue
     return found
+
+
+_MONTH = (r"(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?"
+          r"|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)(?![a-z])\.?")
+_SEP = r"[\s\-.,/]*"
+_DAY = r"(\d{1,2})(?:st|nd|rd|th)?"
+_YMD = re.compile(r"(?<!\d)(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?!\d)")
+_NUMERIC = re.compile(r"(?<!\d)(\d{1,2})[-/.](\d{1,2})[-/.](\d{4}|\d{2})(?!\d)")
+_DAY_MONTH = re.compile(rf"(?<!\d){_DAY}{_SEP}(?:of\s+)?{_MONTH}{_SEP}(\d{{4}})(?!\d)", re.I)
+_MONTH_DAY = re.compile(rf"(?<![a-z]){_MONTH}{_SEP}{_DAY}{_SEP}(\d{{4}})(?!\d)", re.I)
+
+
+def _month_number(name: str) -> int:
+    return [m.lower() for m in calendar.month_abbr].index(name[:3].lower())
+
+
+def dates_in(text: str) -> Set[dt.date]:
+    """Every date printed in the document, in any common format.
+
+    A numeric date whose day and month could be swapped (06/04/2024) is read both ways: this only
+    decides whether a date is present at all; choosing between readings is the ambiguity rule's job.
+    """
+    found: Set[dt.date] = set()
+
+    def add(year, month, day):
+        year = int(year)
+        year = year + 2000 if year < 100 else year
+        try:
+            found.add(dt.date(year, int(month), int(day)))
+        except ValueError:
+            pass
+
+    for y, m, d in _YMD.findall(text):
+        add(y, m, d)
+    for a, b, y in _NUMERIC.findall(text):
+        add(y, a, b)
+        add(y, b, a)
+    for d, m, y in _DAY_MONTH.findall(text):
+        add(y, _month_number(m), d)
+    for m, d, y in _MONTH_DAY.findall(text):
+        add(y, _month_number(m), d)
+    return found
+
+
+def add_months(date: dt.date, months: int) -> dt.date:
+    """Calendar month arithmetic, clamped to the end of shorter months (Jan 31 + 1 month = Feb 28/29)."""
+    year, month = divmod(date.month - 1 + months, 12)
+    year += date.year
+    return dt.date(year, month + 1, min(date.day, calendar.monthrange(year, month + 1)[1]))
 
 
 def has_text_layer(text: str) -> bool:

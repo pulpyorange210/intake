@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from ofparser.catalog import Catalog
-from ofparser.pdf import extract_text, has_text_layer, numbers_in
+from ofparser.pdf import dates_in, extract_text, has_text_layer, numbers_in
 from ofparser.schema import Submission
 from ofparser.validator import ValidationContext
 
@@ -37,7 +37,7 @@ def submission_from_gold(form: str) -> Submission:
 
 def context(form: str, text_layer: bool = True) -> ValidationContext:
     text = extract_text(DATASET / "pdfs" / f"{form}.pdf") if text_layer else ""
-    return ValidationContext(CATALOG, text, numbers_in(text), set(), has_text_layer(text))
+    return ValidationContext(CATALOG, text, numbers_in(text), set(), has_text_layer(text), dates_in(text))
 
 
 def prediction_from_gold(form: str) -> dict:

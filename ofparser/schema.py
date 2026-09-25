@@ -66,12 +66,22 @@ class Ambiguity(BaseModel):
     likely_reason: Optional[str] = Field(default=None, description="The contextual evidence for the likely candidate")
 
 
+class InferredDate(BaseModel):
+    item_index: Optional[int] = Field(description="Index of the contract item, or null for an order_form field")
+    field: str = Field(description="Name of the date field whose value is calculated rather than printed")
+    from_date: str = Field(description="YYYY-MM-DD date printed in the document that the value is calculated from")
+    add_months: int = Field(default=0, description="Calendar months added to from_date (negative to subtract)")
+    add_days: int = Field(default=0, description="Days added after the months (e.g. -1 for an inclusive end date)")
+    explanation: str = Field(description="What the calculation is and the document text it relies on")
+
+
 class Submission(BaseModel):
     order_form: OrderFormHeader
     contract_items: List[ContractItem]
     explicitly_excluded_skus: List[str] = Field(
         description="Catalog SKU codes the document explicitly says are NOT part of this order")
     ambiguities: List[Ambiguity] = Field(default_factory=list)
+    inferred_dates: List[InferredDate] = Field(default_factory=list)
     overrides: List[Override] = Field(default_factory=list)
 
 

@@ -16,13 +16,16 @@ def item(total, qty, unit, start, end, stated=None):
                         invoicing_frequency=stated, payment_terms=None, special_notes=None, evidence={})
 
 
+def submission(it, **header):
+    dates = {"effective_date": "2025-01-01", "contract_signed_date_buying_company": "2025-01-01",
+             "contract_signed_date_selling_company": "2025-01-01", **header}
+    return Submission(order_form={"customer_name": None, "vendor_name": None, "currency": None, "grand_total": None,
+                                  "grand_total_label": None, "evidence": {}, **dates},
+                      contract_items=[it], explicitly_excluded_skus=[])
+
+
 def output_frequency(it):
-    sub = Submission(order_form={"customer_name": None, "vendor_name": None, "effective_date": None,
-                                 "contract_signed_date_buying_company": None,
-                                 "contract_signed_date_selling_company": None, "currency": None,
-                                 "grand_total": None, "grand_total_label": None, "evidence": {}},
-                     contract_items=[it], explicitly_excluded_skus=[])
-    return build_output(sub, CATALOG, [])["contract_items"][0]["invoicing_frequency"]
+    return build_output(submission(it), CATALOG, [])["contract_items"][0]["invoicing_frequency"]
 
 
 class FrequencyTest(unittest.TestCase):
@@ -51,6 +54,48 @@ class FrequencyTest(unittest.TestCase):
     def test_non_standard_period_is_not_guessed(self):
         f = infer_frequency(item(500, 1, 100, "2025-01-01", "2025-12-31"))  # 5 periods in 12 months
         self.assertIsNone(f["value"])
+
+
+class MissingFieldsTest(unittest.TestCase):
+    def test_complete_output_is_not_flagged(self):
+        # null schedule type / special notes and a label-ambiguous frequency are blank or flagged by design
+        out = build_output(submission(item(100, 1, 100, "2025-01-01", "2025-12-31")), CATALOG, [])
+        self.assertTrue(out["contract_items"][0]["invoicing_frequency"]["ambiguous"])
+        self.assertFalse(out["needs_review"])
+        self.assertEqual(out["contract_items"][0]["missing_fields"], {})
+
+    def test_blank_total_is_flagged_even_with_a_reason(self):
+        from ofparser.schema import Override
+        sub = submission(item(None, 1, 100, "2025-01-01", "2025-12-31"))
+        sub.overrides = [Override(check="missing_value", item_index=0, reason="no total printed")]
+        out = build_output(sub, CATALOG, [])
+        self.assertTrue(out["needs_review"])
+        missing = out["contract_items"][0]["missing_fields"]["total_listed_value"]
+        self.assertEqual(missing["status"], "not_found")
+        self.assertIn("no total printed", missing["reason"])
+
+    def test_blank_without_a_reason_says_so(self):
+        out = build_output(submission(item(100, None, 100, "2025-01-01", None)), CATALOG, [])
+        self.assertTrue(out["needs_review"])
+        self.assertEqual(set(out["contract_items"][0]["missing_fields"]), {"quantity", "service_end_date"})
+        self.assertIn("no reason given", out["contract_items"][0]["missing_fields"]["quantity"]["reason"])
+
+    def test_ambiguous_blank_header_date_is_flagged_with_its_reason(self):
+        from ofparser.schema import Ambiguity
+        sub = submission(item(100, 1, 100, "2025-01-01", "2025-12-31"), effective_date=None)
+        sub.ambiguities = [Ambiguity(item_index=None, field="effective_date", candidates=["a", "b"],
+                                     reason="MM/DD vs DD/MM")]
+        out = build_output(sub, CATALOG, [])
+        self.assertTrue(out["needs_review"])
+        missing = out["order_form"]["missing_fields"]["effective_date"]
+        self.assertEqual(missing["status"], "ambiguous")
+        self.assertIn("MM/DD vs DD/MM", missing["reason"])
+
+    def test_overridden_unprinted_date_is_flagged(self):
+        from ofparser.schema import Override
+        sub = submission(item(100, 1, 100, "2025-01-01", "2025-12-31"))
+        sub.overrides = [Override(check="date_not_in_document", item_index=0, reason="trust me")]
+        self.assertTrue(build_output(sub, CATALOG, [])["needs_review"])
 
 
 if __name__ == "__main__":

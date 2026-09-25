@@ -8,16 +8,18 @@ from __future__ import annotations
 
 import datetime as dt
 import re
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass, field
 from decimal import Decimal
-from typing import List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 from .catalog import Catalog
-from .pdf import cents, normalize_for_match, to_decimal
-from .schema import ContractItem, OrderFormHeader, Submission
+from .pdf import add_months, cents, normalize_for_match, to_decimal
+from .schema import ContractItem, InferredDate, OrderFormHeader, Submission
 
 # Item fields every contract item is expected to have; a null needs an ambiguity entry or an override.
 EXPECTED_ITEM_FIELDS = ("currency", "total_listed_value", "quantity", "service_start_date", "service_end_date")
+HEADER_DATE_FIELDS = ("effective_date", "contract_signed_date_buying_company", "contract_signed_date_selling_company")
+ITEM_DATE_FIELDS = ("service_start_date", "service_end_date")
 
 # Billing/pricing period lengths in months that are considered sensible.
 SENSIBLE_PERIOD_MONTHS = {1, 3, 6, 12}
@@ -42,6 +44,7 @@ class ValidationContext:
     doc_numbers: Set[Decimal]
     computed_numbers: Set[Decimal]
     has_text_layer: bool = True  # False for scanned PDFs: grounding and quote checks can't apply
+    doc_dates: Set[dt.date] = field(default_factory=set)
 
     @property
     def normalized_text(self) -> str:
@@ -58,6 +61,10 @@ def term_months(start: dt.date, end: dt.date) -> int:
     months = (end_exclusive.year - start.year) * 12 + (end_exclusive.month - start.month)
     months += (end_exclusive.day - start.day) / 30.0
     return int(round(months))
+
+
+def apply_inferred(entry: InferredDate) -> dt.date:
+    return add_months(parse_iso(entry.from_date), entry.add_months) + dt.timedelta(days=entry.add_days)
 
 
 def quote_found(quote: str, normalized_text: str) -> bool:
@@ -101,14 +108,40 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
                 f"{label}={value} does not appear in the document and was not produced by the compute tool "
                 f"from document values. Copy it exactly from the document or derive it with compute.")
 
+    inferred: Dict[Tuple[Optional[int], str], InferredDate] = {(d.item_index, d.field): d for d in sub.inferred_dates}
+
     def check_date(value, label, idx) -> Optional[dt.date]:
         if value is None:
             return None
         try:
-            return parse_iso(value)
+            date = parse_iso(value)
         except ValueError:
             err("bad_date", idx, f"{label}={value!r} is not a valid YYYY-MM-DD date.")
             return None
+        if ctx.has_text_layer and date not in ctx.doc_dates:
+            problem = inferred_date_problem(inferred.get((idx, label)), date)
+            if problem:
+                warn("date_not_in_document", idx,
+                     f"{label}={value} does not appear in the document in any date format. {problem} "
+                     f"If it is printed, check for a misread. If it is calculated from a printed date "
+                     f"(e.g. end = start + term), add an inferred_dates entry with from_date, add_months, "
+                     f"add_days and an explanation. Otherwise leave it null.")
+        return date
+
+    def inferred_date_problem(entry: Optional[InferredDate], date: dt.date) -> Optional[str]:
+        if entry is None:
+            return "There is no inferred_dates entry for it."
+        try:
+            base = parse_iso(entry.from_date)
+        except ValueError:
+            return f"Its inferred_dates from_date {entry.from_date!r} is not a valid YYYY-MM-DD date."
+        if base not in ctx.doc_dates:
+            return f"Its inferred_dates from_date {entry.from_date} is not printed in the document either."
+        result = apply_inferred(entry)
+        if result != date:
+            return (f"Its inferred_dates calculation gives {result} ({entry.from_date} + {entry.add_months} "
+                    f"months + {entry.add_days} days), not {date}.")
+        return None
 
     def check_quotes(evidence: dict, idx, extra: Optional[str] = None):
         if not ctx.has_text_layer:
@@ -132,8 +165,13 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
 
     # ---- header ----
     h = sub.order_form
-    for label in ("effective_date", "contract_signed_date_buying_company", "contract_signed_date_selling_company"):
+    for label in HEADER_DATE_FIELDS:
         check_date(getattr(h, label), label, None)
+        if getattr(h, label) is None and (None, label) not in flagged:
+            warn("missing_value", None,
+                 f"order_form.{label} is null. If the document states it, extract it; if it is genuinely "
+                 f"ambiguous, add an ambiguity entry; if the document does not state it, override this "
+                 f"warning with that reason. A null here is flagged for review either way.")
     check_amount(h.grand_total, "order_form.grand_total", None)
     check_quotes(h.evidence, None)
 
@@ -159,7 +197,8 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
                 warn("missing_value", i,
                      f"{field} is null. If the document states it, extract it (quantity defaults to 1 when "
                      f"not stated); if it is genuinely ambiguous, add an ambiguity entry; if a SKU parsing "
-                     f"instruction requires null, override this warning with that reason.")
+                     f"instruction requires null, override this warning with that reason. A null here is "
+                     f"flagged for review either way.")
 
         if item.sku_code in sub.explicitly_excluded_skus:
             warn("excluded_conflict", i,
@@ -207,6 +246,16 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
         elif getattr(target, a.field) is not None:
             err("bad_ambiguity", a.item_index,
                 f"{where}.{a.field} is flagged ambiguous but has a value; leave it null or drop the ambiguity.")
+
+    # ---- inferred date entries must point at a date field ----
+    for d in sub.inferred_dates:
+        allowed = HEADER_DATE_FIELDS if d.item_index is None else ITEM_DATE_FIELDS
+        if d.item_index is not None and not 0 <= d.item_index < len(sub.contract_items):
+            err("bad_inferred_date", d.item_index, f"inferred_dates item_index {d.item_index} does not exist.")
+        elif d.field not in allowed:
+            err("bad_inferred_date", d.item_index,
+                f"inferred_dates field {d.field!r} is not a date field of "
+                f"{'order_form' if d.item_index is None else f'item {d.item_index}'} (allowed: {', '.join(allowed)}).")
 
     # ---- form-level totals ----
     if h.grand_total is not None and sub.contract_items:

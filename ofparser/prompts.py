@@ -45,6 +45,11 @@ term; null if unclear.
 - discount: only if stated.
 - Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service \
 term, subject to the SKU's parsing instructions.
+- Every date you give must be printed in the document (in any format). If a date is not printed but \
+follows from one that is (e.g. an end date from a start date and a stated term), add an \
+inferred_dates entry: the printed from_date, the add_months / add_days that produce the value, \
+and an explanation quoting the text it relies on. The calculation is re-checked. Never supply a \
+date that is neither printed nor calculated from a printed date; leave it null.
 - invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how \
 the customer is billed (e.g. "billed annually in advance", an invoice schedule with dates). How a \
 price is quoted is not how it is billed ("$10/user/month, billed annually" is yearly). Billing "in \
@@ -113,7 +118,8 @@ COMPUTE_TOOL = {
 
 SUBMIT_TOOL_DESCRIPTION = (
     "Submit the extraction for automatic validation. Pass order_form, contract_items, "
-    "explicitly_excluded_skus and overrides as top-level fields (do not wrap them in another object). "
+    "explicitly_excluded_skus, ambiguities, inferred_dates and overrides as top-level fields "
+    "(do not wrap them in another object). "
     "Returns 'accepted', or a list of hard errors (must fix) and warnings (fix, or override with a "
     "reason if the value is correct as written)."
 )

@@ -17,7 +17,7 @@ from pydantic import ValidationError
 from . import prompts
 from .catalog import Catalog
 from .compute import ComputeError, evaluate
-from .pdf import cents, extract_text, has_text_layer, numbers_in, pdf_base64
+from .pdf import cents, dates_in, extract_text, has_text_layer, numbers_in, pdf_base64
 from .postprocess import build_output
 from .schema import Submission, submission_json_schema
 from .validator import Issue, ValidationContext, active_issues, validate
@@ -132,7 +132,8 @@ def parse_order_form(pdf_path: Path, catalog: Catalog, client: anthropic.Anthrop
                      transcript_path: Optional[Path] = None) -> dict:
     pdf_path = Path(pdf_path)
     text = extract_text(pdf_path)
-    session = Session(ValidationContext(catalog, text, numbers_in(text), set(), has_text_layer(text)))
+    session = Session(ValidationContext(catalog, text, numbers_in(text), set(), has_text_layer(text),
+                                        dates_in(text)))
     if not session.ctx.has_text_layer:
         text = "(no text layer - the PDF appears to be scanned; read it from the page images)"
 
