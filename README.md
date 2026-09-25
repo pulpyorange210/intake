@@ -79,47 +79,17 @@ What's behind the flagged and empty cells:
   that is a much easier test than real order forms from different vendors.
 - **Some fixes came from looking at failures on this data.** Each one is written up in `CHANGELOG.md`
   with the reason it's general. The main ones:
-  - Using a printed Qty column even where a SKU's parsing instruction said to leave quantity empty (v0.3).
-    That was a judgement call about what the instruction meant. It also happened to match the ground
-    truth, and I'd rather say that than leave it out.
+  - Using a printed Qty column even where a SKU's parsing instruction said to leave quantity empty (v0.3,
+    see "Decisions I made"). It also happened to match the ground truth, which is worth saying since it
+    was a judgement call.
   - Flagging the one-time/yearly case as ambiguous (v0.3). This *lowered* the score at the time, from
     90.2% to 78.8%, because a guess that was right some of the time became an honest flag.
   - Testing each reading of a date like `12/09/2022` against the rest of the document before calling it
     ambiguous (v0.6).
-- **What I checked to avoid fitting the template:** no headings, labels or sentences from these PDFs
-  appear in the code or prompts; number parsing handles other formats (`1.234,56`, `1 234,56`); scanned
-  PDFs are handled, with a note that their amounts couldn't be checked against text. The grader was
-  also tested, and a bug that let 1-cent errors pass was fixed before the final run.
 - **The real example form** (`edge_cases/example_order_form_redacted/`) hasn't been run yet,
   because the PDF wasn't in the materials I had. The catalog and expected answer are there, ready.
 
 The full breakdown with every failure is in `runs/v0.8/eval.md`.
-
-## Running it
-
-Needs Python 3.9+, poppler (`brew install poppler`, for `pdftotext`) and an Anthropic API key.
-
-```bash
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-export ANTHROPIC_API_KEY=...
-
-# parse one form, or a whole folder
-.venv/bin/python parse.py --catalog synthetic_order_form_dataset_50/sku_catalog.json path/to/form.pdf
-.venv/bin/python parse.py --catalog synthetic_order_form_dataset_50/sku_catalog.json \
-    synthetic_order_form_dataset_50/pdfs/*.pdf --out runs/mine
-
-# score a run against the ground truth
-.venv/bin/python eval.py runs/mine
-
-# re-check a saved run with the current checker (no API calls)
-.venv/bin/python replay.py runs/mine
-
-# tests (no API calls)
-.venv/bin/python -m unittest discover -s tests -t .
-```
-
-Each run folder gets `outputs/<form>.json` (the extraction), `transcripts/<form>.json` (the full
-conversation with the model, useful for seeing why it chose something) and `run_meta.json`.
 
 ## How the code works
 
@@ -206,3 +176,77 @@ When a field is ambiguous it's either left empty with the candidate readings lis
 next to it. An empty important field also gets an entry in `missing_fields` saying why (ambiguous, or
 not found, with the model's reason if it gave one), and a calculated date shows its calculation under
 `inferred_dates`. Either way the output never looks more certain than it is.
+
+## Decisions I made
+
+The code was written with Claude Code, but the decisions below were mine. Most came from looking at
+the failures in a run and deciding what the right behaviour was, not just what would score better.
+
+**Only general fixes.** Every change had to make sense for order forms in general, not only for this
+template. No headings, labels or sentences from the synthetic PDFs appear in the code or prompts, and
+nothing is filled in from patterns in the ground truth. If a fix only worked because of how these 50
+forms happen to look, it didn't go in.
+
+**No hallucination, even at the cost of accuracy.** For accounting data, a wrong value that looks right
+is the worst possible outcome. The system never fills a field just to score better, and where something
+can't be read from the document, the output says so plainly. That's why invoicing schedule type stays
+at 0%: the forms don't state it, so the parser doesn't guess.
+
+**A printed quantity overrides the catalog's "leave it null" rule.** After the first run, 4 quantities
+were wrong. The catalog's instruction for that SKU said to record a quantity only when minimum and
+maximum monthly hours are given, and otherwise leave it null. It didn't cover forms that simply print
+a Qty column. A null quantity also breaks the invoicing frequency calculation, which needs quantity x
+unit price. So I decided that a quantity printed in the document counts as stated, and the catalog's
+null rule only applies when the document gives none.
+
+**Two kinds of ambiguity, handled differently.**
+- When the document could mean different things (`06/04/2024` could be June 4 or April 6), the field
+  is left empty. The possible readings are listed, and the likelier one is marked if the context
+  favours it.
+- When the facts are clear but more than one label describes them correctly (a single price for a
+  12-month term is both "one-time" and "yearly"), the value is given and flagged ambiguous, with the
+  other correct option next to it.
+
+In both cases the accountant sees the options right away instead of working them out from the PDF.
+
+**Auditing for cases the dataset doesn't cover.** Once all the tests were passing, I asked for a review
+of the whole codebase, aimed at inputs these 50 forms don't contain. It turned up four problems, all
+fixed:
+- **The grader forgave 1-cent errors** on money fields. Amounts now have to match exactly, to the cent.
+  Re-scoring the earlier runs showed no reported result had been inflated by it.
+- **The checker let blank values through without raising anything.** Now a blank important field sends
+  the model back to look for it in the document. If it's still blank, the form is flagged for review
+  with a note on that field saying why. Fields that are blank by design (schedule type, special notes)
+  aren't flagged, so a review flag always means something.
+- **European and other number formats would have been rejected.** The checker only understood
+  `1,234.56`, so a form written as `1.234,56`, `1 234,56` or `1'234.56` would have had every amount
+  treated as "not in the document". It now recognises all of these.
+- **Scanned PDFs weren't supported.** A PDF with no text layer would have failed every check. Now it's
+  detected: the model reads the page images instead, and the output carries a note that the amounts
+  couldn't be checked against the document text.
+
+## Running it
+
+Needs Python 3.9+, poppler (`brew install poppler`, for `pdftotext`) and an Anthropic API key.
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+export ANTHROPIC_API_KEY=...
+
+# parse one form, or a whole folder
+.venv/bin/python parse.py --catalog synthetic_order_form_dataset_50/sku_catalog.json path/to/form.pdf
+.venv/bin/python parse.py --catalog synthetic_order_form_dataset_50/sku_catalog.json \
+    synthetic_order_form_dataset_50/pdfs/*.pdf --out runs/mine
+
+# score a run against the ground truth
+.venv/bin/python eval.py runs/mine
+
+# re-check a saved run with the current checker (no API calls)
+.venv/bin/python replay.py runs/mine
+
+# tests (no API calls)
+.venv/bin/python -m unittest discover -s tests -t .
+```
+
+Each run folder gets `outputs/<form>.json` (the extraction), `transcripts/<form>.json` (the full
+conversation with the model, useful for seeing why it chose something) and `run_meta.json`.
