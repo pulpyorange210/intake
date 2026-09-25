@@ -72,6 +72,28 @@ What's behind the flagged and empty cells:
   of note as the example ("Up to 25,000 employee size"). The ground truth has unrelated phrases
   that aren't tied to anything in the form.
 
+### The real example form
+
+A real (redacted) order form, run against the 5-SKU catalog with no changes to the code
+(`runs/example`, $0.32). Compared with the expected answer:
+
+- **Items:** the 3 expected items were found, and nothing else. Implementation services are delivered
+  by a partner, so Professional Services (SKU-004) was left out and listed as explicitly excluded.
+  The Data Analytics Add-on (SKU-005) isn't on the form and wasn't extracted.
+- **Match exactly:** totals (each the sum of Year 1 to 3), unit prices, quantity, currency, service
+  dates, schedule type (recurring) and invoicing frequency (yearly). Billing is actually stated on this
+  form ("Invoices are sent Annually"), unlike the synthetic ones, so it's the only live test of the
+  "stated billing wins" path.
+- **Payment terms:** "Net 55 from the date of the invoice" against the expected "Net 55". Same term,
+  quoted in full.
+- **Special notes:** the form prints "Up to Customer Employee Size: 25,000" once, at the top next to the
+  start date, not on any line. The parser put it on all three items; The spec puts it on the platform
+  licence only. Which items a form-level note belongs to is a judgement call. I didn't tune the prompt
+  for one example.
+- **Header:** the form prints no effective date. The checker sent the model back to look, the model
+  confirmed it isn't there and said why, and the form is marked `needs_review` with that note on the
+  field. The customer name is empty because it's redacted in the PDF.
+
 ### Read the 100%s with care
 
 - **There's no held-out set.** I developed on these same 50 forms, so these numbers are optimistic.
@@ -86,8 +108,6 @@ What's behind the flagged and empty cells:
     90.2% to 78.8%, because a guess that was right some of the time became an honest flag.
   - Testing each reading of a date like `12/09/2022` against the rest of the document before calling it
     ambiguous (v0.6).
-- **The real example form** (`edge_cases/example_order_form_redacted/`) hasn't been run yet,
-  because the PDF wasn't in the materials I had. The catalog and expected answer are there, ready.
 
 The full breakdown with every failure is in `runs/v0.8/eval.md`.
 

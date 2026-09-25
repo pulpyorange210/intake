@@ -275,3 +275,19 @@ ground-truth submissions also pass the new date check, so every true date is pri
 - needs_review: 1 form (of-0032, effective date ambiguous), was 0 in v0.7. This is the intended change:
   the blank was always there, it is now impossible to miss.
 - 63 non-blocking `evidence_not_found` notes (65 in v0.7).
+
+## Real example form (2026-09-25)
+
+The `example_order_form_redacted.pdf` arrived after v0.8 and was run with no code changes
+(`runs/example`, 5-SKU catalog, $0.32, 2 submissions).
+- 3/3 expected items, 0 extra; SKU-004 (implementation via a partner) listed in explicitly_excluded_skus.
+- Totals, unit prices, quantity, currency, dates, schedule type (recurring) and frequency (yearly,
+  source `stated`) match the expected answer. First real test of stated billing: every synthetic form
+  left billing unstated.
+- Differs from the expected answer: payment terms "Net 55 from the date of the invoice" (expected
+  "Net 55"); the form-level "Up to Customer Employee Size: 25,000" note is on all 3 items (expected
+  only on SKU-001). Not tuned for: one example, and which items a form-level note covers is a
+  judgement call.
+- First live exercise of the v0.8 blank handling: the form states no effective date; submission 1 was
+  sent back with `missing_value`, the model overrode it with the reason, and the output is marked
+  `needs_review` with that reason in `missing_fields`.
