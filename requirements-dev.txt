@@ -1,0 +1,1 @@
+reportlab>=4  # only for scripts/make_long_doc.py (test-data generation)

@@ -55,6 +55,9 @@ the customer is billed (e.g. "billed annually in advance", an invoice schedule w
 price is quoted is not how it is billed ("$10/user/month, billed annually" is yearly). Billing "in \
 advance" or "in arrears" describes timing within a period, not the schedule type or frequency. If \
 the document does not say, use null.
+- Amendments: if the document contains an amendment, addendum or change order that modifies this order \
+(e.g. a changed price, quantity or date), use the values as amended, quote the amending text as evidence, \
+and mention the amendment in special_notes.
 - payment_terms: as stated (e.g. "Net 30", "Due on Receipt"). A form-level term applies to every \
 item unless an item states its own.
 - special_notes: conditions specific to that line stated in the document (caps, tiers, \
@@ -123,3 +126,79 @@ SUBMIT_TOOL_DESCRIPTION = (
     "Returns 'accepted', or a list of hard errors (must fix) and warnings (fix, or override with a "
     "reason if the value is correct as written)."
 )
+
+LONG_DOC_TEMPLATE = """\
+Order form file: {filename}
+
+This is a long document ({total} pages). You are shown only the pages most likely to hold the order details: \
+pages {pages}. The attached PDF contains exactly these pages, in this order; their text layer follows, \
+labelled with each page's number in the full document.
+
+Other pages may matter: priced tables elsewhere may or may not be part of this order, and the order can \
+reference schedules, exhibits, terms or signatures on pages you haven't seen. Use search_document to find \
+text anywhere in the document and read_pages to view more pages. Look further whenever something you need \
+is missing, referenced but not shown, or doesn't add up. Amounts and dates are checked against the whole \
+document.
+
+Text layer of the pages shown (pdftotext -layout):
+<text_layer>
+{text}
+</text_layer>
+
+Extract the order form details and all contract items, then call submit_extraction."""
+
+LONG_DOC_OUTLINE_TEMPLATE = """\
+Order form file: {filename}
+
+This is a long document ({total} pages). Instead of its pages you get an outline built by code from the \
+text layer: the headings found on each page, with long runs of pages that only have numbered clause \
+headings collapsed into one line. Running page headers and footers are left out. Some pages also carry \
+hints from a simple page scorer: [score N] for pages dense with amounts, prices and billing words, and \
+[signatures] for pages with signature blocks. Hints are only hints: a high-scoring page can be a price list \
+that is not part of this order, and a page that matters can score low or have no heading.
+
+Use the outline to decide which pages to read, fetch them with read_pages, and use search_document for \
+anything the outline doesn't show. Before extracting, make sure you have read every page that holds \
+information for this order: the priced items, the service term and dates, billing and payment terms, \
+signatures, and anything that changes the order (amendments, addenda, change orders). Use only values from \
+pages you have read. Amounts and dates are checked against the whole document.
+
+<outline>
+{outline}
+</outline>
+
+Read the pages you need, extract the order form details and all contract items, then call submit_extraction."""
+
+SEARCH_TOOL = {
+    "name": "search_document",
+    "description": (
+        "Search the full text of the whole document (every page, not just the pages shown). Case- and "
+        "spacing-insensitive; returns matching lines with their page numbers. If the exact phrase isn't found, "
+        "returns lines containing all of its words."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "description": "Text to look for, e.g. 'grand total' or 'Exhibit B'"},
+        },
+        "required": ["query"],
+        "additionalProperties": False,
+    },
+}
+
+READ_PAGES_TOOL = {
+    "name": "read_pages",
+    "description": (
+        "View pages of the full document (1-based page numbers, inclusive, up to 10 pages per call). Returns "
+        "those pages as a PDF plus their text layer."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "first": {"type": "integer", "description": "First page to read"},
+            "last": {"type": "integer", "description": "Last page to read"},
+        },
+        "required": ["first", "last"],
+        "additionalProperties": False,
+    },
+}

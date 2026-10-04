@@ -3,6 +3,7 @@ the validator bounces errors and warnings back until the submission is accepted 
 retry cap is hit, in which case the last submission is returned flagged needs_review."""
 from __future__ import annotations
 
+import base64
 import json
 import time
 from dataclasses import dataclass, field
@@ -17,6 +18,7 @@ from pydantic import ValidationError
 from . import prompts
 from .catalog import Catalog
 from .compute import ComputeError, evaluate
+from .pages import MAX_FULL_PAGES, PageIndex
 from .pdf import cents, dates_in, extract_text, has_text_layer, numbers_in, pdf_base64
 from .postprocess import build_output
 from .schema import Submission, submission_json_schema
@@ -25,6 +27,7 @@ from .validator import Issue, ValidationContext, active_issues, validate
 DEFAULT_MODEL = "claude-opus-5"
 MAX_SUBMISSIONS = 3
 MAX_TURNS = 12
+MAX_TURNS_LONG = 24  # long documents: extra turns for search_document / read_pages
 
 # $ per million tokens: (input, output). Cache writes bill at 1.25x input, reads at 0.1x.
 PRICING = {
@@ -66,6 +69,10 @@ class Session:
     last_issues: List[Issue] = field(default_factory=list)
     last_notes: List[Issue] = field(default_factory=list)
     accepted: bool = False
+    index: Optional[PageIndex] = None  # set for long documents shown in part
+    pages_read: List[int] = field(default_factory=list)   # fetched with read_pages
+    pages_seen: List[int] = field(default_factory=list)   # sent up front or fetched
+    searches: int = 0
 
 
 def _compute(session: Session, expression: str):
@@ -107,6 +114,29 @@ def _submit(session: Session, payload: dict):
     return "\n".join(lines), True
 
 
+def _search(session: Session, query: str):
+    session.searches += 1
+    return session.index.search(query), False
+
+
+def _read_pages(session: Session, first, last):
+    try:
+        pages, note = session.index.read_range(first, last)
+    except (TypeError, ValueError):
+        return "first and last must be page numbers.", True
+    if not pages:
+        return note, True
+    session.pages_read += [p for p in pages if p not in session.pages_read]
+    session.pages_seen += [p for p in pages if p not in session.pages_seen]
+    data = base64.standard_b64encode(session.index.pdf_of(pages)).decode("ascii")
+    return [
+        {"type": "text", "text": f"Pages {pages[0]}-{pages[-1]} of {session.index.n_pages}{note}. The PDF below "
+                                 f"contains exactly these pages; their text layer follows it.\n"},
+        {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": data}},
+        {"type": "text", "text": session.index.labelled_text(pages)},
+    ], False
+
+
 STREAM_RETRIES = 4
 
 
@@ -127,36 +157,68 @@ def _block_to_dict(block) -> dict:
     return block.model_dump(mode="json", exclude_none=True) if hasattr(block, "model_dump") else block
 
 
+LONG_DOC_MODES = ("outline", "select")
+
+
 def parse_order_form(pdf_path: Path, catalog: Catalog, client: anthropic.Anthropic,
                      model: str = DEFAULT_MODEL, effort: str = "high",
-                     transcript_path: Optional[Path] = None) -> dict:
+                     transcript_path: Optional[Path] = None, long_doc: str = "outline") -> dict:
+    """long_doc: how documents over MAX_FULL_PAGES are shown. "outline": a code-built outline only; the model
+    fetches pages with read_pages. "select": the highest-scoring pages are sent up front (v0.9)."""
+    if long_doc not in LONG_DOC_MODES:
+        raise ValueError(f"long_doc must be one of {LONG_DOC_MODES}")
     pdf_path = Path(pdf_path)
     text = extract_text(pdf_path)
     session = Session(ValidationContext(catalog, text, numbers_in(text), set(), has_text_layer(text),
                                         dates_in(text)))
-    if not session.ctx.has_text_layer:
-        text = "(no text layer - the PDF appears to be scanned; read it from the page images)"
-
     system = prompts.SYSTEM_TEMPLATE.format(catalog=catalog.to_prompt())
     tools = [
         prompts.COMPUTE_TOOL,
         {"name": "submit_extraction", "description": prompts.SUBMIT_TOOL_DESCRIPTION,
          "input_schema": submission_json_schema()},
     ]
-    messages = [{
-        "role": "user",
-        "content": [
+    selected = None
+    if session.ctx.has_text_layer:
+        index = PageIndex.build(pdf_path, text, [e.get("name") for e in catalog.entries])
+        if index.n_pages > MAX_FULL_PAGES:
+            # Long document: show the likeliest pages and let the model fetch the rest. Amounts and dates are
+            # still checked against the whole document's text (session.ctx above).
+            session.index = index
+            session.ctx.partial_view = True
+            tools += [prompts.SEARCH_TOOL, prompts.READ_PAGES_TOOL]
+
+    outline = None
+    if session.index and long_doc == "outline":
+        outline = session.index.outline()
+        content = [{"type": "text", "text": prompts.LONG_DOC_OUTLINE_TEMPLATE.format(
+            filename=pdf_path.name, total=session.index.n_pages, outline=outline)}]
+    elif session.index:
+        selected = session.index.select()
+        pages = list(selected)
+        session.pages_seen += pages
+        pdf_data = base64.standard_b64encode(session.index.pdf_of(pages)).decode("ascii")
+        content = [
+            {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": pdf_data}},
+            {"type": "text", "text": prompts.LONG_DOC_TEMPLATE.format(
+                filename=pdf_path.name, total=session.index.n_pages, pages=", ".join(map(str, pages)),
+                text=session.index.labelled_text(pages))},
+        ]
+    else:
+        if not session.ctx.has_text_layer:
+            text = "(no text layer - the PDF appears to be scanned; read it from the page images)"
+        content = [
             {"type": "document", "source": {"type": "base64", "media_type": "application/pdf",
                                             "data": pdf_base64(pdf_path)}},
             {"type": "text", "text": prompts.USER_TEMPLATE.format(filename=pdf_path.name, text=text)},
-        ],
-    }]
+        ]
+    messages = [{"role": "user", "content": content}]
+    max_turns = MAX_TURNS_LONG if session.index else MAX_TURNS
 
     usage = Usage()
     started = time.time()
     turns = 0
     stop_note = None
-    while turns < MAX_TURNS and not session.accepted and session.submissions < MAX_SUBMISSIONS:
+    while turns < max_turns and not session.accepted and session.submissions < MAX_SUBMISSIONS:
         turns += 1
         response = _call_model(
             client,
@@ -191,6 +253,10 @@ def parse_order_form(pdf_path: Path, catalog: Catalog, client: anthropic.Anthrop
                 content, is_error = _compute(session, tu.input.get("expression", ""))
             elif tu.name == "submit_extraction":
                 content, is_error = _submit(session, tu.input)
+            elif tu.name == "search_document" and session.index:
+                content, is_error = _search(session, tu.input.get("query", ""))
+            elif tu.name == "read_pages" and session.index:
+                content, is_error = _read_pages(session, tu.input.get("first"), tu.input.get("last"))
             else:
                 content, is_error = f"unknown tool {tu.name}", True
             results.append({"type": "tool_result", "tool_use_id": tu.id, "content": content, "is_error": is_error})
@@ -214,11 +280,25 @@ def parse_order_form(pdf_path: Path, catalog: Catalog, client: anthropic.Anthrop
         "usage": usage.__dict__,
         "cost_usd": usage.cost(model),
     }
+    if session.index:
+        output["meta"]["long_document"] = {
+            "mode": long_doc,
+            "pages_total": session.index.n_pages,
+            "outline_lines": len(outline.splitlines()) if outline else None,
+            "pages_sent": selected,
+            "pages_read": session.pages_read,
+            "pages_seen": sorted(session.pages_seen),
+            "searches": session.searches,
+        }
 
     if transcript_path:
         transcript_path.parent.mkdir(parents=True, exist_ok=True)
         # Drop the base64 PDF from the saved transcript to keep files small.
         saved = json.loads(json.dumps(messages, default=str))
-        saved[0]["content"][0] = {"type": "document", "source": f"<pdf omitted: {pdf_path.name}>"}
+        for message in saved:
+            for block in message["content"] if isinstance(message["content"], list) else []:
+                for inner in [block] + (block.get("content") if isinstance(block.get("content"), list) else []):
+                    if inner.get("type") == "document":
+                        inner["source"] = f"<pdf omitted: {pdf_path.name}>"
         transcript_path.write_text(json.dumps({"system": system, "messages": saved, "output": output}, indent=2))
     return output

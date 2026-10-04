@@ -45,6 +45,7 @@ class ValidationContext:
     computed_numbers: Set[Decimal]
     has_text_layer: bool = True  # False for scanned PDFs: grounding and quote checks can't apply
     doc_dates: Set[dt.date] = field(default_factory=set)
+    partial_view: bool = False  # long document: the model was shown only some pages and can fetch the rest
 
     @property
     def normalized_text(self) -> str:
@@ -162,6 +163,8 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
                             "checked against the document text"))
 
     flagged = {(a.item_index, a.field) for a in sub.ambiguities}
+    look_further = (" You were shown only part of this long document: use search_document and read_pages to "
+                    "look for it before concluding." if ctx.partial_view else "")
 
     # ---- header ----
     h = sub.order_form
@@ -171,7 +174,7 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
             warn("missing_value", None,
                  f"order_form.{label} is null. If the document states it, extract it; if it is genuinely "
                  f"ambiguous, add an ambiguity entry; if the document does not state it, override this "
-                 f"warning with that reason. A null here is flagged for review either way.")
+                 f"warning with that reason. A null here is flagged for review either way.{look_further}")
     check_amount(h.grand_total, "order_form.grand_total", None)
     check_quotes(h.evidence, None)
 
@@ -198,7 +201,7 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
                      f"{field} is null. If the document states it, extract it (quantity defaults to 1 when "
                      f"not stated); if it is genuinely ambiguous, add an ambiguity entry; if a SKU parsing "
                      f"instruction requires null, override this warning with that reason. A null here is "
-                     f"flagged for review either way.")
+                     f"flagged for review either way.{look_further}")
 
         if item.sku_code in sub.explicitly_excluded_skus:
             warn("excluded_conflict", i,
@@ -264,7 +267,9 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
             warn("grand_total_mismatch", None,
                  f"item totals sum to {cents(sum(to_decimal(t) for t in totals))} but the form's "
                  f"{h.grand_total_label or 'grand total'} is {h.grand_total}. Check for a missed or extra item, "
-                 f"or a total that covers a different scope.")
+                 f"or a total that covers a different scope." + (
+                     " You were shown only part of this long document: use search_document and read_pages to "
+                     "look for items, pages or totals you haven't seen." if ctx.partial_view else ""))
     return issues
 
 

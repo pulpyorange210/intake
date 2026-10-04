@@ -1,0 +1,1101 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: SKU-001\n  name: Talent Intelligence Platform Premium Edition\n  description: Foundational platform layer integrating with HR/IT systems, providing AI-driven talent insights and workflow automation.\n  parsing_instructions: |\n\n- code: SKU-002\n  name: Talent Acquisition\n  description: Product suite for finding and hiring talent, covering the full candidate journey from sourcing through selection.\n  parsing_instructions: |\n\n- code: SKU-003\n  name: Premium Support\n  description: Dedicated support services including priority response times and extended support hours.\n  parsing_instructions: |\n\n- code: SKU-004\n  name: Professional Services\n  description: Implementation, training, and consulting services.\n  parsing_instructions: |\n\n- code: SKU-005\n  name: Data Analytics Add-on\n  description: Advanced reporting and data warehouse capabilities.\n  parsing_instructions: |\n\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- Every date you give must be printed in the document (in any format). If a date is not printed but follows from one that is (e.g. an end date from a start date and a stated term), add an inferred_dates entry: the printed from_date, the add_months / add_days that produce the value, and an explanation quoting the text it relies on. The calculation is re-checked. Never supply a date that is neither printed nor calculated from a printed date; leave it null.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). Billing \"in advance\" or \"in arrears\" describes timing within a period, not the schedule type or frequency. If the document does not say, use null.\n- Amendments: if the document contains an amendment, addendum or change order that modifies this order (e.g. a changed price, quantity or date), use the values as amended, quote the amending text as evidence, and mention the amendment in special_notes.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Before treating a field as ambiguous, test each candidate reading against the rest of the document: the arithmetic of prices, quantities and the service term, and the other dates. A reading that contradicts the document is not a valid reading. If exactly one reading survives, use it and quote the deciding evidence. Closeness or typicality (e.g. a date being near the signature date) never eliminates a reading; it can only make one likely.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). If surrounding context makes one candidate more likely (e.g. its closeness to other dates in the document), give it as likely with that evidence in likely_reason; the field itself still stays null. Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: n1000_scattered.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: n1000_scattered.pdf\n\nThis is a long document (1000 pages). You are shown only the pages most likely to hold the order details: pages 1, 2, 158, 159, 160, 335, 336, 337, 414, 415, 416, 639, 640, 641, 954, 955, 956, 981, 982, 983. The attached PDF contains exactly these pages, in this order; their text layer follows, labelled with each page's number in the full document.\n\nOther pages may matter: priced tables elsewhere may or may not be part of this order, and the order can reference schedules, exhibits, terms or signatures on pages you haven't seen. Use search_document to find text anywhere in the document and read_pages to view more pages. Look further whenever something you need is missing, referenced but not shown, or doesn't add up. Amounts and dates are checked against the whole document.\n\nText layer of the pages shown (pdftotext -layout):\n<text_layer>\n=== Page 1 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n\n2. AUDIT RIGHTS\n2.1 The Licensee may maintain the confidentiality of all Confidential Information, except as expressly\nprovided in Section 28.7. The Licensee agrees to maintain the confidentiality of all Confidential\nInformation, except as expressly provided in Section 15.1. Provider shall maintain insurance of not less\nthan $2,000,000.\n\n2.2 Customer will use commercially reasonable efforts to retain records for the duration required by law,\nin accordance with the Documentation. Customer will use commercially reasonable efforts to maintain the\nconfidentiality of all Confidential Information, during the Term and for a period thereafter. The\nLicensor will use commercially reasonable efforts to assign its rights only with prior consent,\nnotwithstanding anything to the contrary herein. Each party shall make the Documentation available to\nUsers, to the extent permitted by applicable law.\n\n2.3 Customer will use commercially reasonable efforts to implement appropriate technical and\norganisational measures, in accordance with the Documentation. Customer will use commercially reasonable\nefforts to make the Documentation available to Users, notwithstanding anything to the contrary herein.\n\n2.4 The receiving party agrees to restrict access to authorised personnel with a need to know, except as\nexpressly provided in Section 4.5. Neither party acknowledges that it will cooperate in good faith to\nresolve any dispute, subject to Section 30.6.\n\n2.5 The receiving party may restrict access to authorised personnel with a need to know, during the Term\nand for a period thereafter. The Licensor agrees to remedy any non-conformity within a reasonable period,\nto the extent permitted by applicable law.\n\n2.6 Neither party may provide written notice of any material breach, except as expressly provided in\nSection 12.3. Provider agrees to make the Documentation available to Users, in accordance with the\nDocumentation. The Licensee shall not make the Documentation available to Users, notwithstanding anything\nto the contrary herein. The Licensee agrees to implement appropriate technical and organisational\nmeasures, as further described in Exhibit H.\n\n\n\n3. RESTRICTIONS\n3.1 The Licensor may comply with applicable data protection laws, notwithstanding anything to the\ncontrary herein. Provider shall maintain insurance of not less than $10,000,000. Any Affiliate shall\ncomply with applicable data protection laws, during the Term and for a period thereafter.\n\n3.2 The disclosing party agrees to comply with applicable data protection laws, except as expressly\nprovided in Section 32.8. Customer may comply with applicable data protection laws, notwithstanding\nanything to the contrary herein. Each party will use commercially reasonable efforts to cooperate in good\nfaith to resolve any dispute, in accordance with the Documentation. Customer acknowledges that it will\nretain records for the duration required by law, notwithstanding anything to the contrary herein.\n\n3.3 Each party will use commercially reasonable efforts to indemnify and hold harmless the other party,\nduring the Term and for a period thereafter. The disclosing party acknowledges that it will maintain the\nconfidentiality of all Confidential Information, subject to Section 18.8. Any Affiliate shall not assign\nits rights only with prior consent, notwithstanding anything to the contrary herein.\n\n3.4 Each party agrees to make the Documentation available to Users, subject to Section 31.6. Customer\nagrees to restrict access to authorised personnel with a need to know, during the Term and for a period\nthereafter. The disclosing party shall restrict access to authorised personnel with a need to know, as\nfurther described in Exhibit B.\n\n\n\n\n                                                                                                            Page 1 of 1000\n\n=== Page 2 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\nTABLE OF CONTENTS\n6. Dispute Resolution                                 ..............................      33\n20. Disclaimers                                       ..............................      67\nExhibit C - Sales Order Form                          ..............................      120\n19. Grant of Rights                                   ..............................      139\n2. Data Protection                                    ..............................      204\n5. Audit Rights                                       ..............................      221\n8. Anti-Corruption                                    ..............................      222\n11. Term and Termination                              ..............................      251\n7. Subcontractors                                     ..............................      262\n15. Publicity                                         ..............................      270\n9. Insurance                                          ..............................      304\n14. Accessibility                                     ..............................      338\nExhibit D - Schedule of Optional Services and Rates   ..............................      382\n17. Notices                                           ..............................      434\n10. Force Majeure                                     ..............................      518\n16. Effect of Termination                             ..............................      562\n13. Assignment                                        ..............................      605\n22. Confidentiality                                   ..............................      762\n12. Export Control                                    ..............................      787\n3. Definitions                                        ..............................      850\n18. Limitation of Liability                           ..............................      859\n1. Security                                           ..............................      897\n4. Business Continuity                                ..............................      899\n21. Restrictions                                      ..............................      936\nExhibit E - Service Level Agreement                   ..............................      939\n\n\n\n\n                                                                                       Page 2 of 1000\n\n=== Page 158 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n364.9 Any Affiliate agrees to not reverse engineer or decompile any component of the Services,\nnotwithstanding anything to the contrary herein. Any Affiliate acknowledges that it will comply with\napplicable data protection laws, in accordance with the Documentation. The disclosing party agrees to\nrestrict access to authorised personnel with a need to know, during the Term and for a period thereafter.\nThe disclosing party shall cooperate in good faith to resolve any dispute, to the extent permitted by\napplicable law.\n\n364.10 The receiving party agrees to provide written notice of any material breach, as further described\nin Exhibit E. Neither party will use commercially reasonable efforts to assign its rights only with prior\nconsent, during the Term and for a period thereafter.\n\n364.11 The Licensor acknowledges that it will remedy any non-conformity within a reasonable period,\nduring the Term and for a period thereafter. The disclosing party shall not implement appropriate\ntechnical and organisational measures, subject to Section 33.8. Any Affiliate may not reverse engineer or\ndecompile any component of the Services, in accordance with the Documentation.\n\n\n\n365. DATA PROTECTION\n365.1 The receiving party acknowledges that it will indemnify and hold harmless the other party, unless\notherwise agreed in writing by the parties. Neither party may retain records for the duration required by\nlaw, except as expressly provided in Section 29.9. The disclosing party shall not implement appropriate\ntechnical and organisational measures, notwithstanding anything to the contrary herein. Any Affiliate\nshall implement appropriate technical and organisational measures, as further described in Exhibit B.\n\n365.2 The disclosing party acknowledges that it will remedy any non-conformity within a reasonable\nperiod, in accordance with the Documentation. The Licensor agrees to remedy any non-conformity within a\nreasonable period, during the Term and for a period thereafter.\n\n\n\n366. DEFINITIONS\n366.1 Customer shall not make the Documentation available to Users, unless otherwise agreed in writing by\nthe parties. Any Affiliate shall implement appropriate technical and organisational measures, unless\notherwise agreed in writing by the parties.\n\n\n\n367. FORCE MAJEURE\n367.1 The disclosing party will use commercially reasonable efforts to implement appropriate technical\nand organisational measures, unless otherwise agreed in writing by the parties. The Licensor agrees to\nrestrict access to authorised personnel with a need to know, as further described in Exhibit A.\n\n\n\n368. ASSIGNMENT\n368.1 Customer agrees to remedy any non-conformity within a reasonable period, to the extent permitted by\napplicable law. Each party will use commercially reasonable efforts to retain records for the duration\nrequired by law, to the extent permitted by applicable law.\n\n368.2 The receiving party will use commercially reasonable efforts to cooperate in good faith to resolve\nany dispute, unless otherwise agreed in writing by the parties. Either party will use commercially\nreasonable efforts to indemnify and hold harmless the other party, to the extent permitted by applicable\nlaw. Either party acknowledges that it will not reverse engineer or decompile any component of the\nServices, unless otherwise agreed in writing by the parties.\n\n\n\n\n                                                                                                            Page 158 of 1000\n\n=== Page 159 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\nEXHIBIT E - SERVICE LEVEL AGREEMENT\nService Level                                     Target                 Measurement                    Service Credit\nMonthly Uptime                                    24 hours               monthly                        25% of monthly fees\nAPI Availability                                  99.9%                  quarterly                      5% of monthly fees\nP1 Response Time                                  99.9%                  quarterly                      10% of monthly fees\nP2 Response Time                                  99.9%                  monthly                        5% of monthly fees\nP3 Response Time                                  24 hours               monthly                        15% of monthly fees\nData Restore (RPO)                                99.9%                  per incident                   5% of monthly fees\nRecovery Time (RTO)                               99.9%                  monthly                        10% of monthly fees\nSupport Hours Coverage                            99.95%                 monthly                        10% of monthly fees\n\nService credits are the sole and exclusive remedy for failure to meet the targets above and shall not\nexceed 30% of the fees for the affected month.\n\n\n\n\n                                                                                                                   Page 159 of 1000\n\n=== Page 160 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n368.3 The receiving party agrees to cooperate in good faith to resolve any dispute, in accordance with\nthe Documentation. Provider shall not cooperate in good faith to resolve any dispute, unless otherwise\nagreed in writing by the parties.\n\n368.4 The Licensor will use commercially reasonable efforts to make the Documentation available to Users,\nexcept as expressly provided in Section 5.5. The disclosing party shall not provide written notice of any\nmaterial breach, in accordance with the Documentation.\n\n368.5 The Licensee acknowledges that it will cooperate in good faith to resolve any dispute, as further\ndescribed in Exhibit H. The Licensee acknowledges that it will remedy any non-conformity within a\nreasonable period, unless otherwise agreed in writing by the parties. The disclosing party agrees to\ncooperate in good faith to resolve any dispute, to the extent permitted by applicable law.\n\n368.6 Each party shall provide written notice of any material breach, to the extent permitted by\napplicable law. The Licensor shall not remedy any non-conformity within a reasonable period, during the\nTerm and for a period thereafter. The disclosing party shall retain records for the duration required by\nlaw, notwithstanding anything to the contrary herein.\n\n368.7 Any Affiliate acknowledges that it will not reverse engineer or decompile any component of the\nServices, unless otherwise agreed in writing by the parties. The receiving party acknowledges that it\nwill indemnify and hold harmless the other party, except as expressly provided in Section 40.8. The\nreceiving party agrees to make the Documentation available to Users, as further described in Exhibit G.\n\n368.8 Provider shall not reverse engineer or decompile any component of the Services, during the Term and\nfor a period thereafter. The Licensor agrees to cooperate in good faith to resolve any dispute, as\nfurther described in Exhibit D. The disclosing party may remedy any non-conformity within a reasonable\nperiod, during the Term and for a period thereafter.\n\n\n\n369. SECURITY\n369.1 The disclosing party agrees to maintain the confidentiality of all Confidential Information, as\nfurther described in Exhibit G. Provider shall maintain insurance of not less than $2,000,000. Either\nparty acknowledges that it will remedy any non-conformity within a reasonable period, to the extent\npermitted by applicable law. Any Affiliate may maintain the confidentiality of all Confidential\nInformation, notwithstanding anything to the contrary herein.\n\n\n\n370. ACCESSIBILITY\n370.1 Any Affiliate may comply with applicable data protection laws, subject to Section 19.6. Each party\nshall provide written notice of any material breach, unless otherwise agreed in writing by the parties.\nThe receiving party shall remedy any non-conformity within a reasonable period, in accordance with the\nDocumentation. Either party may implement appropriate technical and organisational measures, during the\nTerm and for a period thereafter.\n\n370.2 Provider will use commercially reasonable efforts to retain records for the duration required by\nlaw, unless otherwise agreed in writing by the parties. Any Affiliate may indemnify and hold harmless the\nother party, during the Term and for a period thereafter. Either party shall make the Documentation\navailable to Users, to the extent permitted by applicable law.\n\n370.3 Neither party will use commercially reasonable efforts to implement appropriate technical and\norganisational measures, in accordance with the Documentation. The receiving party will use commercially\nreasonable efforts to comply with applicable data protection laws, subject to Section 3.2. Customer may\nretain records for the duration required by law, in accordance with the Documentation. Provider may\ncomply with applicable data protection laws, during the Term and for a period thereafter.\n\n\n\n\n                                                                                                            Page 160 of 1000\n\n=== Page 335 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n770.7 The Licensor shall not make the Documentation available to Users, to the extent permitted by\napplicable law. The disclosing party shall not restrict access to authorised personnel with a need to\nknow, to the extent permitted by applicable law. Neither party will use commercially reasonable efforts\nto assign its rights only with prior consent, except as expressly provided in Section 28.8. Liability\nunder this Section is capped at $1,000,000.00. The Licensee agrees to implement appropriate technical and\norganisational measures, notwithstanding anything to the contrary herein.\n\n\n\n771. DISPUTE RESOLUTION\n771.1 Customer shall comply with applicable data protection laws, notwithstanding anything to the\ncontrary herein. Provider shall maintain insurance of not less than $5,000,000. The Licensor shall not\nprovide written notice of any material breach, subject to Section 2.7. Any Affiliate may maintain the\nconfidentiality of all Confidential Information, except as expressly provided in Section 8.1. The\nLicensor may retain records for the duration required by law, notwithstanding anything to the contrary\nherein.\n\n771.2 The Licensee acknowledges that it will assign its rights only with prior consent, as further\ndescribed in Exhibit C. Either party agrees to assign its rights only with prior consent, except as\nexpressly provided in Section 16.3. Provider agrees to implement appropriate technical and organisational\nmeasures, during the Term and for a period thereafter. Liability under this Section is capped at\n$1,000,000.00. The receiving party shall not indemnify and hold harmless the other party, except as\nexpressly provided in Section 10.6.\n\n771.3 Each party agrees to comply with applicable data protection laws, to the extent permitted by\napplicable law. Either party will use commercially reasonable efforts to indemnify and hold harmless the\nother party, during the Term and for a period thereafter. The disclosing party may implement appropriate\ntechnical and organisational measures, subject to Section 23.1. The Licensee acknowledges that it will\ncomply with applicable data protection laws, notwithstanding anything to the contrary herein.\n\n771.4 Either party agrees to not reverse engineer or decompile any component of the Services, unless\notherwise agreed in writing by the parties. The receiving party shall comply with applicable data\nprotection laws, during the Term and for a period thereafter. Liability under this Section is capped at\n$1,000,000.00. The Licensor will use commercially reasonable efforts to provide written notice of any\nmaterial breach, as further described in Exhibit F.\n\n771.5 The receiving party may implement appropriate technical and organisational measures, subject to\nSection 25.5. The disclosing party may maintain the confidentiality of all Confidential Information, as\nfurther described in Exhibit B. The disclosing party will use commercially reasonable efforts to assign\nits rights only with prior consent, to the extent permitted by applicable law.\n\n771.6 The Licensor may make the Documentation available to Users, notwithstanding anything to the\ncontrary herein. Neither party acknowledges that it will cooperate in good faith to resolve any dispute,\nexcept as expressly provided in Section 13.6. Neither party agrees to retain records for the duration\nrequired by law, subject to Section 36.9. Neither party acknowledges that it will maintain the\nconfidentiality of all Confidential Information, except as expressly provided in Section 21.2.\n\n771.7 Either party acknowledges that it will comply with applicable data protection laws, unless\notherwise agreed in writing by the parties. The Licensee acknowledges that it will not reverse engineer\nor decompile any component of the Services, subject to Section 15.8. The Licensor agrees to assign its\nrights only with prior consent, notwithstanding anything to the contrary herein. Either party\nacknowledges that it will comply with applicable data protection laws, unless otherwise agreed in writing\nby the parties.\n\n\n\n\n                                                                                                            Page 335 of 1000\n\n=== Page 336 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\nEXHIBIT D - SCHEDULE OF OPTIONAL SERVICES AND RATES\nThe following optional services are available on request at the rates below. They are not included in,\nand are not purchased under, any Order Form unless separately ordered in writing. Rates are list prices\nin USD and exclude applicable taxes.\n\nService                                                         Unit                     Qty              Rate (USD)\nProfessional Services - Implementation                          per hour                 1                $300.00\nProfessional Services - Training Workshop                       per day                  1                $3200.00\nData Analytics Add-on                                           per year                 1                $48,000.00\nPremium Support - Enhanced Tier                                 per year                 1                $66,500.00\nSandbox Environment                                             per year                 1                $15,000.00\nAdditional Data Storage (1 TB)                                  per month                1                $450.00\nDedicated Customer Success Manager                              per year                 1                $110,000.00\n\nRates may be adjusted annually upon sixty (60) days written notice. Minimum engagement for Professional\nServices is eight (8) hours.\n\n\n\n\n                                                                                                                Page 336 of 1000\n\n=== Page 337 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n\n772. DATA PROTECTION\n772.1 Each party agrees to remedy any non-conformity within a reasonable period, as further described in\nExhibit B. Either party agrees to comply with applicable data protection laws, except as expressly\nprovided in Section 10.9. Either party shall not reverse engineer or decompile any component of the\nServices, subject to Section 12.8. Customer will use commercially reasonable efforts to indemnify and\nhold harmless the other party, during the Term and for a period thereafter.\n\n\n\n773. INDEMNIFICATION\n773.1 The disclosing party agrees to not reverse engineer or decompile any component of the Services,\nduring the Term and for a period thereafter. Either party agrees to indemnify and hold harmless the other\nparty, subject to Section 9.1. The receiving party shall not assign its rights only with prior consent,\nas further described in Exhibit G.\n\n773.2 The disclosing party may maintain the confidentiality of all Confidential Information, during the\nTerm and for a period thereafter. Each party shall maintain the confidentiality of all Confidential\nInformation, as further described in Exhibit B.\n\n773.3 Any Affiliate will use commercially reasonable efforts to implement appropriate technical and\norganisational measures, notwithstanding anything to the contrary herein. Each party will use\ncommercially reasonable efforts to assign its rights only with prior consent, as further described in\nExhibit E. The Licensee agrees to retain records for the duration required by law, in accordance with the\nDocumentation.\n\n773.4 Provider shall not comply with applicable data protection laws, unless otherwise agreed in writing\nby the parties. Provider shall not make the Documentation available to Users, subject to Section 38.2.\nAny Affiliate shall not implement appropriate technical and organisational measures, as further described\nin Exhibit B.\n\n773.5 Each party agrees to provide written notice of any material breach, in accordance with the\nDocumentation. The Licensee agrees to provide written notice of any material breach, in accordance with\nthe Documentation.\n\n773.6 The receiving party may not reverse engineer or decompile any component of the Services, to the\nextent permitted by applicable law. Each party shall make the Documentation available to Users, in\naccordance with the Documentation. The Licensor may comply with applicable data protection laws, subject\nto Section 35.7.\n\n773.7 The Licensee will use commercially reasonable efforts to retain records for the duration required\nby law, subject to Section 1.4. The disclosing party shall implement appropriate technical and\norganisational measures, unless otherwise agreed in writing by the parties.\n\n773.8 The Licensor agrees to restrict access to authorised personnel with a need to know, as further\ndescribed in Exhibit G. Any Affiliate will use commercially reasonable efforts to retain records for the\nduration required by law, except as expressly provided in Section 35.9. Customer shall not indemnify and\nhold harmless the other party, during the Term and for a period thereafter. The receiving party shall\ncomply with applicable data protection laws, unless otherwise agreed in writing by the parties.\n\n773.9 The receiving party may implement appropriate technical and organisational measures, subject to\nSection 38.7. Late payments accrue interest at 1.5% per month. The Licensee may retain records for the\nduration required by law, except as expressly provided in Section 39.6.\n\n\n\n\n                                                                                                            Page 337 of 1000\n\n=== Page 414 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n960.5 Each party will use commercially reasonable efforts to retain records for the duration required by\nlaw, notwithstanding anything to the contrary herein. Neither party agrees to remedy any non-conformity\nwithin a reasonable period, notwithstanding anything to the contrary herein.\n\n960.6 The receiving party shall comply with applicable data protection laws, in accordance with the\nDocumentation. Either party acknowledges that it will make the Documentation available to Users, as\nfurther described in Exhibit H.\n\n960.7 Provider acknowledges that it will retain records for the duration required by law, in accordance\nwith the Documentation. Neither party shall cooperate in good faith to resolve any dispute, to the extent\npermitted by applicable law. The receiving party shall remedy any non-conformity within a reasonable\nperiod, subject to Section 25.7. Provider shall maintain insurance of not less than $5,000,000. The\nreceiving party shall not comply with applicable data protection laws, subject to Section 18.9.\n\n960.8 Customer shall not reverse engineer or decompile any component of the Services, unless otherwise\nagreed in writing by the parties. The Licensee may comply with applicable data protection laws, as\nfurther described in Exhibit F.\n\n\n\n961. DATA PROTECTION\n961.1 The Licensee shall not assign its rights only with prior consent, except as expressly provided in\nSection 35.8. Neither party will use commercially reasonable efforts to make the Documentation available\nto Users, to the extent permitted by applicable law. The Licensee may restrict access to authorised\npersonnel with a need to know, during the Term and for a period thereafter. Provider agrees to indemnify\nand hold harmless the other party, notwithstanding anything to the contrary herein.\n\n961.2 Any Affiliate acknowledges that it will restrict access to authorised personnel with a need to\nknow, except as expressly provided in Section 38.5. Customer acknowledges that it will indemnify and hold\nharmless the other party, notwithstanding anything to the contrary herein.\n\n\n\n962. EXPORT CONTROL\n962.1 The disclosing party acknowledges that it will remedy any non-conformity within a reasonable\nperiod, in accordance with the Documentation. Provider acknowledges that it will provide written notice\nof any material breach, during the Term and for a period thereafter.\n\n\n\n963. CONFIDENTIALITY\n963.1 The Licensee shall retain records for the duration required by law, in accordance with the\nDocumentation. The receiving party will use commercially reasonable efforts to comply with applicable\ndata protection laws, as further described in Exhibit H.\n\n963.2 The receiving party agrees to cooperate in good faith to resolve any dispute, subject to Section\n5.4. The Licensee shall not restrict access to authorised personnel with a need to know, as further\ndescribed in Exhibit D.\n\n963.3 Customer acknowledges that it will comply with applicable data protection laws, to the extent\npermitted by applicable law. The receiving party agrees to assign its rights only with prior consent, in\naccordance with the Documentation.\n\n963.4 The receiving party acknowledges that it will assign its rights only with prior consent, unless\notherwise agreed in writing by the parties. The receiving party shall not cooperate in good faith to\nresolve any dispute, unless otherwise agreed in writing by the parties.\n\n\n\n\n                                                                                                            Page 414 of 1000\n\n=== Page 415 of 1000 ===\nSUBSCRIPTION            SERVICE FEES\n\n\n      Product/Service             Year 1        Year 2        Year 3\n\nTalent Intelligence Platform    $255,000.00   $255,000.00   $255,000.00\n     Premium Edition\n\n     Talent Acquisition         $75,000.00    $75,000.00    $75,000.00\n\n     Premium Support            $50,700.00    $50,700.00    $50,700.00\n\n TOTAL SUBSCRIPTION             $380,700.00   $380,700.00   $380,700.00\n\n=== Page 416 of 1000 ===\n                 RODUCT DESCRIPTIONS\n\nThis document is for informational purposes only. No warranties of any kind are expressed or implied.                  is not\nresponsible for any actions taken in reliance thereon or any losses, direct or indirect, incurred as a result of the use of any of\nthe information.\n\n\n\nTalent Intelligence Platform Premium Edition\n\n             alent Intelligence Platform Premium Edition (\u201cPlatform\u201d) is the foundational layer of            applications, that integrates\nw t ex st ng HR/IT systems (HRIS, ATS, LMS, VMS, Email, SSO and others) and leverages the enterprise talent data and outcomes\nthrough artificial intelligence to derive insights and inform workflows across the talent lifecycle management. The Platform comes\nwith Enterprise grade security and privacy standards including ISO27001, SOC II Type II, and ISO 27701, and with encryption of\ndata at rest and in transit.The Platform supports multiple languages and has the ability to configure role-based access across the\norganization.The                Job Intelligence Engine (JIE) provides a framework for streamlining your talent practices. By replacing\narchaic, ineffective, inconsistent, and often-recycled job descriptions with centrally defined \u2018Roles\u2019, Job Intelligence Engine combines\nAI, automation, and human expertise to enable more transparent, effective, and consistent decision-making around acquiring,\ncultivating, and retaining talent.\n\n Functionality                                                                          Talent Intelligence Platform Premium Edition\n Enterprise Talent Network (leads, rediscovery)                                                                  \u2022\n Multi-language Support                                                                                          \u2022\n Calibration                                                                                                     \u2022\n Matching                                                                                                        \u2022\n Capability Matrix (predicating what candidates are capable of based on skills                                   \u2022\n and experience)\n Resume Parsing (parsing resumes across languages and formats)                                                   \u2022\n Talent Diversity                                                                                                \u2022\n Diversity Dashboard                                                                                             \u2022\n Candidate Masking                                                                                               \u2022\n Integrations (HRIS, ATS, LMS)                                                                                   \u2022\n Admin Console                                                                                                   \u2022\n Dashboard Authoring Console (enables users to build custom dashboards)                                          \u2022\n Workflow Automation                                                                                             \u2022\n Sandbox (1)                                                                                                     \u2022\n Job Intelligence Engine                                                                                         \u2022\n Role Library seeded with sample set (10-15) of calibrated Roles and ability to                                  \u2022\n create/ maintain additional roles manually\n Bulk Create and Update Roles using Admin Console (file-based)                                                   \u2022\n Skill Groups and Definitions                                                                                    \u2022\n                                                               Page 3 of 5\n\n=== Page 639 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n1496.3 The Licensor acknowledges that it will maintain the confidentiality of all Confidential\nInformation, in accordance with the Documentation. Any Affiliate shall comply with applicable data\nprotection laws, subject to Section 24.3. The receiving party shall not reverse engineer or decompile any\ncomponent of the Services, in accordance with the Documentation.\n\n1496.4 Each party will use commercially reasonable efforts to restrict access to authorised personnel\nwith a need to know, as further described in Exhibit E. Customer agrees to maintain the confidentiality\nof all Confidential Information, except as expressly provided in Section 10.4.\n\n\n\n1497. DATA PROTECTION\n1497.1 The Licensee acknowledges that it will provide written notice of any material breach, except as\nexpressly provided in Section 9.7. Each party shall not reverse engineer or decompile any component of\nthe Services, in accordance with the Documentation. Each party will use commercially reasonable efforts\nto implement appropriate technical and organisational measures, notwithstanding anything to the contrary\nherein. Liability under this Section is capped at $1,000,000.00. Provider shall remedy any non-conformity\nwithin a reasonable period, subject to Section 30.4.\n\n\n\n1498. TERM AND TERMINATION\n1498.1 The Licensee shall assign its rights only with prior consent, in accordance with the\nDocumentation. Each party will use commercially reasonable efforts to retain records for the duration\nrequired by law, in accordance with the Documentation.\n\n1498.2 The disclosing party acknowledges that it will implement appropriate technical and organisational\nmeasures, subject to Section 40.6. Each party may comply with applicable data protection laws, to the\nextent permitted by applicable law. Either party agrees to make the Documentation available to Users,\nexcept as expressly provided in Section 36.9.\n\n1498.3 Neither party acknowledges that it will retain records for the duration required by law, as\nfurther described in Exhibit B. The Licensee shall indemnify and hold harmless the other party,\nnotwithstanding anything to the contrary herein. Provider acknowledges that it will indemnify and hold\nharmless the other party, as further described in Exhibit F. Any Affiliate shall implement appropriate\ntechnical and organisational measures, notwithstanding anything to the contrary herein.\n\n\n\n1499. ANTI-CORRUPTION\n1499.1 Each party shall not comply with applicable data protection laws, unless otherwise agreed in\nwriting by the parties. Late payments accrue interest at 1.5% per month. Either party shall provide\nwritten notice of any material breach, during the Term and for a period thereafter. Any Affiliate may\ncomply with applicable data protection laws, as further described in Exhibit H.\n\n1499.2 Either party acknowledges that it will cooperate in good faith to resolve any dispute, unless\notherwise agreed in writing by the parties. Each party agrees to retain records for the duration required\nby law, notwithstanding anything to the contrary herein. The Licensee agrees to assign its rights only\nwith prior consent, subject to Section 29.6.\n\n1499.3 Customer agrees to indemnify and hold harmless the other party, unless otherwise agreed in writing\nby the parties. The disclosing party will use commercially reasonable efforts to remedy any\nnon-conformity within a reasonable period, notwithstanding anything to the contrary herein. Each party\nshall not implement appropriate technical and organisational measures, as further described in Exhibit F.\nThe disclosing party acknowledges that it will implement appropriate technical and organisational\nmeasures, as further described in Exhibit H.\n\n\n\n\n                                                                                                            Page 639 of 1000\n\n=== Page 640 of 1000 ===\nIMPLEMENTATION                  SERVICES\n\nAs applicable, Implementation Services and Feesare described in the Statement of Work (SOW). Customer will contract directly wit            s authorized certified\nimplementation partner, Blue Crab Consulting, for the professional services, including implementation services and training.\n\n\nINVOICING          SCHEDULE.\nInvoices are sent Annually, in advance as of 11/1/2023. Payment is due Net 55 from the date of the invoice.\n\n\n\n                                      Invoice Date                                                                        Invoice Amount\n\n                                        11/1/2023                                                                            $380,700.00\n\n                                        11/1/2024                                                                            $380,700.00\n\n                                        11/1/2025                                                                            $380,700.00\n\n                               TOTAL AMOUNT          DUE                                                                    $1,142,100.00\n\n\n\n\nPURCHASE ORDER INFORMATION\n\nIs a PurchaseOrder (PO) required for the purchase or payment of the products on this Order Form? (Customer to complete)\n\nYes, send          .ai a copy of the PO or No, I will sign a PO exception form (Yes/No)\n\n=== Page 641 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n1499.4 Customer acknowledges that it will restrict access to authorised personnel with a need to know, as\nfurther described in Exhibit D. The disclosing party agrees to cooperate in good faith to resolve any\ndispute, unless otherwise agreed in writing by the parties.\n\n1499.5 Each party may make the Documentation available to Users, notwithstanding anything to the contrary\nherein. Provider will use commercially reasonable efforts to indemnify and hold harmless the other party,\nto the extent permitted by applicable law.\n\n\n\n1500. SUBCONTRACTORS\n1500.1 Provider will use commercially reasonable efforts to implement appropriate technical and\norganisational measures, notwithstanding anything to the contrary herein. Provider may indemnify and hold\nharmless the other party, subject to Section 10.1. The Licensee agrees to cooperate in good faith to\nresolve any dispute, in accordance with the Documentation.\n\n1500.2 The Licensee acknowledges that it will maintain the confidentiality of all Confidential\nInformation, in accordance with the Documentation. Each party shall retain records for the duration\nrequired by law, except as expressly provided in Section 40.5. The disclosing party will use commercially\nreasonable efforts to cooperate in good faith to resolve any dispute, subject to Section 28.5. Either\nparty acknowledges that it will not reverse engineer or decompile any component of the Services, as\nfurther described in Exhibit B.\n\n1500.3 Provider shall not cooperate in good faith to resolve any dispute, notwithstanding anything to the\ncontrary herein. The Licensee agrees to maintain the confidentiality of all Confidential Information, in\naccordance with the Documentation. The disclosing party shall not reverse engineer or decompile any\ncomponent of the Services, in accordance with the Documentation. The receiving party shall not remedy any\nnon-conformity within a reasonable period, during the Term and for a period thereafter.\n\n\n\n1501. FORCE MAJEURE\n1501.1 Provider shall not provide written notice of any material breach, except as expressly provided in\nSection 9.2. Customer may restrict access to authorised personnel with a need to know, subject to Section\n12.3.\n\n1501.2 Any Affiliate acknowledges that it will indemnify and hold harmless the other party, during the\nTerm and for a period thereafter. Neither party shall cooperate in good faith to resolve any dispute, as\nfurther described in Exhibit H.\n\n1501.3 Customer acknowledges that it will cooperate in good faith to resolve any dispute, in accordance\nwith the Documentation. Any Affiliate acknowledges that it will comply with applicable data protection\nlaws, during the Term and for a period thereafter. Any Affiliate may implement appropriate technical and\norganisational measures, unless otherwise agreed in writing by the parties. Liability under this Section\nis capped at $2,000,000.00.\n\n1501.4 Either party shall not comply with applicable data protection laws, subject to Section 21.7.\nCustomer shall not assign its rights only with prior consent, as further described in Exhibit D.\n\n1501.5 Customer agrees to cooperate in good faith to resolve any dispute, as further described in Exhibit\nH. Provider shall maintain insurance of not less than $10,000,000. Any Affiliate acknowledges that it\nwill make the Documentation available to Users, unless otherwise agreed in writing by the parties.\nProvider agrees to not reverse engineer or decompile any component of the Services, to the extent\npermitted by applicable law.\n\n\n\n\n                                                                                                            Page 641 of 1000\n\n=== Page 954 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n2259.2 Any Affiliate shall assign its rights only with prior consent, during the Term and for a period\nthereafter. Provider may remedy any non-conformity within a reasonable period, unless otherwise agreed in\nwriting by the parties. The Licensor shall cooperate in good faith to resolve any dispute, as further\ndescribed in Exhibit D. Any Affiliate agrees to not reverse engineer or decompile any component of the\nServices, unless otherwise agreed in writing by the parties.\n\n2259.3 Any Affiliate shall retain records for the duration required by law, during the Term and for a\nperiod thereafter. Customer may not reverse engineer or decompile any component of the Services, during\nthe Term and for a period thereafter.\n\n2259.4 Either party shall not comply with applicable data protection laws, as further described in\nExhibit G. Neither party may cooperate in good faith to resolve any dispute, unless otherwise agreed in\nwriting by the parties. Late payments accrue interest at 1.0% per month. Neither party shall not restrict\naccess to authorised personnel with a need to know, to the extent permitted by applicable law. Any\nAffiliate shall cooperate in good faith to resolve any dispute, during the Term and for a period\nthereafter.\n\n2259.5 Either party shall not remedy any non-conformity within a reasonable period, during the Term and\nfor a period thereafter. The receiving party will use commercially reasonable efforts to make the\nDocumentation available to Users, as further described in Exhibit A. Provider shall not retain records\nfor the duration required by law, except as expressly provided in Section 15.7. The disclosing party\nacknowledges that it will comply with applicable data protection laws, subject to Section 18.8.\n\n2259.6 The disclosing party shall maintain the confidentiality of all Confidential Information, during\nthe Term and for a period thereafter. The Licensor agrees to comply with applicable data protection laws,\nduring the Term and for a period thereafter. Any Affiliate shall not maintain the confidentiality of all\nConfidential Information, as further described in Exhibit B. The receiving party will use commercially\nreasonable efforts to comply with applicable data protection laws, subject to Section 28.6.\n\n\n\n2260. DISCLAIMERS\n2260.1 Customer may comply with applicable data protection laws, to the extent permitted by applicable\nlaw. Either party may implement appropriate technical and organisational measures, subject to Section\n15.3.\n\n2260.2 The receiving party shall comply with applicable data protection laws, subject to Section 35.1.\nThe disclosing party agrees to provide written notice of any material breach, unless otherwise agreed in\nwriting by the parties. Either party agrees to remedy any non-conformity within a reasonable period,\nduring the Term and for a period thereafter.\n\n\n\n2261. EXPORT CONTROL\n2261.1 Any Affiliate acknowledges that it will provide written notice of any material breach, except as\nexpressly provided in Section 33.9. The receiving party will use commercially reasonable efforts to make\nthe Documentation available to Users, to the extent permitted by applicable law.\n\n\n\n2262. INTELLECTUAL PROPERTY\n2262.1 Neither party shall not cooperate in good faith to resolve any dispute, during the Term and for a\nperiod thereafter. Each party shall assign its rights only with prior consent, notwithstanding anything\nto the contrary herein. The Licensor will use commercially reasonable efforts to maintain the\nconfidentiality of all Confidential Information, as further described in Exhibit D. Provider shall\nmaintain insurance of not less than $2,000,000. Each party shall implement appropriate technical and\norganisational measures, as further described in Exhibit F.\n\n\n\n\n                                                                                                            Page 954 of 1000\n\n=== Page 955 of 1000 ===\nAMENDMENT NO. 1 TO SALES ORDER FORM\n\nThis Amendment No. 1 (\"Amendment\") is entered into as of 10/27/2023 between AI Inc. and Customer, and\namends the Sales Order Form for the Subscription Services with a Start Date of 11/1/2023 (the \"Order Form\").\n\n1. Premium Support fee. The annual fee for Premium Support set out in the Subscription Service Fees table of\nthe Order Form is replaced with $45,000.00 per year for each of Year 1, Year 2 and Year 3.\n\n2. Totals. Accordingly, the Total Subscription per year is $375,000.00 and the Total Amount Due under the Order\nForm is $1,125,000.00.\n\n3. Invoicing. Each annual invoice under the Invoicing Schedule of the Order Form is amended to $375,000.00.\n\n4. All other terms of the Order Form remain unchanged and in full force and effect.\n\n\nAI Inc.                                                  Customer\nBy: ____________________                                 By: ____________________\nDate: 10/27/2023                                         Date: 10/30/2023\n\n=== Page 956 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n2262.2 Any Affiliate may assign its rights only with prior consent, to the extent permitted by applicable\nlaw. The Licensee shall not make the Documentation available to Users, to the extent permitted by\napplicable law.\n\n2262.3 Any Affiliate agrees to provide written notice of any material breach, notwithstanding anything to\nthe contrary herein. Provider shall maintain insurance of not less than $5,000,000. Each party will use\ncommercially reasonable efforts to provide written notice of any material breach, subject to Section 9.6.\nThe Licensor shall not retain records for the duration required by law, in accordance with the\nDocumentation.\n\n2262.4 Any Affiliate shall not assign its rights only with prior consent, except as expressly provided in\nSection 39.7. Customer may restrict access to authorised personnel with a need to know, as further\ndescribed in Exhibit D. Either party agrees to restrict access to authorised personnel with a need to\nknow, in accordance with the Documentation. Provider shall maintain insurance of not less than\n$2,000,000. Neither party agrees to comply with applicable data protection laws, in accordance with the\nDocumentation.\n\n2262.5 The Licensee will use commercially reasonable efforts to provide written notice of any material\nbreach, to the extent permitted by applicable law. Either party shall not maintain the confidentiality of\nall Confidential Information, notwithstanding anything to the contrary herein. Neither party shall make\nthe Documentation available to Users, notwithstanding anything to the contrary herein.\n\n\n\n2263. PUBLICITY\n2263.1 The Licensor acknowledges that it will remedy any non-conformity within a reasonable period,\nsubject to Section 7.9. Either party may make the Documentation available to Users, to the extent\npermitted by applicable law. Any Affiliate may provide written notice of any material breach, in\naccordance with the Documentation.\n\n\n\n2264. RESTRICTIONS\n2264.1 Neither party may remedy any non-conformity within a reasonable period, unless otherwise agreed in\nwriting by the parties. Provider shall maintain insurance of not less than $5,000,000. Any Affiliate\nshall not assign its rights only with prior consent, to the extent permitted by applicable law. The\nLicensee may comply with applicable data protection laws, unless otherwise agreed in writing by the\nparties.\n\n2264.2 The Licensee acknowledges that it will maintain the confidentiality of all Confidential\nInformation, as further described in Exhibit A. Provider agrees to restrict access to authorised\npersonnel with a need to know, unless otherwise agreed in writing by the parties.\n\n2264.3 Provider may not reverse engineer or decompile any component of the Services, unless otherwise\nagreed in writing by the parties. Any Affiliate shall not cooperate in good faith to resolve any dispute,\nduring the Term and for a period thereafter. Either party shall remedy any non-conformity within a\nreasonable period, to the extent permitted by applicable law. Provider shall not restrict access to\nauthorised personnel with a need to know, subject to Section 3.5.\n\n\n\n2265. SECURITY\n2265.1 The receiving party will use commercially reasonable efforts to indemnify and hold harmless the\nother party, subject to Section 14.2. The Licensee acknowledges that it will make the Documentation\navailable to Users, unless otherwise agreed in writing by the parties. The disclosing party may remedy\nany non-conformity within a reasonable period, unless otherwise agreed in writing by the parties.\n\n\n\n\n                                                                                                            Page 956 of 1000\n\n=== Page 981 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n2332.2 The disclosing party shall not assign its rights only with prior consent, as further described in\nExhibit D. Each party acknowledges that it will make the Documentation available to Users, unless\notherwise agreed in writing by the parties. Customer may restrict access to authorised personnel with a\nneed to know, to the extent permitted by applicable law. Neither party will use commercially reasonable\nefforts to implement appropriate technical and organisational measures, notwithstanding anything to the\ncontrary herein. Late payments accrue interest at 1.5% per month.\n\n2332.3 The Licensee acknowledges that it will remedy any non-conformity within a reasonable period,\nunless otherwise agreed in writing by the parties. Neither party may retain records for the duration\nrequired by law, except as expressly provided in Section 18.5.\n\n2332.4 The Licensee may make the Documentation available to Users, notwithstanding anything to the\ncontrary herein. The Licensor will use commercially reasonable efforts to indemnify and hold harmless the\nother party, during the Term and for a period thereafter. Either party agrees to remedy any\nnon-conformity within a reasonable period, except as expressly provided in Section 32.3.\n\n\n\n2333. INSURANCE\n2333.1 Any Affiliate shall make the Documentation available to Users, in accordance with the\nDocumentation. Either party may cooperate in good faith to resolve any dispute, in accordance with the\nDocumentation. Each party acknowledges that it will not reverse engineer or decompile any component of\nthe Services, unless otherwise agreed in writing by the parties.\n\n2333.2 Neither party acknowledges that it will restrict access to authorised personnel with a need to\nknow, to the extent permitted by applicable law. The receiving party shall not remedy any non-conformity\nwithin a reasonable period, in accordance with the Documentation. Customer will use commercially\nreasonable efforts to cooperate in good faith to resolve any dispute, unless otherwise agreed in writing\nby the parties.\n\n\n\n2334. ACCESSIBILITY\n2334.1 Provider acknowledges that it will maintain the confidentiality of all Confidential Information,\nexcept as expressly provided in Section 19.2. Either party agrees to provide written notice of any\nmaterial breach, unless otherwise agreed in writing by the parties.\n\n2334.2 The disclosing party will use commercially reasonable efforts to cooperate in good faith to\nresolve any dispute, unless otherwise agreed in writing by the parties. Either party shall not comply\nwith applicable data protection laws, in accordance with the Documentation. Customer acknowledges that it\nwill provide written notice of any material breach, unless otherwise agreed in writing by the parties.\n\n2334.3 Neither party acknowledges that it will provide written notice of any material breach, to the\nextent permitted by applicable law. Each party shall implement appropriate technical and organisational\nmeasures, in accordance with the Documentation. Each party agrees to assign its rights only with prior\nconsent, notwithstanding anything to the contrary herein. Provider acknowledges that it will restrict\naccess to authorised personnel with a need to know, unless otherwise agreed in writing by the parties.\n\n2334.4 The disclosing party will use commercially reasonable efforts to comply with applicable data\nprotection laws, notwithstanding anything to the contrary herein. Customer will use commercially\nreasonable efforts to retain records for the duration required by law, in accordance with the\nDocumentation. The Licensee will use commercially reasonable efforts to cooperate in good faith to\nresolve any dispute, unless otherwise agreed in writing by the parties.\n\n\n\n\n                                                                                                            Page 981 of 1000\n\n=== Page 982 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\nEXHIBIT D - SCHEDULE OF OPTIONAL SERVICES AND RATES\nThe following optional services are available on request at the rates below. They are not included in,\nand are not purchased under, any Order Form unless separately ordered in writing. Rates are list prices\nin USD and exclude applicable taxes.\n\nService                                                         Unit                     Qty              Rate (USD)\nProfessional Services - Implementation                          per hour                 1                $300.00\nProfessional Services - Training Workshop                       per day                  1                $3200.00\nData Analytics Add-on                                           per year                 1                $54,000.00\nPremium Support - Enhanced Tier                                 per year                 1                $62,500.00\nSandbox Environment                                             per year                 1                $18,000.00\nAdditional Data Storage (1 TB)                                  per month                1                $400.00\nDedicated Customer Success Manager                              per year                 1                $110,000.00\n\nRates may be adjusted annually upon sixty (60) days written notice. Minimum engagement for Professional\nServices is eight (8) hours.\n\n\n\n\n                                                                                                                Page 982 of 1000\n\n=== Page 983 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n\n2335. INTELLECTUAL PROPERTY\n2335.1 The receiving party will use commercially reasonable efforts to retain records for the duration\nrequired by law, in accordance with the Documentation. Any Affiliate shall cooperate in good faith to\nresolve any dispute, as further described in Exhibit G.\n\n2335.2 Each party shall not reverse engineer or decompile any component of the Services, to the extent\npermitted by applicable law. Each party agrees to remedy any non-conformity within a reasonable period,\nas further described in Exhibit D.\n\n\n\n2336. WARRANTIES\n2336.1 The Licensor shall retain records for the duration required by law, as further described in\nExhibit B. Provider acknowledges that it will not reverse engineer or decompile any component of the\nServices, in accordance with the Documentation.\n\n2336.2 Each party acknowledges that it will indemnify and hold harmless the other party, unless otherwise\nagreed in writing by the parties. Neither party will use commercially reasonable efforts to implement\nappropriate technical and organisational measures, to the extent permitted by applicable law. The\ndisclosing party shall not implement appropriate technical and organisational measures, subject to\nSection 26.6.\n\n2336.3 The Licensee will use commercially reasonable efforts to remedy any non-conformity within a\nreasonable period, unless otherwise agreed in writing by the parties. The receiving party will use\ncommercially reasonable efforts to assign its rights only with prior consent, to the extent permitted by\napplicable law. The Licensee acknowledges that it will cooperate in good faith to resolve any dispute, as\nfurther described in Exhibit E. The receiving party shall maintain the confidentiality of all\nConfidential Information, during the Term and for a period thereafter.\n\n\n\n2337. CONFIDENTIALITY\n2337.1 Customer agrees to comply with applicable data protection laws, except as expressly provided in\nSection 11.7. The Licensee acknowledges that it will make the Documentation available to Users, as\nfurther described in Exhibit H. The Licensor shall not indemnify and hold harmless the other party,\nnotwithstanding anything to the contrary herein. Either party will use commercially reasonable efforts to\ncooperate in good faith to resolve any dispute, in accordance with the Documentation.\n\n2337.2 Provider will use commercially reasonable efforts to maintain the confidentiality of all\nConfidential Information, notwithstanding anything to the contrary herein. Neither party may make the\nDocumentation available to Users, except as expressly provided in Section 38.1.\n\n2337.3 Either party agrees to assign its rights only with prior consent, notwithstanding anything to the\ncontrary herein. The disclosing party agrees to make the Documentation available to Users, unless\notherwise agreed in writing by the parties.\n\n\n\n2338. INDEMNIFICATION\n2338.1 Each party shall cooperate in good faith to resolve any dispute, during the Term and for a period\nthereafter. Customer shall not maintain the confidentiality of all Confidential Information, unless\notherwise agreed in writing by the parties.\n\n\n\n2339. ASSIGNMENT\n2339.1 Neither party will use commercially reasonable efforts to assign its rights only with prior\nconsent, except as expressly provided in Section 27.1. The receiving party will use commercially\nreasonable efforts to remedy any non-conformity within a reasonable period, notwithstanding anything to\nthe contrary herein. Provider acknowledges that it will cooperate in good faith to resolve any dispute,\n\n                                                                                                            Page 983 of 1000\n\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAIS5QQKxgIIEhgCKkD1gAOd9vPlteBWzE4E7CMXeuG2Oia8tJyTxedbsLJWIDrWqr//Hj9I3CIq+xkDd9TP0bFHKT3YGSJWgvkTd8beMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAfLThtYGwgFACAYQABoSARGKArklA083CCniBUf4BCatIAIyBBJxzyU6BNZtwqNCBKn23qdKBKHEyApQBFoE2QXhVmACaAFwAdoBYAoWcHJlZml4X2JlZm9yZV9ibG9ja192MRIgkTJDobYVnqi+lq6Y/U0IvBLJ4T8cS0U4vK0a3S696awiADIgwsATyGqckuIvlm89hhd2j4t6RMkCrcwJe/oeCYr7Th9IAxIMeGMFnCCWweDIuDCCGgwLvEYPkAE737pep50iMHdNolfMA0geaGHojWIPoabm102cJgZ8UiIiuk7Fm55AqYknlPnCnOT0f8CGlVmjAyrLAXWJ1/Ei8jNDYRbpsXsPha2/5XjoddxpQ3FWvQ2fRa155uJ1n8jF0WWXdUq1YTKCOGjlC++Q25Hk6CBZ78jwuPe/YN/mzWesE8CZFY3lw7cI911ONs0RxG0a+8NMDSdNUuVXmrj/yM/oaN6lbhjxquotwqvGqfVLtSPIn6ZO+Ay/aoIizSS3SVSIH9d0MRJG2i8ANBq0kTt47Ut1moZD0HbxBx/1rIU8+oSpTUUJj/5DvEq30HosSG3WZmDwrIfIH9e4UyNd+zYVV7ToGAE=",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01VEKZcZ64FVBFgCU4uf41vX",
+          "input": {
+            "query": "Order Form"
+          },
+          "name": "search_document",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01RZENX78JBkaCeABSBo3wCd",
+          "input": {
+            "query": "Subscription Start Date"
+          },
+          "name": "search_document",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01VEKZcZ64FVBFgCU4uf41vX",
+          "content": "13 matching line(s) (exact) on 7 page(s): 2, 120, 336, 640, 880, 955, 982\np.2: Exhibit C - Sales Order Form  ..............................  120\np.120: Sales Order Form\np.336: and are not purchased under, any Order Form unless separately ordered in writing. Rates are list prices\np.640: Is a PurchaseOrder (PO) required for the purchase or payment of the products on this Order Form? (Customer to complete)\np.880: The Subscription Services set forth above in this Sales Order Form provided by  AI Inc. (\u201c  \u201d) to the Customer listed above (\u201cCustomer\u201d) are governed\np.880: Date, the products and/or services purchased under this Sales Order Form will expire and shall not automatically renew.\np.880: ORDER FORM; AND (III) BY SIGNING THIS ORDER FORM, I AM ENTERING INTO A LEGALLY BINDING CONTRACT.\np.955: AMENDMENT NO. 1 TO SALES ORDER FORM\np.955: amends the Sales Order Form for the Subscription Services with a Start Date of 11/1/2023 (the \"Order Form\").\np.955: the Order Form is replaced with $45,000.00 per year for each of Year 1, Year 2 and Year 3.\np.955: 3. Invoicing. Each annual invoice under the Invoicing Schedule of the Order Form is amended to $375,000.00.\np.955: 4. All other terms of the Order Form remain unchanged and in full force and effect.\np.982: and are not purchased under, any Order Form unless separately ordered in writing. Rates are list prices",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01RZENX78JBkaCeABSBo3wCd",
+          "content": "1 matching line(s) (all words on one line) on 1 page(s): 955\np.955: amends the Sales Order Form for the Subscription Services with a Start Date of 11/1/2023 (the \"Order Form\").",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_01BKdxDPY57gHinM8pFoyCKQ",
+          "input": {
+            "first": 120,
+            "last": 121
+          },
+          "name": "read_pages",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01S6DPvZK3SoTmckvVACxF3v",
+          "input": {
+            "first": 879,
+            "last": 881
+          },
+          "name": "read_pages",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01BKdxDPY57gHinM8pFoyCKQ",
+          "content": [
+            {
+              "type": "text",
+              "text": "Pages 120-121 of 1000. The PDF below contains exactly these pages; their text layer follows it.\n"
+            },
+            {
+              "type": "document",
+              "source": "<pdf omitted: n1000_scattered.pdf>"
+            },
+            {
+              "type": "text",
+              "text": "=== Page 120 of 1000 ===\n                                      Sales Order Form\n\nSold/Ship To:                                  Bill To:\nSold/Ship To Customer:                         Bill To Customer:\nSold To Address:                               Bill to Address:\n\n\n\n\n                         USA                                              US\n\nPrimary Contact:                               Billing Contact Name:\n\nPrimary Contact Email:                         Billing Contact Email:\n\n\n\nStart Date               11/1/2023             Up to Customer Employee Size: 25,000\nEnd Date                 10/31/2026\n\n=== Page 121 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n267.2 Each party will use commercially reasonable efforts to remedy any non-conformity within a\nreasonable period, notwithstanding anything to the contrary herein. Each party shall provide written\nnotice of any material breach, to the extent permitted by applicable law. Liability under this Section is\ncapped at $1,000,000.00. Either party acknowledges that it will not reverse engineer or decompile any\ncomponent of the Services, subject to Section 40.8. The Licensee acknowledges that it will not reverse\nengineer or decompile any component of the Services, in accordance with the Documentation.\n\n267.3 Neither party will use commercially reasonable efforts to not reverse engineer or decompile any\ncomponent of the Services, except as expressly provided in Section 4.1. Either party will use\ncommercially reasonable efforts to remedy any non-conformity within a reasonable period, to the extent\npermitted by applicable law.\n\n267.4 Any Affiliate may cooperate in good faith to resolve any dispute, except as expressly provided in\nSection 28.2. Neither party may provide written notice of any material breach, during the Term and for a\nperiod thereafter.\n\n267.5 Neither party shall remedy any non-conformity within a reasonable period, in accordance with the\nDocumentation. The Licensee acknowledges that it will not reverse engineer or decompile any component of\nthe Services, to the extent permitted by applicable law.\n\n267.6 The Licensor may make the Documentation available to Users, except as expressly provided in Section\n35.5. The receiving party may retain records for the duration required by law, subject to Section 12.7.\nThe disclosing party shall maintain the confidentiality of all Confidential Information, to the extent\npermitted by applicable law. Neither party shall cooperate in good faith to resolve any dispute, unless\notherwise agreed in writing by the parties.\n\n\n\n268. SECURITY\n268.1 Each party acknowledges that it will comply with applicable data protection laws, to the extent\npermitted by applicable law. The Licensor will use commercially reasonable efforts to cooperate in good\nfaith to resolve any dispute, subject to Section 10.9. Either party agrees to implement appropriate\ntechnical and organisational measures, during the Term and for a period thereafter.\n\n268.2 Customer shall remedy any non-conformity within a reasonable period, in accordance with the\nDocumentation. The receiving party acknowledges that it will implement appropriate technical and\norganisational measures, notwithstanding anything to the contrary herein.\n\n\n\n269. NOTICES\n269.1 The disclosing party agrees to cooperate in good faith to resolve any dispute, during the Term and\nfor a period thereafter. Either party acknowledges that it will not reverse engineer or decompile any\ncomponent of the Services, unless otherwise agreed in writing by the parties. Neither party agrees to\nimplement appropriate technical and organisational measures, to the extent permitted by applicable law.\nEach party acknowledges that it will cooperate in good faith to resolve any dispute, in accordance with\nthe Documentation.\n\n269.2 Any Affiliate will use commercially reasonable efforts to maintain the confidentiality of all\nConfidential Information, notwithstanding anything to the contrary herein. The Licensor shall not provide\nwritten notice of any material breach, subject to Section 2.9. Neither party agrees to not reverse\nengineer or decompile any component of the Services, unless otherwise agreed in writing by the parties.\n\n\n\n270. ACCESSIBILITY\n270.1 Provider shall not cooperate in good faith to resolve any dispute, notwithstanding anything to the\ncontrary herein. The receiving party acknowledges that it will make the Documentation available to Users,\nnotwithstanding anything to the contrary herein.\n\n\n\n                                                                                                            Page 121 of 1000\n"
+            }
+          ],
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01S6DPvZK3SoTmckvVACxF3v",
+          "content": [
+            {
+              "type": "text",
+              "text": "Pages 879-881 of 1000. The PDF below contains exactly these pages; their text layer follows it.\n"
+            },
+            {
+              "type": "document",
+              "source": "<pdf omitted: n1000_scattered.pdf>"
+            },
+            {
+              "type": "text",
+              "text": "=== Page 879 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n2068.2 The disclosing party shall maintain the confidentiality of all Confidential Information, unless\notherwise agreed in writing by the parties. Provider shall cooperate in good faith to resolve any\ndispute, during the Term and for a period thereafter. Provider shall comply with applicable data\nprotection laws, during the Term and for a period thereafter.\n\n\n\n2069. GRANT OF RIGHTS\n2069.1 Any Affiliate shall not indemnify and hold harmless the other party, during the Term and for a\nperiod thereafter. Customer agrees to remedy any non-conformity within a reasonable period, except as\nexpressly provided in Section 26.3.\n\n2069.2 Either party will use commercially reasonable efforts to make the Documentation available to\nUsers, notwithstanding anything to the contrary herein. The receiving party may make the Documentation\navailable to Users, unless otherwise agreed in writing by the parties. The Licensor shall not not reverse\nengineer or decompile any component of the Services, as further described in Exhibit D.\n\n2069.3 The Licensee shall not implement appropriate technical and organisational measures, as further\ndescribed in Exhibit D. The Licensor shall make the Documentation available to Users, unless otherwise\nagreed in writing by the parties.\n\n\n\n2070. DATA PROTECTION\n2070.1 The receiving party may cooperate in good faith to resolve any dispute, notwithstanding anything\nto the contrary herein. The Licensor acknowledges that it will implement appropriate technical and\norganisational measures, unless otherwise agreed in writing by the parties.\n\n2070.2 The Licensee acknowledges that it will maintain the confidentiality of all Confidential\nInformation, in accordance with the Documentation. Neither party shall not maintain the confidentiality\nof all Confidential Information, during the Term and for a period thereafter.\n\n2070.3 The Licensor acknowledges that it will cooperate in good faith to resolve any dispute, as further\ndescribed in Exhibit C. Any Affiliate may maintain the confidentiality of all Confidential Information,\nunless otherwise agreed in writing by the parties. The disclosing party shall not assign its rights only\nwith prior consent, as further described in Exhibit G.\n\n2070.4 Customer shall not restrict access to authorised personnel with a need to know, during the Term\nand for a period thereafter. The Licensor shall maintain the confidentiality of all Confidential\nInformation, except as expressly provided in Section 27.8. Customer shall not retain records for the\nduration required by law, notwithstanding anything to the contrary herein.\n\n2070.5 Each party shall not assign its rights only with prior consent, except as expressly provided in\nSection 31.7. Any Affiliate agrees to retain records for the duration required by law, notwithstanding\nanything to the contrary herein. Liability under this Section is capped at $1,000,000.00.\n\n\n\n2071. INSURANCE\n2071.1 Customer shall not implement appropriate technical and organisational measures, during the Term\nand for a period thereafter. Customer acknowledges that it will provide written notice of any material\nbreach, notwithstanding anything to the contrary herein. The receiving party acknowledges that it will\nrestrict access to authorised personnel with a need to know, during the Term and for a period thereafter.\n\n2071.2 Customer shall assign its rights only with prior consent, notwithstanding anything to the contrary\nherein. Provider acknowledges that it will restrict access to authorised personnel with a need to know,\nas further described in Exhibit C. The Licensor may provide written notice of any material breach, during\nthe Term and for a period thereafter. Each party shall comply with applicable data protection laws, to\nthe extent permitted by applicable law.\n\n\n\n                                                                                                            Page 879 of 1000\n\n=== Page 880 of 1000 ===\nTERMS & CONDITIONS\n\nThe Subscription Services set forth above in this Sales Order Form provided by           AI Inc. (\u201c         \u201d) to the Customer listed above (\u201cCustomer\u201d) are governed\nby the terms and conditions of the Master Subscription Agreement or similar agreement for the Subscription Services and applicable Statement of Work signed by the\nparties, which are incorporated here by reference. Customer hereby confirms that Customer\u2019s Sold-To address is the place of use for sales tax purposes. On the End\nDate, the products and/or services purchased under this Sales Order Form will expire and shall not automatically renew.\n\n\nQUOTE/PRODUCT SPECIAL TERMS\n\n\n\nI HEREBY REPRESENT THAT: (I) I AM AN AUTHORIZED SIGNATORY FOR CUSTOMER; (II) I HAVE READ AND AGREED TO THE TERMS OF THIS\nORDER FORM; AND (III) BY SIGNING THIS ORDER FORM, I AM ENTERING INTO A LEGALLY BINDING CONTRACT.\n\n\n          Corporation                                                                              AI Inc.\n\n\nBy:                                                                                      By:\n\nName (Print):                                                                            Name (Print):\n\nTitle (Print):                                                                           Title (Print):\n\nDate (Print):                     12 October 2023                                        Date (Print):\n                                                                                                                     12 October 2023\n\n\n\n\n                                                                           Page 2 of 5\n\n=== Page 881 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n\n2072. RECORDS RETENTION\n2072.1 Neither party will use commercially reasonable efforts to not reverse engineer or decompile any\ncomponent of the Services, to the extent permitted by applicable law. Each party will use commercially\nreasonable efforts to remedy any non-conformity within a reasonable period, in accordance with the\nDocumentation.\n\n2072.2 Each party will use commercially reasonable efforts to retain records for the duration required by\nlaw, unless otherwise agreed in writing by the parties. The Licensor will use commercially reasonable\nefforts to implement appropriate technical and organisational measures, during the Term and for a period\nthereafter.\n\n\n\n2073. ACCESSIBILITY\n2073.1 Either party will use commercially reasonable efforts to comply with applicable data protection\nlaws, during the Term and for a period thereafter. Provider will use commercially reasonable efforts to\nnot reverse engineer or decompile any component of the Services, to the extent permitted by applicable\nlaw. The Licensee acknowledges that it will provide written notice of any material breach, as further\ndescribed in Exhibit B.\n\n2073.2 Any Affiliate shall not implement appropriate technical and organisational measures, as further\ndescribed in Exhibit H. The disclosing party shall cooperate in good faith to resolve any dispute, in\naccordance with the Documentation.\n\n\n\n2074. ACCESSIBILITY\n2074.1 Any Affiliate agrees to retain records for the duration required by law, during the Term and for a\nperiod thereafter. The disclosing party agrees to assign its rights only with prior consent, in\naccordance with the Documentation. The Licensor will use commercially reasonable efforts to remedy any\nnon-conformity within a reasonable period, subject to Section 3.5. The receiving party shall not\ncooperate in good faith to resolve any dispute, unless otherwise agreed in writing by the parties.\n\n\n\n2075. DISCLAIMERS\n2075.1 The receiving party acknowledges that it will make the Documentation available to Users, in\naccordance with the Documentation. Either party will use commercially reasonable efforts to retain\nrecords for the duration required by law, to the extent permitted by applicable law. Neither party shall\nnot reverse engineer or decompile any component of the Services, except as expressly provided in Section\n22.7. The Licensee shall retain records for the duration required by law, as further described in Exhibit\nA.\n\n2075.2 The disclosing party may implement appropriate technical and organisational measures, unless\notherwise agreed in writing by the parties. The Licensor will use commercially reasonable efforts to\nindemnify and hold harmless the other party, during the Term and for a period thereafter. Liability under\nthis Section is capped at $2,000,000.00. The disclosing party acknowledges that it will retain records\nfor the duration required by law, notwithstanding anything to the contrary herein.\n\n2075.3 The Licensee may maintain the confidentiality of all Confidential Information, to the extent\npermitted by applicable law. Provider shall not restrict access to authorised personnel with a need to\nknow, during the Term and for a period thereafter. Either party may indemnify and hold harmless the other\nparty, to the extent permitted by applicable law.\n\n\n\n\n                                                                                                            Page 881 of 1000\n"
+            }
+          ],
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISyQgKqwMIEhgCKkCbgNQujmgilMomWPOHcyjPRkNBRQC9luFdINnFEIxkBj4BOTOvMPtjYjwS6AlOtP03MWNIs2CwAAD7PAfWQAwdMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAfvThtYGwgFkCBIQABo2ARGKArklA083CCniBUf4BCatChkQChtLA083C6kaC5zmBCatCgcXCvk4A083DGGFDFfWBCatIAIyBBJxzyU6BNZtwqNCBKn23qdKBKHEyApQBFoE2QXhVmAGaAFwAdoBoAEKFnByZWZpeF9iZWZvcmVfYmxvY2tfdjESIDItWq2YTzZAvE1iUKxvxWA7nX9gQkW9tbqTTp8aVDAhIkD1gAOd9vPlteBWzE4E7CMXeuG2Oia8tJyTxedbsLJWIDrWqr//Hj9I3CIq+xkDd9TP0bFHKT3YGSJWgvkTd8beMiDCwBPIapyS4i+Wbz2GF3aPi3pEyQKtzAl7+h4JivtOH0gDEgy7qD+BUo3d6UGONPEaDOqqxih7PQe5yQz+zyIw5O/QjMPQJ1UfoTQOM+p9CE9hngzKp5zjjQHv2uoIaGe19vM+tuGUY8sLoFdrplVoKsoE8rk3WMJRRekMWsVExnQBR1WqYZl7gEUXun9Dc4Vr/+Qjj25z9r0BhgoqR1RizsJ0XGVb5Bhe0CN6Jqv8UYUCNBs/6Z0dp+AjAjYJx3uU3P4P2s3H6Zmyrf9C4y6c9rsi5CnwlcTmUYbeJVMo1xLXyD5qva71AnG4TLzX4JpyAzFYdoVoOCMWT443Q7KwGyuFN7Ff+L5k8pccIjYCOpwTDDfDKDrp9pwfGmgDwnueR8FS3ThwaeWAU0uXOhJ4tzwTWwIXhLZo2t39OnyX6Yt0/oylPQ5O9EP7Q/yK9HYBiLF3tZI/xFeLaD3STUoCH1w07CKuig4tq1cYymLtsKS/gGMC2lgiLvJDmiPCgghJKHVgyGHGEaJuqZoBqmWMJuP91l7OF3MV7rfkrhfGf4+8oNiQRUyPJqcdT1ImXFZiiPXf69S2JfD/OLgNE8flc3iHg82l96OyUOaUiSbqaO90OfwuwFJ7KVjGiPb9sbry0gzrAwNSwPaZ+pZbllOXFsTPD4w7Yq7cvCIYOL0HoLdG3XYQ6PWGwtfFAcrCg63x7K9UFWkpHj2po36+lD1acpPXB8BDU+f1/k6fsL9/jiqn1SkeNHc+LAb0X5RXB5yN/l4eQEtHobUTtOkeeyvTET4g37pMlof6dZOPSeJ6wuAzNvonQdOMNR07pK5Brp+xD/TwGR2SRKe2a2F6sytR3Vzz1F2bFfo8Xp9sieZQuxtI/3rj8AyKB98qZbuQLLE4F/nby1dwbXpqVsyg4HfnScDigSvb3uPZs1VevBgB",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_0171qMbj2q3VQ5hbxjndmXLY",
+          "input": {
+            "query": "Talent Acquisition"
+          },
+          "name": "search_document",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01XiBj6KYL6EJivHiP6YsSeb",
+          "input": {
+            "query": "Page 4 of 5"
+          },
+          "name": "search_document",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_0171qMbj2q3VQ5hbxjndmXLY",
+          "content": "6 matching line(s) (exact) on 2 page(s): 415, 417\np.415: Talent Acquisition  $75,000.00  $75,000.00  $75,000.00\np.417: Talent Acquisition\np.417: Talent Acquisition helps streamline the candidate journey across every stage including: attract, engage & nurture, identify & source,\np.417: Functionality  Talent Acquisition (TA)\np.417: Core Talent Acquisition (Talent network, leads, rediscovery, candidate profile)  \u2022\np.417: Dashboards (Talent Acquisition Analytics)  \u2022",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01XiBj6KYL6EJivHiP6YsSeb",
+          "content": "1 matching line(s) (exact) on 1 page(s): 417\np.417: Page 4 of 5",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_01JkVv2R72PqUsaE7tenCAcu",
+          "input": {
+            "first": 417,
+            "last": 419
+          },
+          "name": "read_pages",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01JkVv2R72PqUsaE7tenCAcu",
+          "content": [
+            {
+              "type": "text",
+              "text": "Pages 417-419 of 1000. The PDF below contains exactly these pages; their text layer follows it.\n"
+            },
+            {
+              "type": "document",
+              "source": "<pdf omitted: n1000_scattered.pdf>"
+            },
+            {
+              "type": "text",
+              "text": "=== Page 417 of 1000 ===\nSanta Clara, CA 95054\n\n Globally Observed Roles / JIE Search                                                                          \u2022\n TA: Calibration Assistant                                                                                     \u2022\n JIE for TM: Assessments                                                                                       \u2022\n Data Warehouse                                                                                                \u2022\n Enterprise Key Management (BYOK) - [Add-on only]\n\n\nTalent Acquisition\n\n            alent Acquisition (TA) product line empowers global organizations to find and hire high potential and diverse talent, faster.\nTalent Acquisition helps streamline the candidate journey across every stage including: attract, engage & nurture, identify & source,\nscreen, interview and selection.\n\n                                   Functionality                                      Talent Acquisition (TA)\n Recruiter Experience in              App\n Core Talent Acquisition (Talent network, leads, rediscovery, candidate profile)                  \u2022\n Screening                                                                                        \u2022\n Candidate Engagement with Email                                                                  \u2022\n Smart Scheduling                                                                                 \u2022\n Interview Feedback                                                                               \u2022\n Video Interviewing integration                                                                   \u2022\n JIE role library and 10-15 sample roles                                                          \u2022\n Chrome Extension                                                                                 \u2022\n Dashboards (Talent Acquisition Analytics)                                                        \u2022\n Talent Communities                                                                               \u2022\n Smart Campaigns                                                                                  \u2022\n Events Recruiting                                                                                \u2022\n Candidate Engagement with SMS (includes 2500 messages per month)                                 \u2022\n Candidate Engagement with Whatsapp [Add-on only]\n Smart Referrals                                                                                  \u2022\n Internal Job Hub                                                                                 \u2022\n Masking                                                                                          \u2022\n Talent Experience (Personalized Career Site and more)\n Job Search (no resume)                                                                           \u2022\n\n                                                              Page 4 of 5\n\n=== Page 418 of 1000 ===\nFind jobs using resume upload                                       \u2022\nSmart Apply (One-Click Apply) or Redirect                           \u2022\nPublish PCS to Google                                               \u2022\nXML Feeds                                                           \u2022\nAI-powered Job Insights                                             \u2022\nSocial Recruiting (\"share this job\")                                \u2022\nCareer Site Dashboards                                              \u2022\nLogged in PCS (Candidate Owned Profile)                             \u2022\nChatbot                                                             \u2022\nTalent Branding / CMS Via Red Crackle [Add-on only]\n\n\n\n\n                                                      Page 5 of 5\n\n=== Page 419 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n963.5 Either party agrees to indemnify and hold harmless the other party, notwithstanding anything to the\ncontrary herein. Any Affiliate acknowledges that it will retain records for the duration required by law,\nsubject to Section 26.1. Provider shall restrict access to authorised personnel with a need to know, in\naccordance with the Documentation. The disclosing party agrees to retain records for the duration\nrequired by law, as further described in Exhibit G. Provider shall maintain insurance of not less than\n$5,000,000.\n\n963.6 The Licensee will use commercially reasonable efforts to comply with applicable data protection\nlaws, except as expressly provided in Section 32.6. Neither party shall retain records for the duration\nrequired by law, except as expressly provided in Section 11.2. Either party acknowledges that it will\nretain records for the duration required by law, except as expressly provided in Section 27.5.\n\n\n\n964. RECORDS RETENTION\n964.1 The disclosing party agrees to indemnify and hold harmless the other party, to the extent permitted\nby applicable law. The Licensee agrees to implement appropriate technical and organisational measures,\nsubject to Section 38.4.\n\n964.2 Provider shall not provide written notice of any material breach, as further described in Exhibit\nD. Provider agrees to implement appropriate technical and organisational measures, during the Term and\nfor a period thereafter. The Licensor shall maintain the confidentiality of all Confidential Information,\nexcept as expressly provided in Section 15.2.\n\n964.3 Each party shall not restrict access to authorised personnel with a need to know, as further\ndescribed in Exhibit C. The receiving party will use commercially reasonable efforts to remedy any\nnon-conformity within a reasonable period, as further described in Exhibit D.\n\n964.4 Customer shall not restrict access to authorised personnel with a need to know, in accordance with\nthe Documentation. The disclosing party shall maintain the confidentiality of all Confidential\nInformation, during the Term and for a period thereafter.\n\n\n\n965. INDEMNIFICATION\n965.1 The Licensor acknowledges that it will cooperate in good faith to resolve any dispute, as further\ndescribed in Exhibit F. Neither party may remedy any non-conformity within a reasonable period, subject\nto Section 40.9. Neither party acknowledges that it will remedy any non-conformity within a reasonable\nperiod, in accordance with the Documentation. Any Affiliate shall not restrict access to authorised\npersonnel with a need to know, except as expressly provided in Section 6.8.\n\n965.2 Neither party shall not make the Documentation available to Users, subject to Section 21.7. The\nLicensee will use commercially reasonable efforts to restrict access to authorised personnel with a need\nto know, as further described in Exhibit B. Any Affiliate agrees to comply with applicable data\nprotection laws, to the extent permitted by applicable law. Provider will use commercially reasonable\nefforts to remedy any non-conformity within a reasonable period, unless otherwise agreed in writing by\nthe parties.\n\n965.3 The Licensor shall not not reverse engineer or decompile any component of the Services, subject to\nSection 34.6. The Licensee shall implement appropriate technical and organisational measures, during the\nTerm and for a period thereafter. Each party acknowledges that it will retain records for the duration\nrequired by law, except as expressly provided in Section 22.3. Provider shall maintain insurance of not\nless than $10,000,000.\n\n\n\n\n                                                                                                            Page 419 of 1000\n"
+            }
+          ],
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAIS6R8KygMIEhgCKkDHsmi4kuSqd6xXFMtC2rM2hEc4jvx7Hm947rDos3VEbvOQZyZoZzP7nEmEZVDTVI+Fh+For22kFmBHg+VN5VpGMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAZHUhtYGwgGCAQgcEAAaVAERigK5JQNPNwgp4gVH+AQmrQoZEAobSwNPNwupGguc5gQmrQoHFwr5OANPNwxhhQxX1gQmrQpUQgoxAQNPNwsYNwshxwQmrQr7/wNPNwyMhgQmrSACMgQScc8lOgTWbcKjQgSp9t6nSgShxMgKUARaBNkF4VZgCmgBcAHaAaABChZwcmVmaXhfYmVmb3JlX2Jsb2NrX3YxEiC4EBctw8rL5SA7awtRhO8xr3qCErYcRNEV4pG3UtN1zyJAm4DULo5oIpTKJljzh3Moz0ZDQUUAvZbhXSDZxRCMZAY+ATkzrzD7Y2I8EugJTrT9NzFjSLNgsAAA+zwH1kAMHTIgwsATyGqckuIvlm89hhd2j4t6RMkCrcwJe/oeCYr7Th9IAxIMAx7bBfQrYwtsAJUAGgyiAUSEWYAQzkUUZE8iMMssE8ASuTy0AIEIKh+aNT/Y96Kjk5vBYU0bg3vehKbtbbjjmK/jdWx94fGqSgrxhCrLG5UDbVzWTnqu+tJAETDjxbQfx2Ar/m5g0EYKihrvGtQHYSew7sOYB/aIE2kT6OGoRL51yOJkHqzkH6HGvnpiFC6yIleQFKjjcEKtLO1bn8TuiJKhIs5hp3RMh998bQsOzuLt2yxjC31+UOTxf5foXm9W0IQKZc4YoNgqFs7VRjmHhIOWlYcTJrhfFgEV/GCX9hT9qkdvJOOdAdaqNKDT5vjXzDXfvaZtGB7XY42YbYpM3ueMs++1Dvt+z1epvAQl1UythX9nkmZnbMOknQl2UQjrDnPQRHdCqyOu0XJ+xqk61UuKk2D2pwVrQaSa8HEuVw8LkHE/S8p7CnrW4h8obvZcak0EOGl4IZJGmCCJ8Gua0wWsQH6xpzhPaHXU5Ej25EM8ONvVds2AXGjG4AV523iOFc/pQ1LBL6NORIH9/rmF4F9NPwCOT5CfozOeVB5ihbwxRmJiRVl3jFmRVeJ43PWW0OKh9rlfyKGvQd+5dq3qYOpH2H4EMqPeBdbR72HRFdYLC7Poic8n4Dl+3fj4PS1/UqniKeH4Jn4en5raCJqxvm5QCobibiLBH+omG+6ssG8m/AHD5JWS2o98U8wJzt3qlodw2BZRcV9qtEWHQV3oOqYpKacey2d4nARhP8lwGFQ1OaySSWAEAbEalHYs/HHkgKX/hGCMp8hITMbR/sqrokzn+LVGZuaYL2se2n0ZKGjZgDBm6LYvt6J+l/rBBJDrWxDTtMhdTjidyy5LawnGdkr4xBRGWRxuAtJAr192iOwg5hAABqkTUQvhcc1XJn4iE4Q04kvODmZxGdUhxEOojgCqNGQ1ju9ItuXk/oZSUPkY8dNEozqZX5Fwl+yFFLcylUI77ZXCC9eJdeKZKZnoq2bg1aYISYNwvXbLZa+dUUzHOe5lt/KOzndKjPy+DXDcoZcGWcrMbzZ5nG2Bha4naUIqx88pquEr0YnvQSaePESxHwOaUh9xTyelBjulEdR6NLjHXia/bzXNjswZ584FQrcLBiLz79Nng3UaThoftGsK8tViUgzsE4IIN0zKub92DvzmbZ8alLlvetN9wCOLCZQDkpm/UoLZHfz9Mkrri7wfurB4fAc6brDNxA7JYAEyMYL2VmJaIvJU/CIFQOXBrkCpPWuyh6Ngo8L3gYsfOmRoKItq+M1vdsW+hEwdS/t1P37VnomYZFMwnqig5v+pv2ykQZ9b75S09JqzigXUwVLp7ax0Wy9N+6PNMuoCvB5zgwld5hKZQpSs1RdLZMjK9wXbO/tuh5AG5y7F/dcNUpr3fCbXlDTJY6B0jFe/Uh+bP46fDJnpZW1Ym4VhWqxdIAJ8A3eoKXMZ9bM9hw7pXhdXc5Nf70+ZdaWtnVbHkR4VvzVg3rSlyNFgTcmu/z0teOYnxeEf4k83Uay5+Ou5ENN4e35ohtm80DQEFOl1QmDe40HzDAhZgVtLmCSCzRIRXuybzyUKZWYmjVcOKDL4yafvSgHjgYx1YEX+Kwwein73gKKIrEAfD/B5QA2xfiGhdOJe2Jc1stq7ahsFGpBKQ85IYcwhiH1JfiriFgzuh/XGtuBbltk/+qYrrYoRQV2PlJWnE3JKNPGYaHWJlwtn5Eodcj+0C0/epD3ggU9I2bR53oz5iiIoyduq67itW1lqMKwYG7vfY93rOwZzjdfYG09PHxjkWao18m6Kgn8uPVtlFv6yShCrYa2Ur51QlvR3cZCQEYWPyLDOByqxE6d4jf+UXGp+35olLr3qJke1ZUk9ucxn8oUPV0xQzGc460MODQ+iiTgJJ0kTFCmkyfZYdQktrnu9stkAEPoPUjvPWFuwi/sBS2NqhUvKDzB+v6ekiPm8InJXgi78PNguZHQFsndcOtssrWQ6E6v1BYPpOUB9Q8dE5c6X4YWOTuy7Fs4oOppk0R+c2Dmv//eJIhwLItjrL6seY8EI7Zm5y3SbSjJaIFlXCX3LuYX0cqC8GhC22tIRstnOnl3Fmv7TPhvfSOgOeuaU3fMHhoAMOKM3hh1L191CINZt20kO8Lj7SORNthYPVx5y7HjYS2kPxW4gEz6UJEghD4NCkPkcwKW9ipJsO3I1YaPIuszKMySClKZHZ8VqKtPLCaFdSNOAoqN45T+Jf36f8b7MVL5VWI09SQEQuYQHL5sCspof4H1GF4UcSJozAywMuws99ZsvSAPlevsoSp9+kPJu7Hw2mfkxMfz4HfW1EfCW47xydeUVCumPeVc2uo/GZ+z91JBFryBZTcVpuQPylKrKe0QiM4NEmOGgxwhZDCUstNt8iwPHkqM20M4ZgaqiwSuPxSb1X1PwYKIkW93DugR+jERYKF01CpSaQHwdGTOjGNilUaR4c516QY/HM15IKFtocrAoxw0TOEdnxF5Af5R8nnMTn5X3QjytUNB6L9RyCciVornFMpXrgP/ccV6Ewb+ylRHmqCMhgmtvkcfGATKMzKXMske9Wn50Zrxtj2PaoBgDdlIOFM1rugvE+PaAdi5y/pP6J5cZox1/AWc5BTciZbm8qUAaIu1wLWPS48YpFDzLVb9jwDeQTuCpU0m+BE49ftqzBQXwsIzzBdAUqPsdAn/jJl0WKwgivIXsgxYfmiAmEwJDNyMTPXsFXC1IX9g0dEjWeommGq6xSRrJmXKAEgtzFWNTn/gpGcAYd7C2Ns3Ppllv0PZsX0EffXyJCHoJ/3pZ13tTm+SKVtmssv/uEWU0XSx7AeZEzscwOXpe6JNC8CFGXOz3yyGWGiL8Hrc0lSUlhbQhaMnqVkSLNNFHdRvzrHLssfzwqiuFjDpO11fJwLekoCZvpZ3rNyeecBzKnGIx7ZGA+0gSXv26amg/tW7EqwFEPL/dKdXKksN1UBkzXkiFZw6UqgPbMZzbv6gWTGHU9o1Ts5zD4d4mY0pwJ6Y0SREkDqmnkQo5bxY1XUWgyVJaigkedFHDopjDN00NZ+kBIib/Ze1MUrKxVGP5m2QcZc9T0CoZEkgovqBzZvKrxbriSgEOfhOnImDxbNRU0kos0dMPloMtkZS7ByO9LHARlBcmZkNbjtqS2P7tRSM6zCjxy1ohKxSBy6PF91XluX8cB03yRXMMJE64GoiD1gSB8VYBee2eYTlKl/zZxdm7EjWAb0yL9hRngFfP9w66lnhiYhZn+IPLAGc2GNSz3ksWTpiB1SdpYxQ3/w2VQDJDHHzQx7b3iuWFF3gU3MHyPadtzEzyFmjnZTNs7TYCU3snJ7z9sW2LetX/uFEAWTfjq9qcke0MVfgqXfepFVIL0kMQLcrRTxtE6ZC39yIYG0pKs3O12SC7lc7tOw0numCfjrzcGlq4u0cweu1lu5fh3UXyU+yGdobRi8K5zCRPMlHvIN5vrdETUK5rrI90Et4GTn9r5mBPfj6NrAr07NgV6AeyaWoVQMgLSm2QucONeWJa1XHM5rL0cQe9xet06z9QzwJXWfawbBXgcjJ9zpMU8SQWfnAQ+ApzvcCkMwFyh3vwArANoyd2Xw7v76g3CyVVmAIOih6PTyllv7X4jL4HbS4yc4Jmdp0A/cskj+4fexzUg/BJr4eWtavcKuHpDq2wXXTaag9liF2MsSwyZt2+aq7PiCKFAVt/hA1IgKTiKtRpGPAib2u9iT3DYwKmxSg6b3T+iBg5/1awmx0NhyfbtQGFzRt2PLoIj3MUOF9P9API8Xy4S+4VREQejK/8jZdoy9rGt5YeJzALEDCvuVdQ+/Iu3rEf2s2oYhS8fXk9YfVYjJlYxk5JJPLjmYLFCVEMAiKUYgxxEQl3yd/xMUzy3zieTuDDN461PE2HZFAlslWmkMLuhPSWy+PdE2RFeBrsUhl9clcLw/7qWCZR8KndFEmftl7ujz8HySIKglyqYkth9bB9opbgVkvJBfRcXoCzv3ivFAqz58+U75SoI5slrOb4LsMaFe1UHzKU5ZY40EL1Jcx48mQylRj6Cr1eAAnoNT9RlGrbwwzV2nKDt+wiFy/Mpr7kw4JHU7UBIdCAqPzMoHrV5NWzKEFbOKQYIlqIL9z4zu7/xPcWUP3urgPaJNqS8r2rjE/pqkZZlAvvLwA0gc43wJqpmtqNMp7vt7Ea8BSgle0cmBj9dwATgrSS9P94BFZGeo5cfqJnydorf6mO4jXKnxTfGqIGnfx1N2khUZR2aUPDR79gFgOVXMFStd13hKX1zD7g66SqN9ngRP99rZHzYpzRfcg5jvIl0R6NlNzHKv/OIhvRoKFzVyKADnMVN0jq2ElQHAbu8nubU46CEh8Ud4iHVyfSolIfPDFXzDlHHJTIeoioPJSkE0F5fBhuqTdPtdw0b/Ryhx7/nX5bcfz4dz/TPTIjLQpPi24sqEvVaFuI1A5MD0S4RqPt8mvo7MkzKpKayUpQ4g7Legb02PkE6a+zIt5hSpp0HkIUxqRg8KdRl5aNoCLlpP8PiuJiy8wrpZyIyTxMfjMwA5+q/yQjJnFdWUM+Wtjv3COSlhWoTN4uIVRl7FOVh/1+JBPBH3Izc098t77KN2EYgy9Y1AKsb3Np50d5S7ycip5bJNagpTbEBnK5GRYL0ttyXTKB2g4nLPQvuy3oycVxb7TScggGhAmfaLlrrCJnDvlvJZqOJFYnOxxSFePF0iznVaTH645ixRcLToI3ZGCgNI842Ev4xEH2z4ws7up024BKNqo/piHG8pCefJOd23BQBM2MGMoE5y2MypWGbd5wBs8wzRILupqiAEFXVflgnJkHsBgB",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01T11xhiB2AXwqYxajLnySVM",
+          "input": {
+            "query": "effective date"
+          },
+          "name": "search_document",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_016dywVGFCqtbYegNWjb2Gbb",
+          "input": {
+            "expression": "255000*3"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01XkinHowjvRR1jXknneyn9K",
+          "input": {
+            "expression": "75000*3"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01481WGmwHZgLyx1dtSzYtZh",
+          "input": {
+            "expression": "45000*3"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01T11xhiB2AXwqYxajLnySVM",
+          "content": "No matches for 'effective date' in the 1000-page document.",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_016dywVGFCqtbYegNWjb2Gbb",
+          "content": "255000*3 = 765000 (rounded to cents: 765000.00)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01XkinHowjvRR1jXknneyn9K",
+          "content": "75000*3 = 225000 (rounded to cents: 225000.00)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01481WGmwHZgLyx1dtSzYtZh",
+          "content": "45000*3 = 135000 (rounded to cents: 135000.00)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAIS5QYK6AMIEhgCKkD5eSyxp+RCCjXuLjJAx52R7h/1+foMQboMnBNrMwYXJ6hzyAo6dNlYe9/w80pbPbXlHw6JoYzl/oslA56zswQdMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAZfUhtYGwgGgAQgmEAAacgERigK5JQNPNwgp4gVH+AQmrQoZEAobSwNPNwupGguc5gQmrQoHFwr5OANPNwxhhQxX1gQmrQpUQgoxAQNPNwsYNwshxwQmrQr7/wNPNwyMhgQmrQrPxgqNvQqbpAqrLQNPNwveuAt6ZQuGeAtzogQmrSACMgQScc8lOgTWbcKjQgSp9t6nSgShxMgKUARaBNkF4VZgDGgBcAHaAaABChZwcmVmaXhfYmVmb3JlX2Jsb2NrX3YxEiBxzDB8WC8LWN8s8ZgOleYWFHvuQVHp6ir64gpDlT77hyJAx7JouJLkqnesVxTLQtqzNoRHOI78ex5veO6w6LN1RG7zkGcmaGcz+5xJhGVQ01SPhYfhaK9tpBZgR4PlTeVaRjIgwsATyGqckuIvlm89hhd2j4t6RMkCrcwJe/oeCYr7Th9IAxIMPXqMwVOU41wIyY2eGgzI5b/Cj79r5c+AEN8iMPiiV1pWmYRRoYU+m7IuHctPpx5/mB7h4wDD3wQNqfwGaKEpJCJ4146OtJT/dmr8TCqpAi0iq+5GPawd2qF/OVXGOu1KWKG4WYRM93L0J2ke2rBG7VtoSIg22RRyItaXRE8UVbzULghX/gJtzrJOPZkozGi/zUaRGcUbmQvtKtSWWl6I4w1LHIs/jpgjlX2jKSJVC7Y3na/G/blsXRD3Chayi90p0yP4XVA598ldE96nTD6KgWM8UwqPWxmbGWeFjzDNv96a5Qv4J4uoli5xxN4O7EeYsQFOIz3XOvwWRb23+xGjgpTJiTxmz5OeFXJAIhWOLgpNYUJw5axGkIxNxl9GRISKUatrGJl4WCzFlFCAeafzTu1SIO+ANTMxsmlJP0Ur0xIbooa30e7bnbGlp3/YOt1s3TrvTpIwPO9ieXrUZ2ccxphfRWrJ9olCmKrSEGpN3Sh7lov3PEt0ChgB",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01VBbuS2r7uheLQs1HNymhHq",
+          "input": {
+            "order_form": {
+              "customer_name": null,
+              "vendor_name": "AI Inc.",
+              "effective_date": null,
+              "contract_signed_date_buying_company": "2023-10-12",
+              "contract_signed_date_selling_company": "2023-10-12",
+              "currency": "USD",
+              "grand_total": 1125000,
+              "grand_total_label": "TOTAL AMOUNT DUE",
+              "evidence": {
+                "vendor_name": "The Subscription Services set forth above in this Sales Order Form provided by  AI Inc.",
+                "contract_signed_date_buying_company": "Corporation ... I AM AN AUTHORIZED SIGNATORY FOR CUSTOMER ... Date (Print): 12 October 2023",
+                "contract_signed_date_selling_company": "AI Inc. ... Date (Print): 12 October 2023",
+                "currency": "Rates are list prices in USD",
+                "grand_total": "the Total Amount Due under the Order Form is $1,125,000.00",
+                "grand_total_label": "TOTAL AMOUNT DUE"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "SKU-001",
+                "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+                "currency": "USD",
+                "total_listed_value": 765000,
+                "quantity": 1,
+                "unit_price": 255000,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 255000
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 255000
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 255000
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "upfront",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55",
+                "special_notes": "Up to Customer Employee Size: 25,000",
+                "evidence": {
+                  "source_row": "Talent Intelligence Platform Premium Edition  $255,000.00  $255,000.00  $255,000.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$255,000.00   $255,000.00   $255,000.00",
+                  "quantity": "Talent Intelligence Platform Premium Edition",
+                  "unit_price": "Talent Intelligence Platform Premium Edition  $255,000.00",
+                  "unit_price_period": "Product/Service  Year 1  Year 2  Year 3",
+                  "period_amounts": "Year 1  Year 2  Year 3 ... $255,000.00   $255,000.00   $255,000.00",
+                  "discount": "",
+                  "service_start_date": "Start Date  11/1/2023",
+                  "service_end_date": "End Date  10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice",
+                  "special_notes": "Up to Customer Employee Size: 25,000"
+                }
+              },
+              {
+                "sku_code": "SKU-002",
+                "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+                "currency": "USD",
+                "total_listed_value": 225000,
+                "quantity": 1,
+                "unit_price": 75000,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 75000
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 75000
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 75000
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "upfront",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55",
+                "special_notes": "Up to Customer Employee Size: 25,000",
+                "evidence": {
+                  "source_row": "Talent Acquisition  $75,000.00  $75,000.00  $75,000.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$75,000.00    $75,000.00    $75,000.00",
+                  "quantity": "Talent Acquisition",
+                  "unit_price": "Talent Acquisition  $75,000.00",
+                  "unit_price_period": "Product/Service  Year 1  Year 2  Year 3",
+                  "period_amounts": "Year 1  Year 2  Year 3 ... $75,000.00    $75,000.00    $75,000.00",
+                  "service_start_date": "Start Date  11/1/2023",
+                  "service_end_date": "End Date  10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice",
+                  "special_notes": "Up to Customer Employee Size: 25,000"
+                }
+              },
+              {
+                "sku_code": "SKU-003",
+                "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+                "currency": "USD",
+                "total_listed_value": 135000,
+                "quantity": 1,
+                "unit_price": 45000,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 45000
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 45000
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 45000
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "upfront",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55",
+                "special_notes": "Amended by Amendment No. 1 to Sales Order Form (10/27/2023): the annual Premium Support fee is replaced with $45,000.00 per year for each of Year 1, Year 2 and Year 3 (original table showed $50,700.00 per year).",
+                "evidence": {
+                  "source_row": "Premium Support  $50,700.00  $50,700.00  $50,700.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "The annual fee for Premium Support ... is replaced with $45,000.00 per year for each of Year 1, Year 2 and Year 3",
+                  "quantity": "Premium Support",
+                  "unit_price": "replaced with $45,000.00 per year",
+                  "unit_price_period": "$45,000.00 per year",
+                  "period_amounts": "$45,000.00 per year for each of Year 1, Year 2 and Year 3",
+                  "service_start_date": "Start Date  11/1/2023",
+                  "service_end_date": "End Date  10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice",
+                  "special_notes": "This Amendment No. 1 (\"Amendment\") is entered into as of 10/27/2023 ... The annual fee for Premium Support ... is replaced with $45,000.00 per year"
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "SKU-004",
+              "SKU-005"
+            ],
+            "ambiguities": [],
+            "inferred_dates": [],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01VBbuS2r7uheLQs1HNymhHq",
+          "content": "Submission 1/3 not accepted.\nWarnings (fix if wrong; if correct as written, resubmit with an override {check, item_index, reason}):\n- [missing_value] item None: order_form.effective_date is null. If the document states it, extract it; if it is genuinely ambiguous, add an ambiguity entry; if the document does not state it, override this warning with that reason. A null here is flagged for review either way. You were shown only part of this long document: use search_document and read_pages to look for it before concluding.",
+          "is_error": true
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISgAUK8AMIEhgCKkA/Tgv/Ml02BMqXZKLrp6m/EWYAk5NIIgvuGFfrUG0C6kRH0cVc+jH3PzCuSwOkt4fjXK1wdPRNHvCs4i7kTYgoMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAa7UhtYGwgGoAQgqEAYabAoZEAobSwNPNwupGguc5gQmrQoHFwr5OANPNwxhhQxX1gQmrQpUQgoxAQNPNwsYNwshxwQmrQr7/wNPNwyMhgQmrQrPxgqNvQqbpAqrLQNPNwveuAt6ZQuGeAtzogQmrQqQBANPNwuNnQQmrSACKgwDTzcIKeIFR/gEJq0yBEvvviY6BNZtwqNCBKn23qdKBKHEyApQBFoE2QXhVmAOaAFwAdoBoAEKFnByZWZpeF9iZWZvcmVfYmxvY2tfdjESINqEHfP9dKUMCt2StlElLtXCjU+qYSjUponGsK28yr8RIkD5eSyxp+RCCjXuLjJAx52R7h/1+foMQboMnBNrMwYXJ6hzyAo6dNlYe9/w80pbPbXlHw6JoYzl/oslA56zswQdMiDCwBPIapyS4i+Wbz2GF3aPi3pEyQKtzAl7+h4JivtOH0gDEgwTbcvEou6+hJcmPY4aDGcocorjZ9J8eLHVvCIwalJKQbMG3PV57Gr9vhyo7lCqGqQ5PmJHtoCOIhrg4eOkn4l66FPS9Pr5nzC5L/iEKj0PTmTKPMiAp7bybVjNIT30HL0HOQ8rk7SxHtO9y9mUXe+IPiohewX/COh6fjDq7ofgzzJk7hbmNiXjT2onGAE=",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_019QeeuGP5mJc4ZnpWX5mS1k",
+          "input": {
+            "query": "Effective"
+          },
+          "name": "search_document",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_019QeeuGP5mJc4ZnpWX5mS1k",
+          "content": "6 matching line(s) (exact) on 5 page(s): 53, 78, 416, 557, 850\np.53: Ref  Section  Effective  Notice Given  Description\np.78: Ref  Section  Effective  Notice Given  Description\np.416: archaic, ineffective, inconsistent, and often-recycled job descriptions with centrally defined \u2018Roles\u2019, Job Intelligence Engine combines\np.416: AI, automation, and human expertise to enable more transparent, effective, and consistent decision-making around acquiring,\np.557: Ref  Section  Effective  Notice Given  Description\np.850: Ref  Section  Effective  Notice Given  Description",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAIShAYK8AMIEhgCKkBaRXQ39+4NhlPJT116j7sh96PEOhjJAkeBtEyM3+B2dIWHTmwNjfLSBpfYAsKj+nqLV1sLguMFFpkv80KDY1N9Mg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAbHUhtYGwgGoAQguEAoabAuc5gQmrQoHFwr5OANPNwxhhQxX1gQmrQpUQgoxAQNPNwsYNwshxwQmrQr7/wNPNwyMhgQmrQrPxgqNvQqbpAqrLQNPNwveuAt6ZQuGeAtzogQmrQqQBANPNwuNnQQmrQqfRgNPNwsP4AQmrSACKgwDTzcIKeIFR/gEJq0yBMWB+FU6BNZtwqNCBKn23qdKBKHEyApQBFoE2QXhVmAQaAFwAdoBoAEKFnByZWZpeF9iZWZvcmVfYmxvY2tfdjESIDGBzUNS7ZfeSG/u0rLainC/bJqcGEhAmuj+qthGNPZfIkA/Tgv/Ml02BMqXZKLrp6m/EWYAk5NIIgvuGFfrUG0C6kRH0cVc+jH3PzCuSwOkt4fjXK1wdPRNHvCs4i7kTYgoMiDCwBPIapyS4i+Wbz2GF3aPi3pEyQKtzAl7+h4JivtOH0gDEgxTsrEIYxImab6KMWUaDDpUV4/d7nuFTztxKiIwADT4HZI3emkc3NPug7okGD2muze0cSLF15LNjG2sUC4kntHX+sJvlmHW/OHa9nrsKsAB0DTbMMSEKzpD88PgHNJlPmHhv9QOFXK6kSoA75KG2KSXl7lAXGBDnpBazYSnvrbVHbwCOPeUJWc00h92E2vNhvtk4/PWlSh6Cdx3VZr0m/9xyabjPQ8kJL2sGY/Al0IN70Sc3M1WRZocbzoam2gGzsDi9Namp8Cg6J1kmkXL7BC1GNnYJcq0E+nZ/3xXRPrCwN//roBFyCjuD0urrExiQ1eFzpHEBeiIx2QeqRMi7FOlFk/q3Qx30PcSma0tXhymGAE=",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01E2iMgKt5hNB1j6nk6K5UMv",
+          "input": {
+            "first": 53,
+            "last": 53
+          },
+          "name": "read_pages",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01E2iMgKt5hNB1j6nk6K5UMv",
+          "content": [
+            {
+              "type": "text",
+              "text": "Pages 53-53 of 1000. The PDF below contains exactly these pages; their text layer follows it.\n"
+            },
+            {
+              "type": "document",
+              "source": "<pdf omitted: n1000_scattered.pdf>"
+            },
+            {
+              "type": "text",
+              "text": "=== Page 53 of 1000 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\nAMENDMENT AND NOTICE LOG\nRef           Section           Effective    Notice Given   Description\nA-85          11.8.6            03/28/2023   10/17/2024     Clause restated\nA-33          6.4.5             12/02/2020   09/09/2023     Notice address updated\nA-93          22.5.8            01/14/2021   12/25/2021     Clause restated\nA-63          7.1.1             12/18/2017   06/20/2025     Notice address updated\nA-04          14.7.8            01/07/2025   02/05/2024     Clause restated\nA-70          29.1.9            03/07/2020   08/26/2017     Cure period extended\nA-10          22.3.5            01/24/2017   05/26/2021     Exhibit replaced\nA-93          7.3.3             04/19/2024   11/19/2026     Notice address updated\nA-30          32.1.6            10/20/2019   11/26/2020     Clause restated\nA-57          29.5.1            04/20/2025   10/13/2015     Notice address updated\nA-19          8.2.2             11/25/2019   10/20/2023     Clause restated\nA-42          16.2.9            02/18/2021   10/10/2024     Definition amended\nA-40          18.5.4            10/01/2018   08/03/2019     Clause restated\nA-27          1.8.1             10/26/2020   11/03/2015     Notice address updated\nA-05          14.6.6            02/23/2018   09/03/2020     Notice address updated\nA-20          20.2.4            01/06/2018   10/17/2020     Cure period extended\nA-07          32.6.9            08/09/2025   02/23/2021     Clause restated\nA-18          36.9.9            10/24/2020   01/10/2023     Cure period extended\nA-39          31.9.8            09/27/2020   10/20/2023     Exhibit replaced\nA-29          33.6.8            03/15/2017   04/23/2016     Definition amended\nA-72          20.7.8            09/06/2018   11/04/2021     Exhibit replaced\nA-52          10.1.8            07/19/2023   07/27/2018     Cure period extended\nA-62          4.5.5             04/25/2024   06/08/2025     Cure period extended\nA-16          8.3.2             12/01/2024   03/08/2023     Notice address updated\nA-43          38.3.8            01/05/2015   05/09/2017     Definition amended\nA-90          17.4.1            05/11/2018   10/04/2021     Cure period extended\nA-13          7.1.3             08/06/2015   06/10/2018     Clause restated\nA-99          14.5.5            03/11/2023   05/10/2024     Exhibit replaced\nA-34          15.8.3            03/17/2021   08/12/2017     Exhibit replaced\nA-16          2.9.9             02/07/2016   09/15/2021     Cure period extended\n\n\n\n\n                                                                                     Page 53 of 1000\n"
+            }
+          ],
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISqwUK8AMIEhgCKkDr7ncKoaHiHlsJK4zFB9apTWwgsiYgx3+qc0Wm5s5SSdaAy69n896mHwS7/dzNlt8m6m+x5c4UfzXA2HtpgxYfMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAbXUhtYGwgGoAQgyEA4abANPNwxhhQxX1gQmrQpUQgoxAQNPNwsYNwshxwQmrQr7/wNPNwyMhgQmrQrPxgqNvQqbpAqrLQNPNwveuAt6ZQuGeAtzogQmrQqQBANPNwuNnQQmrQqfRgNPNwsP4AQmrQqQXANPNwzvuwQmrSACKgwDTzcIKeIFR/gEJq0yBNQPQxk6BNZtwqNCBKn23qdKBKHEyApQBFoE2QXhVmASaAFwAdoBoAEKFnByZWZpeF9iZWZvcmVfYmxvY2tfdjESII7x8+5DtoJKnJya/U/BhCVpDNm4zQGIUh0ckRYuKZ2sIkBaRXQ39+4NhlPJT116j7sh96PEOhjJAkeBtEyM3+B2dIWHTmwNjfLSBpfYAsKj+nqLV1sLguMFFpkv80KDY1N9MiDCwBPIapyS4i+Wbz2GF3aPi3pEyQKtzAl7+h4JivtOH0gDEgx9jF0IOgF8qWcemyIaDEzLi99McTsGCj6LVCIw7Xm+rBhetMeMT384LO2U4P5B6wjZq5yghm5MeHDZjjOlFwZuSjd/EPF7u4aO3maJKmiMG+NWH+9+KlCsD+9XAfj0douE95zNP5FBNdykdlmEJ0MsHVLEnC0pTBAfeXc9+Ih7UQ8tKl7uh6klJkLcWhgEO1OaDSbvgHzFn48SXpcOm9oXsK0L3b3sY47WsSyu5IfW3Y1oEmWWBhgB",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_011VDDH6xHgiyRm8BXnLnfmf",
+          "input": {
+            "order_form": {
+              "customer_name": null,
+              "vendor_name": "AI Inc.",
+              "effective_date": null,
+              "contract_signed_date_buying_company": "2023-10-12",
+              "contract_signed_date_selling_company": "2023-10-12",
+              "currency": "USD",
+              "grand_total": 1125000,
+              "grand_total_label": "TOTAL AMOUNT DUE",
+              "evidence": {
+                "vendor_name": "The Subscription Services set forth above in this Sales Order Form provided by  AI Inc.",
+                "contract_signed_date_buying_company": "Corporation ... I AM AN AUTHORIZED SIGNATORY FOR CUSTOMER ... Date (Print): 12 October 2023",
+                "contract_signed_date_selling_company": "AI Inc. ... Date (Print): 12 October 2023",
+                "currency": "Rates are list prices in USD",
+                "grand_total": "the Total Amount Due under the Order Form is $1,125,000.00",
+                "grand_total_label": "TOTAL AMOUNT DUE"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "SKU-001",
+                "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+                "currency": "USD",
+                "total_listed_value": 765000,
+                "quantity": 1,
+                "unit_price": 255000,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 255000
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 255000
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 255000
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "upfront",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55",
+                "special_notes": "Up to Customer Employee Size: 25,000",
+                "evidence": {
+                  "source_row": "Talent Intelligence Platform Premium Edition  $255,000.00  $255,000.00  $255,000.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$255,000.00   $255,000.00   $255,000.00",
+                  "quantity": "Talent Intelligence Platform Premium Edition",
+                  "unit_price": "Talent Intelligence Platform Premium Edition  $255,000.00",
+                  "unit_price_period": "Product/Service  Year 1  Year 2  Year 3",
+                  "period_amounts": "Year 1  Year 2  Year 3 ... $255,000.00   $255,000.00   $255,000.00",
+                  "service_start_date": "Start Date  11/1/2023",
+                  "service_end_date": "End Date  10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice",
+                  "special_notes": "Up to Customer Employee Size: 25,000"
+                }
+              },
+              {
+                "sku_code": "SKU-002",
+                "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+                "currency": "USD",
+                "total_listed_value": 225000,
+                "quantity": 1,
+                "unit_price": 75000,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 75000
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 75000
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 75000
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "upfront",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55",
+                "special_notes": "Up to Customer Employee Size: 25,000",
+                "evidence": {
+                  "source_row": "Talent Acquisition  $75,000.00  $75,000.00  $75,000.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$75,000.00    $75,000.00    $75,000.00",
+                  "quantity": "Talent Acquisition",
+                  "unit_price": "Talent Acquisition  $75,000.00",
+                  "unit_price_period": "Product/Service  Year 1  Year 2  Year 3",
+                  "period_amounts": "Year 1  Year 2  Year 3 ... $75,000.00    $75,000.00    $75,000.00",
+                  "service_start_date": "Start Date  11/1/2023",
+                  "service_end_date": "End Date  10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice",
+                  "special_notes": "Up to Customer Employee Size: 25,000"
+                }
+              },
+              {
+                "sku_code": "SKU-003",
+                "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+                "currency": "USD",
+                "total_listed_value": 135000,
+                "quantity": 1,
+                "unit_price": 45000,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 45000
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 45000
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 45000
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "upfront",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55",
+                "special_notes": "Amended by Amendment No. 1 to Sales Order Form (entered into as of 10/27/2023): the annual Premium Support fee is replaced with $45,000.00 per year for Year 1, Year 2 and Year 3 (original table showed $50,700.00 per year).",
+                "evidence": {
+                  "source_row": "Premium Support  $50,700.00  $50,700.00  $50,700.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "The annual fee for Premium Support ... is replaced with $45,000.00 per year for each of Year 1, Year 2 and Year 3",
+                  "quantity": "Premium Support",
+                  "unit_price": "replaced with $45,000.00 per year",
+                  "unit_price_period": "$45,000.00 per year",
+                  "period_amounts": "$45,000.00 per year for each of Year 1, Year 2 and Year 3",
+                  "service_start_date": "Start Date  11/1/2023",
+                  "service_end_date": "End Date  10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice",
+                  "special_notes": "This Amendment No. 1 (\"Amendment\") is entered into as of 10/27/2023 ... The annual fee for Premium Support ... is replaced with $45,000.00 per year"
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "SKU-004",
+              "SKU-005"
+            ],
+            "ambiguities": [],
+            "inferred_dates": [],
+            "overrides": [
+              {
+                "check": "missing_value",
+                "item_index": null,
+                "reason": "The Sales Order Form states only a Start Date (11/1/2023) and End Date (10/31/2026); no page of the document says when the order form itself becomes effective, and a search for 'effective'/'effective date' returns no such statement for this order."
+              }
+            ]
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_011VDDH6xHgiyRm8BXnLnfmf",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": null,
+      "vendor_name": "AI Inc.",
+      "effective_date": null,
+      "contract_signed_date_buying_company": "2023-10-12",
+      "contract_signed_date_selling_company": "2023-10-12",
+      "currency": "USD",
+      "grand_total": 1125000.0,
+      "grand_total_label": "TOTAL AMOUNT DUE",
+      "evidence": {
+        "vendor_name": "The Subscription Services set forth above in this Sales Order Form provided by  AI Inc.",
+        "contract_signed_date_buying_company": "Corporation ... I AM AN AUTHORIZED SIGNATORY FOR CUSTOMER ... Date (Print): 12 October 2023",
+        "contract_signed_date_selling_company": "AI Inc. ... Date (Print): 12 October 2023",
+        "currency": "Rates are list prices in USD",
+        "grand_total": "the Total Amount Due under the Order Form is $1,125,000.00",
+        "grand_total_label": "TOTAL AMOUNT DUE"
+      },
+      "ambiguous_fields": {},
+      "missing_fields": {
+        "effective_date": {
+          "status": "not_found",
+          "reason": "the model's reason: The Sales Order Form states only a Start Date (11/1/2023) and End Date (10/31/2026); no page of the document says when the order form itself becomes effective, and a search for 'effective'/'effective date' returns no such statement for this order."
+        }
+      },
+      "inferred_dates": {}
+    },
+    "contract_items_count": 3,
+    "contract_items": [
+      {
+        "name": "Talent Intelligence Platform Premium Edition",
+        "sku_id": "SKU-001",
+        "sku_code": "SKU-001",
+        "currency": "USD",
+        "total_listed_value": 765000.0,
+        "quantity": 1.0,
+        "unit_price": 255000.0,
+        "unit_price_period": "year",
+        "period_amounts": [
+          {
+            "label": "Year 1",
+            "amount": 255000.0
+          },
+          {
+            "label": "Year 2",
+            "amount": 255000.0
+          },
+          {
+            "label": "Year 3",
+            "amount": 255000.0
+          }
+        ],
+        "discount": null,
+        "service_start_date": "2023-11-01",
+        "service_end_date": "2026-10-31",
+        "invoicing_schedule_type": "upfront",
+        "invoicing_frequency": {
+          "value": "yearly",
+          "source": "stated",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 55",
+        "special_notes": "Up to Customer Employee Size: 25,000",
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+        "evidence": {
+          "source_row": "Talent Intelligence Platform Premium Edition  $255,000.00  $255,000.00  $255,000.00",
+          "currency": "Rates are list prices in USD",
+          "total_listed_value": "$255,000.00   $255,000.00   $255,000.00",
+          "quantity": "Talent Intelligence Platform Premium Edition",
+          "unit_price": "Talent Intelligence Platform Premium Edition  $255,000.00",
+          "unit_price_period": "Product/Service  Year 1  Year 2  Year 3",
+          "period_amounts": "Year 1  Year 2  Year 3 ... $255,000.00   $255,000.00   $255,000.00",
+          "service_start_date": "Start Date  11/1/2023",
+          "service_end_date": "End Date  10/31/2026",
+          "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+          "invoicing_frequency": "Invoices are sent Annually, in advance",
+          "payment_terms": "Payment is due Net 55 from the date of the invoice",
+          "special_notes": "Up to Customer Employee Size: 25,000"
+        }
+      },
+      {
+        "name": "Talent Acquisition",
+        "sku_id": "SKU-002",
+        "sku_code": "SKU-002",
+        "currency": "USD",
+        "total_listed_value": 225000.0,
+        "quantity": 1.0,
+        "unit_price": 75000.0,
+        "unit_price_period": "year",
+        "period_amounts": [
+          {
+            "label": "Year 1",
+            "amount": 75000.0
+          },
+          {
+            "label": "Year 2",
+            "amount": 75000.0
+          },
+          {
+            "label": "Year 3",
+            "amount": 75000.0
+          }
+        ],
+        "discount": null,
+        "service_start_date": "2023-11-01",
+        "service_end_date": "2026-10-31",
+        "invoicing_schedule_type": "upfront",
+        "invoicing_frequency": {
+          "value": "yearly",
+          "source": "stated",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 55",
+        "special_notes": "Up to Customer Employee Size: 25,000",
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+        "evidence": {
+          "source_row": "Talent Acquisition  $75,000.00  $75,000.00  $75,000.00",
+          "currency": "Rates are list prices in USD",
+          "total_listed_value": "$75,000.00    $75,000.00    $75,000.00",
+          "quantity": "Talent Acquisition",
+          "unit_price": "Talent Acquisition  $75,000.00",
+          "unit_price_period": "Product/Service  Year 1  Year 2  Year 3",
+          "period_amounts": "Year 1  Year 2  Year 3 ... $75,000.00    $75,000.00    $75,000.00",
+          "service_start_date": "Start Date  11/1/2023",
+          "service_end_date": "End Date  10/31/2026",
+          "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+          "invoicing_frequency": "Invoices are sent Annually, in advance",
+          "payment_terms": "Payment is due Net 55 from the date of the invoice",
+          "special_notes": "Up to Customer Employee Size: 25,000"
+        }
+      },
+      {
+        "name": "Premium Support",
+        "sku_id": "SKU-003",
+        "sku_code": "SKU-003",
+        "currency": "USD",
+        "total_listed_value": 135000.0,
+        "quantity": 1.0,
+        "unit_price": 45000.0,
+        "unit_price_period": "year",
+        "period_amounts": [
+          {
+            "label": "Year 1",
+            "amount": 45000.0
+          },
+          {
+            "label": "Year 2",
+            "amount": 45000.0
+          },
+          {
+            "label": "Year 3",
+            "amount": 45000.0
+          }
+        ],
+        "discount": null,
+        "service_start_date": "2023-11-01",
+        "service_end_date": "2026-10-31",
+        "invoicing_schedule_type": "upfront",
+        "invoicing_frequency": {
+          "value": "yearly",
+          "source": "stated",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 55",
+        "special_notes": "Amended by Amendment No. 1 to Sales Order Form (entered into as of 10/27/2023): the annual Premium Support fee is replaced with $45,000.00 per year for Year 1, Year 2 and Year 3 (original table showed $50,700.00 per year).",
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+        "evidence": {
+          "source_row": "Premium Support  $50,700.00  $50,700.00  $50,700.00",
+          "currency": "Rates are list prices in USD",
+          "total_listed_value": "The annual fee for Premium Support ... is replaced with $45,000.00 per year for each of Year 1, Year 2 and Year 3",
+          "quantity": "Premium Support",
+          "unit_price": "replaced with $45,000.00 per year",
+          "unit_price_period": "$45,000.00 per year",
+          "period_amounts": "$45,000.00 per year for each of Year 1, Year 2 and Year 3",
+          "service_start_date": "Start Date  11/1/2023",
+          "service_end_date": "End Date  10/31/2026",
+          "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+          "invoicing_frequency": "Invoices are sent Annually, in advance",
+          "payment_terms": "Payment is due Net 55 from the date of the invoice",
+          "special_notes": "This Amendment No. 1 (\"Amendment\") is entered into as of 10/27/2023 ... The annual fee for Premium Support ... is replaced with $45,000.00 per year"
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "SKU-004",
+      "SKU-005"
+    ],
+    "overrides": [
+      {
+        "check": "missing_value",
+        "item_index": null,
+        "reason": "The Sales Order Form states only a Start Date (11/1/2023) and End Date (10/31/2026); no page of the document says when the order form itself becomes effective, and a search for 'effective'/'effective date' returns no such statement for this order."
+      }
+    ],
+    "needs_review": true,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": null,
+        "message": "quotes for ['contract_signed_date_buying_company'] were not found verbatim in the text layer"
+      },
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": 0,
+        "message": "quotes for ['source_row', 'unit_price'] were not found verbatim in the text layer"
+      },
+      {
+        "severity": "note",
+        "check": "missing_value",
+        "item_index": null,
+        "message": "order_form.effective_date is blank: the model's reason: The Sales Order Form states only a Start Date (11/1/2023) and End Date (10/31/2026); no page of the document says when the order form itself becomes effective, and a search for 'effective'/'effective date' returns no such statement for this order."
+      }
+    ],
+    "meta": {
+      "source_pdf": "n1000_scattered.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 9,
+      "submissions": 2,
+      "stop_note": null,
+      "seconds": 92.3,
+      "usage": {
+        "input_tokens": 18,
+        "output_tokens": 7873,
+        "cache_creation_input_tokens": 109636,
+        "cache_read_input_tokens": 747726
+      },
+      "cost_usd": 1.256,
+      "long_document": {
+        "mode": "select",
+        "pages_total": 1000,
+        "outline_lines": null,
+        "pages_sent": {
+          "1": "first pages",
+          "2": "first pages",
+          "158": "before page 159",
+          "159": "top score 21.5",
+          "160": "after page 159",
+          "335": "before page 336",
+          "336": "top score 43",
+          "337": "after page 336",
+          "414": "before page 415",
+          "415": "top score 55",
+          "416": "after page 415",
+          "639": "before page 640",
+          "640": "top score 32",
+          "641": "after page 640",
+          "954": "before page 955",
+          "955": "top score 33",
+          "956": "after page 955",
+          "981": "before page 982",
+          "982": "top score 43",
+          "983": "after page 982"
+        },
+        "pages_read": [
+          120,
+          121,
+          879,
+          880,
+          881,
+          417,
+          418,
+          419,
+          53
+        ],
+        "pages_seen": [
+          1,
+          2,
+          53,
+          120,
+          121,
+          158,
+          159,
+          160,
+          335,
+          336,
+          337,
+          414,
+          415,
+          416,
+          417,
+          418,
+          419,
+          639,
+          640,
+          641,
+          879,
+          880,
+          881,
+          954,
+          955,
+          956,
+          981,
+          982,
+          983
+        ],
+        "searches": 6
+      }
+    }
+  }
+}

@@ -1,0 +1,823 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: SKU-001\n  name: Talent Intelligence Platform Premium Edition\n  description: Foundational platform layer integrating with HR/IT systems, providing AI-driven talent insights and workflow automation.\n  parsing_instructions: |\n\n- code: SKU-002\n  name: Talent Acquisition\n  description: Product suite for finding and hiring talent, covering the full candidate journey from sourcing through selection.\n  parsing_instructions: |\n\n- code: SKU-003\n  name: Premium Support\n  description: Dedicated support services including priority response times and extended support hours.\n  parsing_instructions: |\n\n- code: SKU-004\n  name: Professional Services\n  description: Implementation, training, and consulting services.\n  parsing_instructions: |\n\n- code: SKU-005\n  name: Data Analytics Add-on\n  description: Advanced reporting and data warehouse capabilities.\n  parsing_instructions: |\n\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- Every date you give must be printed in the document (in any format). If a date is not printed but follows from one that is (e.g. an end date from a start date and a stated term), add an inferred_dates entry: the printed from_date, the add_months / add_days that produce the value, and an explanation quoting the text it relies on. The calculation is re-checked. Never supply a date that is neither printed nor calculated from a printed date; leave it null.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). Billing \"in advance\" or \"in arrears\" describes timing within a period, not the schedule type or frequency. If the document does not say, use null.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Before treating a field as ambiguous, test each candidate reading against the rest of the document: the arithmetic of prices, quantities and the service term, and the other dates. A reading that contradicts the document is not a valid reading. If exactly one reading survives, use it and quote the deciding evidence. Closeness or typicality (e.g. a date being near the signature date) never eliminates a reading; it can only make one likely.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). If surrounding context makes one candidate more likely (e.g. its closeness to other dates in the document), give it as likely with that evidence in likely_reason; the field itself still stays null. Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: n500_at206.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: n500_at206.pdf\n\nThis is a long document (500 pages). You are shown only the pages most likely to hold the order details: pages 1, 2, 168, 169, 170, 205, 206, 207, 493, 494, 495. The attached PDF contains exactly these pages, in this order; their text layer follows, labelled with each page's number in the full document.\n\nOther pages may matter: priced tables elsewhere may or may not be part of this order, and the order can reference schedules, exhibits, terms or signatures on pages you haven't seen. Use search_document to find text anywhere in the document and read_pages to view more pages. Look further whenever something you need is missing, referenced but not shown, or doesn't add up. Amounts and dates are checked against the whole document.\n\nText layer of the pages shown (pdftotext -layout):\n<text_layer>\n=== Page 1 of 500 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n\n2. AUDIT RIGHTS\n2.1 The Licensee may maintain the confidentiality of all Confidential Information, except as expressly\nprovided in Section 28.7. The Licensee agrees to maintain the confidentiality of all Confidential\nInformation, except as expressly provided in Section 15.1. Provider shall maintain insurance of not less\nthan $2,000,000.\n\n2.2 Customer will use commercially reasonable efforts to retain records for the duration required by law,\nin accordance with the Documentation. Customer will use commercially reasonable efforts to maintain the\nconfidentiality of all Confidential Information, during the Term and for a period thereafter. The\nLicensor will use commercially reasonable efforts to assign its rights only with prior consent,\nnotwithstanding anything to the contrary herein. Each party shall make the Documentation available to\nUsers, to the extent permitted by applicable law.\n\n2.3 Customer will use commercially reasonable efforts to implement appropriate technical and\norganisational measures, in accordance with the Documentation. Customer will use commercially reasonable\nefforts to make the Documentation available to Users, notwithstanding anything to the contrary herein.\n\n2.4 The receiving party agrees to restrict access to authorised personnel with a need to know, except as\nexpressly provided in Section 4.5. Neither party acknowledges that it will cooperate in good faith to\nresolve any dispute, subject to Section 30.6.\n\n2.5 The receiving party may restrict access to authorised personnel with a need to know, during the Term\nand for a period thereafter. The Licensor agrees to remedy any non-conformity within a reasonable period,\nto the extent permitted by applicable law.\n\n2.6 Neither party may provide written notice of any material breach, except as expressly provided in\nSection 12.3. Provider agrees to make the Documentation available to Users, in accordance with the\nDocumentation. The Licensee shall not make the Documentation available to Users, notwithstanding anything\nto the contrary herein. The Licensee agrees to implement appropriate technical and organisational\nmeasures, as further described in Exhibit H.\n\n\n\n3. RESTRICTIONS\n3.1 The Licensor may comply with applicable data protection laws, notwithstanding anything to the\ncontrary herein. Provider shall maintain insurance of not less than $10,000,000. Any Affiliate shall\ncomply with applicable data protection laws, during the Term and for a period thereafter.\n\n3.2 The disclosing party agrees to comply with applicable data protection laws, except as expressly\nprovided in Section 32.8. Customer may comply with applicable data protection laws, notwithstanding\nanything to the contrary herein. Each party will use commercially reasonable efforts to cooperate in good\nfaith to resolve any dispute, in accordance with the Documentation. Customer acknowledges that it will\nretain records for the duration required by law, notwithstanding anything to the contrary herein.\n\n3.3 Each party will use commercially reasonable efforts to indemnify and hold harmless the other party,\nduring the Term and for a period thereafter. The disclosing party acknowledges that it will maintain the\nconfidentiality of all Confidential Information, subject to Section 18.8. Any Affiliate shall not assign\nits rights only with prior consent, notwithstanding anything to the contrary herein.\n\n3.4 Each party agrees to make the Documentation available to Users, subject to Section 31.6. Customer\nagrees to restrict access to authorised personnel with a need to know, during the Term and for a period\nthereafter. The disclosing party shall restrict access to authorised personnel with a need to know, as\nfurther described in Exhibit B.\n\n\n\n\n                                                                                                            Page 1 of 500\n\n=== Page 2 of 500 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\nTABLE OF CONTENTS\n6. Dispute Resolution                                 ..............................     19\n20. Disclaimers                                       ..............................     36\n19. Grant of Rights                                   ..............................     72\n2. Data Protection                                    ..............................     104\n5. Audit Rights                                       ..............................     113\n8. Anti-Corruption                                    ..............................     113\n11. Term and Termination                              ..............................     128\n7. Subcontractors                                     ..............................     133\n15. Publicity                                         ..............................     137\n9. Insurance                                          ..............................     154\n14. Accessibility                                     ..............................     171\nExhibit D - Schedule of Optional Services and Rates   ..............................     201\nExhibit C - Sales Order Form                          ..............................     206\n17. Notices                                           ..............................     219\n10. Force Majeure                                     ..............................     261\n16. Effect of Termination                             ..............................     283\n13. Assignment                                        ..............................     305\n22. Confidentiality                                   ..............................     383\n12. Export Control                                    ..............................     396\n3. Definitions                                        ..............................     427\n18. Limitation of Liability                           ..............................     432\n1. Security                                           ..............................     451\n4. Business Continuity                                ..............................     452\n21. Restrictions                                      ..............................     470\nExhibit E - Service Level Agreement                   ..............................     479\n\n\n\n\n                                                                                       Page 2 of 500\n\n=== Page 168 of 500 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n386.2 Provider will use commercially reasonable efforts to implement appropriate technical and\norganisational measures, notwithstanding anything to the contrary herein. The Licensor shall not maintain\nthe confidentiality of all Confidential Information, as further described in Exhibit C. Customer shall\nnot maintain the confidentiality of all Confidential Information, unless otherwise agreed in writing by\nthe parties.\n\n386.3 The disclosing party acknowledges that it will assign its rights only with prior consent, as\nfurther described in Exhibit G. The disclosing party will use commercially reasonable efforts to provide\nwritten notice of any material breach, during the Term and for a period thereafter. The receiving party\nshall assign its rights only with prior consent, notwithstanding anything to the contrary herein.\nCustomer may maintain the confidentiality of all Confidential Information, as further described in\nExhibit H.\n\n386.4 Either party shall not remedy any non-conformity within a reasonable period, to the extent\npermitted by applicable law. Neither party may indemnify and hold harmless the other party, except as\nexpressly provided in Section 40.8. Liability under this Section is capped at $5,000,000.00.\n\n\n\n387. TERM AND TERMINATION\n387.1 The Licensee shall not implement appropriate technical and organisational measures, to the extent\npermitted by applicable law. Customer shall indemnify and hold harmless the other party, except as\nexpressly provided in Section 6.8. Any Affiliate acknowledges that it will assign its rights only with\nprior consent, during the Term and for a period thereafter. Customer shall assign its rights only with\nprior consent, in accordance with the Documentation.\n\n387.2 Provider may indemnify and hold harmless the other party, in accordance with the Documentation.\nProvider agrees to cooperate in good faith to resolve any dispute, during the Term and for a period\nthereafter. The receiving party will use commercially reasonable efforts to assign its rights only with\nprior consent, notwithstanding anything to the contrary herein.\n\n387.3 The Licensor will use commercially reasonable efforts to make the Documentation available to Users,\nunless otherwise agreed in writing by the parties. The disclosing party agrees to retain records for the\nduration required by law, during the Term and for a period thereafter. Provider may not reverse engineer\nor decompile any component of the Services, in accordance with the Documentation. The Licensee may not\nreverse engineer or decompile any component of the Services, as further described in Exhibit H.\n\n387.4 Provider shall restrict access to authorised personnel with a need to know, in accordance with the\nDocumentation. Either party will use commercially reasonable efforts to assign its rights only with prior\nconsent, except as expressly provided in Section 31.9. The Licensor acknowledges that it will cooperate\nin good faith to resolve any dispute, in accordance with the Documentation.\n\n387.5 Provider may implement appropriate technical and organisational measures, to the extent permitted\nby applicable law. Provider shall remedy any non-conformity within a reasonable period, to the extent\npermitted by applicable law. Any Affiliate agrees to maintain the confidentiality of all Confidential\nInformation, as further described in Exhibit D.\n\n\n\n388. BUSINESS CONTINUITY\n388.1 Either party shall not indemnify and hold harmless the other party, as further described in Exhibit\nH. Any Affiliate agrees to retain records for the duration required by law, except as expressly provided\nin Section 6.9. Late payments accrue interest at 1.0% per month. The receiving party shall retain records\nfor the duration required by law, in accordance with the Documentation. Each party shall cooperate in\ngood faith to resolve any dispute, during the Term and for a period thereafter.\n\n\n\n\n                                                                                                            Page 168 of 500\n\n=== Page 169 of 500 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\nEXHIBIT D - SCHEDULE OF OPTIONAL SERVICES AND RATES\nThe following optional services are available on request at the rates below. They are not included in,\nand are not purchased under, any Order Form unless separately ordered in writing. Rates are list prices\nin USD and exclude applicable taxes.\n\nService                                                         Unit                     Qty              Rate (USD)\nProfessional Services - Implementation                          per hour                 1                $275.00\nProfessional Services - Training Workshop                       per day                  1                $3200.00\nData Analytics Add-on                                           per year                 1                $48,000.00\nPremium Support - Enhanced Tier                                 per year                 1                $62,500.00\nSandbox Environment                                             per year                 1                $15,000.00\nAdditional Data Storage (1 TB)                                  per month                1                $400.00\nDedicated Customer Success Manager                              per year                 1                $95,000.00\n\nRates may be adjusted annually upon sixty (60) days written notice. Minimum engagement for Professional\nServices is eight (8) hours.\n\n\n\n\n                                                                                                                 Page 169 of 500\n\n=== Page 170 of 500 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n388.2 The Licensor shall not maintain the confidentiality of all Confidential Information, during the\nTerm and for a period thereafter. The receiving party acknowledges that it will comply with applicable\ndata protection laws, to the extent permitted by applicable law.\n\n388.3 The Licensee will use commercially reasonable efforts to make the Documentation available to Users,\nexcept as expressly provided in Section 30.2. The receiving party shall implement appropriate technical\nand organisational measures, to the extent permitted by applicable law. The disclosing party shall not\nmake the Documentation available to Users, to the extent permitted by applicable law. Each party shall\nnot cooperate in good faith to resolve any dispute, as further described in Exhibit B.\n\n\n\n389. PUBLICITY\n389.1 The receiving party shall not indemnify and hold harmless the other party, notwithstanding anything\nto the contrary herein. The Licensor shall not not reverse engineer or decompile any component of the\nServices, during the Term and for a period thereafter.\n\n\n\n390. RECORDS RETENTION\n390.1 Any Affiliate agrees to not reverse engineer or decompile any component of the Services,\nnotwithstanding anything to the contrary herein. Provider shall maintain insurance of not less than\n$5,000,000. The Licensee agrees to restrict access to authorised personnel with a need to know, in\naccordance with the Documentation.\n\n390.2 Each party acknowledges that it will cooperate in good faith to resolve any dispute, as further\ndescribed in Exhibit F. Late payments accrue interest at 1.0% per month. The Licensor agrees to remedy\nany non-conformity within a reasonable period, to the extent permitted by applicable law. The receiving\nparty acknowledges that it will maintain the confidentiality of all Confidential Information, subject to\nSection 2.1. Either party agrees to not reverse engineer or decompile any component of the Services, to\nthe extent permitted by applicable law.\n\n\n\n391. DEFINITIONS\n391.1 The Licensee may indemnify and hold harmless the other party, notwithstanding anything to the\ncontrary herein. The disclosing party shall provide written notice of any material breach, except as\nexpressly provided in Section 7.8.\n\n391.2 The receiving party will use commercially reasonable efforts to implement appropriate technical and\norganisational measures, except as expressly provided in Section 28.6. The Licensor shall make the\nDocumentation available to Users, unless otherwise agreed in writing by the parties.\n\n391.3 The receiving party shall not reverse engineer or decompile any component of the Services, in\naccordance with the Documentation. The Licensee shall provide written notice of any material breach,\nnotwithstanding anything to the contrary herein.\n\n391.4 The disclosing party will use commercially reasonable efforts to not reverse engineer or decompile\nany component of the Services, subject to Section 3.7. The disclosing party may not reverse engineer or\ndecompile any component of the Services, unless otherwise agreed in writing by the parties. Each party\nmay restrict access to authorised personnel with a need to know, to the extent permitted by applicable\nlaw. The disclosing party will use commercially reasonable efforts to restrict access to authorised\npersonnel with a need to know, unless otherwise agreed in writing by the parties.\n\n391.5 The Licensor shall restrict access to authorised personnel with a need to know, except as expressly\nprovided in Section 13.9. The receiving party agrees to implement appropriate technical and\norganisational measures, notwithstanding anything to the contrary herein.\n\n\n\n\n                                                                                                            Page 170 of 500\n\n=== Page 205 of 500 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n466.3 Either party shall remedy any non-conformity within a reasonable period, unless otherwise agreed in\nwriting by the parties. Each party may implement appropriate technical and organisational measures,\nexcept as expressly provided in Section 11.2.\n\n466.4 Neither party acknowledges that it will maintain the confidentiality of all Confidential\nInformation, in accordance with the Documentation. Provider shall make the Documentation available to\nUsers, subject to Section 25.1. The Licensor may implement appropriate technical and organisational\nmeasures, notwithstanding anything to the contrary herein.\n\n466.5 Either party shall restrict access to authorised personnel with a need to know, to the extent\npermitted by applicable law. Customer may make the Documentation available to Users, in accordance with\nthe Documentation. Each party agrees to cooperate in good faith to resolve any dispute, during the Term\nand for a period thereafter. The disclosing party will use commercially reasonable efforts to comply with\napplicable data protection laws, as further described in Exhibit D.\n\n466.6 The receiving party may make the Documentation available to Users, unless otherwise agreed in\nwriting by the parties. The receiving party will use commercially reasonable efforts to not reverse\nengineer or decompile any component of the Services, unless otherwise agreed in writing by the parties.\nThe Licensee shall not remedy any non-conformity within a reasonable period, in accordance with the\nDocumentation. The receiving party shall not not reverse engineer or decompile any component of the\nServices, notwithstanding anything to the contrary herein.\n\n466.7 Any Affiliate agrees to comply with applicable data protection laws, unless otherwise agreed in\nwriting by the parties. Customer shall not cooperate in good faith to resolve any dispute,\nnotwithstanding anything to the contrary herein. Provider shall maintain insurance of not less than\n$2,000,000. Either party agrees to assign its rights only with prior consent, as further described in\nExhibit A.\n\n466.8 The receiving party may provide written notice of any material breach, in accordance with the\nDocumentation. The Licensor shall not restrict access to authorised personnel with a need to know,\nnotwithstanding anything to the contrary herein. The receiving party will use commercially reasonable\nefforts to retain records for the duration required by law, except as expressly provided in Section 22.4.\n\n466.9 Either party acknowledges that it will retain records for the duration required by law, except as\nexpressly provided in Section 32.2. Customer shall indemnify and hold harmless the other party, unless\notherwise agreed in writing by the parties. Liability under this Section is capped at $5,000,000.00.\n\n466.10 The disclosing party shall retain records for the duration required by law, during the Term and\nfor a period thereafter. Either party may retain records for the duration required by law, as further\ndescribed in Exhibit B.\n\n466.11 The Licensee will use commercially reasonable efforts to not reverse engineer or decompile any\ncomponent of the Services, subject to Section 31.1. Provider shall not maintain the confidentiality of\nall Confidential Information, in accordance with the Documentation. Any Affiliate acknowledges that it\nwill maintain the confidentiality of all Confidential Information, except as expressly provided in\nSection 20.4. Each party shall not remedy any non-conformity within a reasonable period, unless otherwise\nagreed in writing by the parties.\n\n466.12 Any Affiliate will use commercially reasonable efforts to cooperate in good faith to resolve any\ndispute, in accordance with the Documentation. The receiving party shall not remedy any non-conformity\nwithin a reasonable period, during the Term and for a period thereafter. The Licensee will use\ncommercially reasonable efforts to retain records for the duration required by law, notwithstanding\nanything to the contrary herein. Customer agrees to assign its rights only with prior consent, in\naccordance with the Documentation.\n\n\n\n\n                                                                                                            Page 205 of 500\n\n=== Page 206 of 500 ===\n                                                                             Sales Order Form\n\n Sold/Ship To:                                                                              Bill To:\n  Sold/Ship To Customer:                                                                    Bill To Customer:\n  Sold To Address:                                                                          Bill to Address:\n\n\n\n\n                                USA                                                                                    US\n\n  Primary Contact:                                                                          Billing Contact Name:\n\n  Primary Contact Email:                                                                    Billing Contact Email:\n\n\n\n  Start Date                    11/1/2023                                                   Up to Customer Employee Size: 25,000\n  End Date                      10/31/2026\n\n\n\n\n  SUBSCRIPTION SERVICE FEES\n\n\n            Product/Service                     Year 1                      Year 2                       Year 3\n  Talent Intelligence Platform               $255,000.00                 $255,000.00                   $255,000.00\n       Premium Edition\n        Talent Acquisition                    $75,000.00                  $75,000.00                   $75,000.00\n         Premium Support                      $50,700.00                  $50,700.00                   $50,700.00\n    TOTAL SUBSCRIPTION                       $380,700.00                 $380,700.00                   $380,700.00\n\n\n\n\nIMPLEMENTATION SERVICES\n\nAs applicable, Implementation Services and Fees are described in the Statement of Work (SOW). Customer will contract directly wit                s authorized certified\nimplementation partner, Blue Crab Consulting, for the professional services, including implementation services and training.\n\n\nINVOICING SCHEDULE.\nInvoices are sent Annually, in advance as of 11/1/2023. Payment is due Net 55 from the date of the invoice.\n\n\n                                       Invoice Date                                                                          Invoice Amount\n                                         11/1/2023                                                                                 $380,700.00\n                                         11/1/2024                                                                                 $380,700.00\n                                         11/1/2025                                                                                 $380,700.00\n                                TOTAL AMOUNT DUE                                                                               $1,142,100.00\n\n\n\n\nPURCHASE ORDER INFORMATION\n\nIs a Purchase Order (PO) required for the purchase or payment of the products on this Order Form? (Customer to complete)\n\nYes, send            .ai a copy of the PO or No, I will sign a PO exception form (Yes/No)\n\n\n\n\n                                                                                  Page 1 of 5\n\n=== Page 207 of 500 ===\nTERMS & CONDITIONS\n\nThe Subscription Services set forth above in this Sales Order Form provided by           AI Inc. (\u201c         \u201d) to the Customer listed above (\u201cCustomer\u201d) are governed\nby the terms and conditions of the Master Subscription Agreement or similar agreement for the Subscription Services and applicable Statement of Work signed by the\nparties, which are incorporated here by reference. Customer hereby confirms that Customer\u2019s Sold-To address is the place of use for sales tax purposes. On the End\nDate, the products and/or services purchased under this Sales Order Form will expire and shall not automatically renew.\n\n\nQUOTE/PRODUCT SPECIAL TERMS\n\n\n\nI HEREBY REPRESENT THAT: (I) I AM AN AUTHORIZED SIGNATORY FOR CUSTOMER; (II) I HAVE READ AND AGREED TO THE TERMS OF THIS\nORDER FORM; AND (III) BY SIGNING THIS ORDER FORM, I AM ENTERING INTO A LEGALLY BINDING CONTRACT.\n\n\n          Corporation                                                                              AI Inc.\n\n\nBy:                                                                                      By:\n\nName (Print):                                                                            Name (Print):\n\nTitle (Print):                                                                           Title (Print):\n\nDate (Print):                     12 October 2023                                        Date (Print):\n                                                                                                                     12 October 2023\n\n\n\n\n                                                                           Page 2 of 5\n\n=== Page 493 of 500 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n1137.2 Each party agrees to indemnify and hold harmless the other party, notwithstanding anything to the\ncontrary herein. Neither party will use commercially reasonable efforts to restrict access to authorised\npersonnel with a need to know, as further described in Exhibit E. The Licensee acknowledges that it will\nindemnify and hold harmless the other party, in accordance with the Documentation. The receiving party\nshall not assign its rights only with prior consent, unless otherwise agreed in writing by the parties.\n\n1137.3 Any Affiliate agrees to not reverse engineer or decompile any component of the Services, except as\nexpressly provided in Section 17.9. The Licensee agrees to maintain the confidentiality of all\nConfidential Information, as further described in Exhibit A.\n\n1137.4 The Licensor may provide written notice of any material breach, to the extent permitted by\napplicable law. Provider may provide written notice of any material breach, except as expressly provided\nin Section 30.8. Provider shall comply with applicable data protection laws, subject to Section 3.1.\n\n1137.5 The receiving party acknowledges that it will cooperate in good faith to resolve any dispute,\nsubject to Section 37.1. The Licensor acknowledges that it will remedy any non-conformity within a\nreasonable period, as further described in Exhibit G. Any Affiliate agrees to cooperate in good faith to\nresolve any dispute, subject to Section 38.2. The receiving party shall not make the Documentation\navailable to Users, unless otherwise agreed in writing by the parties.\n\n1137.6 Customer shall not provide written notice of any material breach, unless otherwise agreed in\nwriting by the parties. Customer may maintain the confidentiality of all Confidential Information,\nsubject to Section 8.9. The receiving party shall not reverse engineer or decompile any component of the\nServices, except as expressly provided in Section 29.8.\n\n1137.7 The disclosing party may retain records for the duration required by law, during the Term and for\na period thereafter. Neither party acknowledges that it will indemnify and hold harmless the other party,\nnotwithstanding anything to the contrary herein. Liability under this Section is capped at $1,000,000.00.\nThe disclosing party shall not reverse engineer or decompile any component of the Services, in accordance\nwith the Documentation. Any Affiliate shall not make the Documentation available to Users, to the extent\npermitted by applicable law.\n\n1137.8 The Licensee will use commercially reasonable efforts to retain records for the duration required\nby law, during the Term and for a period thereafter. Provider shall maintain insurance of not less than\n$5,000,000. Customer shall not assign its rights only with prior consent, as further described in Exhibit\nC.\n\n1137.9 Each party agrees to cooperate in good faith to resolve any dispute, subject to Section 24.1.\nNeither party shall not make the Documentation available to Users, unless otherwise agreed in writing by\nthe parties.\n\n1137.10 The Licensee will use commercially reasonable efforts to retain records for the duration required\nby law, notwithstanding anything to the contrary herein. Provider acknowledges that it will not reverse\nengineer or decompile any component of the Services, except as expressly provided in Section 6.9. Each\nparty agrees to implement appropriate technical and organisational measures, in accordance with the\nDocumentation. Provider shall not cooperate in good faith to resolve any dispute, in accordance with the\nDocumentation.\n\n1137.11 The Licensee shall restrict access to authorised personnel with a need to know, as further\ndescribed in Exhibit C. Each party shall restrict access to authorised personnel with a need to know,\nduring the Term and for a period thereafter. The Licensor acknowledges that it will implement appropriate\ntechnical and organisational measures, during the Term and for a period thereafter. Either party will use\ncommercially reasonable efforts to assign its rights only with prior consent, except as expressly\nprovided in Section 30.5.\n\n\n\n\n                                                                                                            Page 493 of 500\n\n=== Page 494 of 500 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\nEXHIBIT D - SCHEDULE OF OPTIONAL SERVICES AND RATES\nThe following optional services are available on request at the rates below. They are not included in,\nand are not purchased under, any Order Form unless separately ordered in writing. Rates are list prices\nin USD and exclude applicable taxes.\n\nService                                                         Unit                     Qty              Rate (USD)\nProfessional Services - Implementation                          per hour                 1                $250.00\nProfessional Services - Training Workshop                       per day                  1                $3600.00\nData Analytics Add-on                                           per year                 1                $42,000.00\nPremium Support - Enhanced Tier                                 per year                 1                $66,500.00\nSandbox Environment                                             per year                 1                $15,000.00\nAdditional Data Storage (1 TB)                                  per month                1                $400.00\nDedicated Customer Success Manager                              per year                 1                $95,000.00\n\nRates may be adjusted annually upon sixty (60) days written notice. Minimum engagement for Professional\nServices is eight (8) hours.\n\n\n\n\n                                                                                                                 Page 494 of 500\n\n=== Page 495 of 500 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\n1137.12 Any Affiliate shall cooperate in good faith to resolve any dispute, as further described in\nExhibit H. Customer may implement appropriate technical and organisational measures, subject to Section\n30.7.\n\n1137.13 Either party may assign its rights only with prior consent, as further described in Exhibit H.\nThe Licensee acknowledges that it will comply with applicable data protection laws, in accordance with\nthe Documentation. Customer shall not restrict access to authorised personnel with a need to know, except\nas expressly provided in Section 16.5. Provider shall maintain insurance of not less than $5,000,000.\n\n1137.14 The receiving party shall comply with applicable data protection laws, as further described in\nExhibit A. The Licensor shall maintain the confidentiality of all Confidential Information, subject to\nSection 17.6. Provider agrees to provide written notice of any material breach, to the extent permitted\nby applicable law. The disclosing party may not reverse engineer or decompile any component of the\nServices, subject to Section 1.8.\n\n1137.15 The Licensee acknowledges that it will comply with applicable data protection laws, subject to\nSection 9.8. The Licensee will use commercially reasonable efforts to assign its rights only with prior\nconsent, notwithstanding anything to the contrary herein.\n\n1137.16 Any Affiliate shall provide written notice of any material breach, to the extent permitted by\napplicable law. Provider shall maintain insurance of not less than $5,000,000. Provider will use\ncommercially reasonable efforts to make the Documentation available to Users, subject to Section 38.4.\nProvider shall make the Documentation available to Users, during the Term and for a period thereafter.\nNeither party shall not make the Documentation available to Users, in accordance with the Documentation.\n\n1137.17 The disclosing party may maintain the confidentiality of all Confidential Information, to the\nextent permitted by applicable law. Provider shall maintain insurance of not less than $10,000,000. Any\nAffiliate acknowledges that it will restrict access to authorised personnel with a need to know, as\nfurther described in Exhibit B. The receiving party will use commercially reasonable efforts to make the\nDocumentation available to Users, to the extent permitted by applicable law. The Licensor agrees to\nassign its rights only with prior consent, subject to Section 7.2.\n\n\n\n1138. BUSINESS CONTINUITY\n1138.1 Provider will use commercially reasonable efforts to make the Documentation available to Users,\nsubject to Section 22.3. Either party acknowledges that it will retain records for the duration required\nby law, during the Term and for a period thereafter.\n\n1138.2 Customer acknowledges that it will provide written notice of any material breach, as further\ndescribed in Exhibit G. The Licensee shall not not reverse engineer or decompile any component of the\nServices, to the extent permitted by applicable law. Neither party shall not make the Documentation\navailable to Users, unless otherwise agreed in writing by the parties. Provider shall maintain insurance\nof not less than $10,000,000. The disclosing party shall retain records for the duration required by law,\nsubject to Section 32.9.\n\n1138.3 The Licensor agrees to make the Documentation available to Users, except as expressly provided in\nSection 11.5. Either party shall not reverse engineer or decompile any component of the Services, subject\nto Section 36.1. Each party shall maintain the confidentiality of all Confidential Information, subject\nto Section 9.4. Neither party shall implement appropriate technical and organisational measures, except\nas expressly provided in Section 6.4. Late payments accrue interest at 1.0% per month.\n\n1138.4 The Licensor shall not implement appropriate technical and organisational measures, in accordance\nwith the Documentation. The disclosing party shall not make the Documentation available to Users, except\nas expressly provided in Section 27.2.\n\n\n\n\n                                                                                                            Page 495 of 500\n\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISrAQKxgIIEhgCKkDgymjjDxCPm4QllLiD5zI2TNsIgRHE8ASQfoDwEDNWmyQZdfmNsnUk96OIGSyRJC6l90YUwhotQPUahZqMinJbMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAdrNhtYGwgFACAYQABoSAbURArklA083CBWaBahBBCatIAIyBBJxzyU6BKdYaFZCBKn23qdKBKHEyApQBFoE2QXhVmACaAFwAdoBYAoWcHJlZml4X2JlZm9yZV9ibG9ja192MRIg+nt1OfSyKqwPS2oRYXGDsxENReNzERQ1LzviccSygYAiADIgwsATyGqckuIvlm89hhd2j4t6RMkCrcwJe/oeCYr7Th9IAxIM4fKnSNVFdcUrX/44GgysYRbj2zTKU5HwiRIiMM95uAanKqTD9oxca7Hh7TDG3Njm8rvMDAJRqlkKyK1wgu5Xm2ppUz03lw4nwb0eMiqSAViQvLYy+kMLQPMNxXJsG/GUiEXpKow3UZGZGgQKnr5dMmKPJdD8eN72bn+XmeoYCx3/Obn3VmZJw5+9LKTc21AiwrK0dAPd0Y8bppV2P0CT4WyFbqFHUDj6eYz0sD2AV0b0oWdQFfF+LJwDY8CM97NjwE/ne5m0i/ISM+UiGyGLcInrpjFj6xu9ICDGW3v/PHsOGAE=",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_017PoWGbPceqQBwVeSnxLsDG",
+          "input": {
+            "first": 208,
+            "last": 211
+          },
+          "name": "read_pages",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01YF3CMY5JJ2SUenuDtSThtm",
+          "input": {
+            "query": "Data Analytics"
+          },
+          "name": "search_document",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_017PoWGbPceqQBwVeSnxLsDG",
+          "content": [
+            {
+              "type": "text",
+              "text": "Pages 208-211 of 500. The PDF below contains exactly these pages; their text layer follows it.\n"
+            },
+            {
+              "type": "document",
+              "source": "<pdf omitted: n500_at206.pdf>"
+            },
+            {
+              "type": "text",
+              "text": "=== Page 208 of 500 ===\n                 RODUCT DESCRIPTIONS\n\nThis document is for informational purposes only. No warranties of any kind are expressed or implied.                  is not\nresponsible for any actions taken in reliance thereon or any losses, direct or indirect, incurred as a result of the use of any of\nthe information.\n\n\n\nTalent Intelligence Platform Premium Edition\n\n             alent Intelligence Platform Premium Edition (\u201cPlatform\u201d) is the foundational layer of            applications, that integrates\nw t ex st ng HR/IT systems (HRIS, ATS, LMS, VMS, Email, SSO and others) and leverages the enterprise talent data and outcomes\nthrough artificial intelligence to derive insights and inform workflows across the talent lifecycle management. The Platform comes\nwith Enterprise grade security and privacy standards including ISO27001, SOC II Type II, and ISO 27701, and with encryption of\ndata at rest and in transit.The Platform supports multiple languages and has the ability to configure role-based access across the\norganization.The                Job Intelligence Engine (JIE) provides a framework for streamlining your talent practices. By replacing\narchaic, ineffective, inconsistent, and often-recycled job descriptions with centrally defined \u2018Roles\u2019, Job Intelligence Engine combines\nAI, automation, and human expertise to enable more transparent, effective, and consistent decision-making around acquiring,\ncultivating, and retaining talent.\n\n Functionality                                                                          Talent Intelligence Platform Premium Edition\n Enterprise Talent Network (leads, rediscovery)                                                                  \u2022\n Multi-language Support                                                                                          \u2022\n Calibration                                                                                                     \u2022\n Matching                                                                                                        \u2022\n Capability Matrix (predicating what candidates are capable of based on skills                                   \u2022\n and experience)\n Resume Parsing (parsing resumes across languages and formats)                                                   \u2022\n Talent Diversity                                                                                                \u2022\n Diversity Dashboard                                                                                             \u2022\n Candidate Masking                                                                                               \u2022\n Integrations (HRIS, ATS, LMS)                                                                                   \u2022\n Admin Console                                                                                                   \u2022\n Dashboard Authoring Console (enables users to build custom dashboards)                                          \u2022\n Workflow Automation                                                                                             \u2022\n Sandbox (1)                                                                                                     \u2022\n Job Intelligence Engine                                                                                         \u2022\n Role Library seeded with sample set (10-15) of calibrated Roles and ability to                                  \u2022\n create/ maintain additional roles manually\n Bulk Create and Update Roles using Admin Console (file-based)                                                   \u2022\n Skill Groups and Definitions                                                                                    \u2022\n                                                               Page 3 of 5\n\n=== Page 209 of 500 ===\nSanta Clara, CA 95054\n\n Globally Observed Roles / JIE Search                                                                          \u2022\n TA: Calibration Assistant                                                                                     \u2022\n JIE for TM: Assessments                                                                                       \u2022\n Data Warehouse                                                                                                \u2022\n Enterprise Key Management (BYOK) - [Add-on only]\n\n\nTalent Acquisition\n\n            alent Acquisition (TA) product line empowers global organizations to find and hire high potential and diverse talent, faster.\nTalent Acquisition helps streamline the candidate journey across every stage including: attract, engage & nurture, identify & source,\nscreen, interview and selection.\n\n                                   Functionality                                      Talent Acquisition (TA)\n Recruiter Experience in              App\n Core Talent Acquisition (Talent network, leads, rediscovery, candidate profile)                  \u2022\n Screening                                                                                        \u2022\n Candidate Engagement with Email                                                                  \u2022\n Smart Scheduling                                                                                 \u2022\n Interview Feedback                                                                               \u2022\n Video Interviewing integration                                                                   \u2022\n JIE role library and 10-15 sample roles                                                          \u2022\n Chrome Extension                                                                                 \u2022\n Dashboards (Talent Acquisition Analytics)                                                        \u2022\n Talent Communities                                                                               \u2022\n Smart Campaigns                                                                                  \u2022\n Events Recruiting                                                                                \u2022\n Candidate Engagement with SMS (includes 2500 messages per month)                                 \u2022\n Candidate Engagement with Whatsapp [Add-on only]\n Smart Referrals                                                                                  \u2022\n Internal Job Hub                                                                                 \u2022\n Masking                                                                                          \u2022\n Talent Experience (Personalized Career Site and more)\n Job Search (no resume)                                                                           \u2022\n\n                                                              Page 4 of 5\n\n=== Page 210 of 500 ===\nFind jobs using resume upload                                       \u2022\nSmart Apply (One-Click Apply) or Redirect                           \u2022\nPublish PCS to Google                                               \u2022\nXML Feeds                                                           \u2022\nAI-powered Job Insights                                             \u2022\nSocial Recruiting (\"share this job\")                                \u2022\nCareer Site Dashboards                                              \u2022\nLogged in PCS (Candidate Owned Profile)                             \u2022\nChatbot                                                             \u2022\nTalent Branding / CMS Via Red Crackle [Add-on only]\n\n\n\n\n                                                      Page 5 of 5\n\n=== Page 211 of 500 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\nEXHIBIT E - SERVICE LEVEL AGREEMENT\nService Level                                     Target                 Measurement                    Service Credit\nMonthly Uptime                                    8 hours                quarterly                      5% of monthly fees\nAPI Availability                                  99.5%                  per incident                   5% of monthly fees\nP1 Response Time                                  24 hours               quarterly                      25% of monthly fees\nP2 Response Time                                  99.5%                  monthly                        15% of monthly fees\nP3 Response Time                                  1 hour                 quarterly                      25% of monthly fees\nData Restore (RPO)                                99.5%                  monthly                        25% of monthly fees\nRecovery Time (RTO)                               24 hours               per incident                   15% of monthly fees\nSupport Hours Coverage                            99.95%                 per incident                   5% of monthly fees\n\nService credits are the sole and exclusive remedy for failure to meet the targets above and shall not\nexceed 30% of the fees for the affected month.\n\n\n\n\n                                                                                                                    Page 211 of 500\n"
+            }
+          ],
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01YF3CMY5JJ2SUenuDtSThtm",
+          "content": "2 matching line(s) (exact) on 2 page(s): 169, 494\np.169: Data Analytics Add-on  per year  1  $48,000.00\np.494: Data Analytics Add-on  per year  1  $42,000.00",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01ACcy89AQL2ZnNXXYbPz7RM",
+          "input": {
+            "expression": "255000+255000+255000"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01PwANLXicTnsMhXACeBMqmP",
+          "input": {
+            "expression": "75000*3"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01AxnsiuJkZoVqTroBByESQB",
+          "input": {
+            "expression": "50700*3"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01ACcy89AQL2ZnNXXYbPz7RM",
+          "content": "255000+255000+255000 = 765000 (rounded to cents: 765000.00)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01PwANLXicTnsMhXACeBMqmP",
+          "content": "75000*3 = 225000 (rounded to cents: 225000.00)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01AxnsiuJkZoVqTroBByESQB",
+          "content": "50700*3 = 152100 (rounded to cents: 152100.00)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISyAQKsQMIEhgCKkCbGyj7Eqv/2leznrkTHOB7yCfCeebepkwvkEK5VSMgwT4izDCd4793BDC+yH/BC87/EkXX3BLIC2eSKrkMncAVMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAe7NhtYGwgFqCBQQABo8AbURArklA083CBWaBahBBCatCgLQCrSLA083DKUxCypEBCatCglOCsTlCuESA083C2zbC5tcCySVBCatIAIyBBJxzyU6BKdYaFZCBKn23qdKBKHEyApQBFoE2QXhVmAGaAFwAdoBoAEKFnByZWZpeF9iZWZvcmVfYmxvY2tfdjESIC2PBFDFc8nZOUJ6rq/Ep9xEiGKXYixIkSxm9lFiw1i1IkBgLC1wdt+0MdE6DqIszaelfHL9DzBpMyJVJiisoQIjMQJ56auEkLZ76CqbV+Uy03xCrgJ2W82d5JLXjolZoZhqMiDCwBPIapyS4i+Wbz2GF3aPi3pEyQKtzAl7+h4JivtOH0gDEgzyvhWGP58LvVyW48AaDILXR8gi2CQniivBxyIwgDxJNJehCroU681/OZSKxgvLW442EUSue68yLhCDIL2IuQbRR4L+vnuetdlJfE8qKkTMivoYdk4PWJnxiUFUQGmAs1tAfIkgfpo1w0dcpMdQHrTOEnwP0NBh2hF/MrTJ2pDMA0JZlfVr7hnmPwdZsbhDi2fWwxgB",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01Lj5KazFWNKf2TF4GZAcoK3",
+          "input": {
+            "order_form": {
+              "customer_name": null,
+              "vendor_name": "AI Inc.",
+              "effective_date": null,
+              "contract_signed_date_buying_company": "2023-10-12",
+              "contract_signed_date_selling_company": "2023-10-12",
+              "currency": "USD",
+              "grand_total": 1142100.0,
+              "grand_total_label": "TOTAL AMOUNT DUE",
+              "evidence": {
+                "vendor_name": "this Sales Order Form provided by ... AI Inc.",
+                "contract_signed_date_buying_company": "Corporation ... Date (Print): 12 October 2023",
+                "contract_signed_date_selling_company": "AI Inc. ... Date (Print): 12 October 2023",
+                "currency": "Rates are list prices in USD",
+                "grand_total": "TOTAL AMOUNT DUE ... $1,142,100.00",
+                "grand_total_label": "TOTAL AMOUNT DUE"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "SKU-001",
+                "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+                "currency": "USD",
+                "total_listed_value": 765000,
+                "quantity": 1,
+                "unit_price": 255000,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 255000
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 255000
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 255000
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "recurring",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55 from the date of the invoice",
+                "special_notes": "Up to Customer Employee Size: 25,000",
+                "evidence": {
+                  "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$255,000.00 $255,000.00 $255,000.00",
+                  "quantity": "Talent Intelligence Platform Premium Edition",
+                  "unit_price": "$255,000.00",
+                  "unit_price_period": "Year 1",
+                  "period_amounts": "Year 1 Year 2 Year 3",
+                  "service_start_date": "Start Date 11/1/2023",
+                  "service_end_date": "End Date 10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice.",
+                  "special_notes": "Up to Customer Employee Size: 25,000"
+                }
+              },
+              {
+                "sku_code": "SKU-002",
+                "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+                "currency": "USD",
+                "total_listed_value": 225000,
+                "quantity": 1,
+                "unit_price": 75000,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 75000
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 75000
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 75000
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "recurring",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55 from the date of the invoice",
+                "special_notes": "Up to Customer Employee Size: 25,000",
+                "evidence": {
+                  "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$75,000.00 $75,000.00 $75,000.00",
+                  "quantity": "Talent Acquisition",
+                  "unit_price": "$75,000.00",
+                  "unit_price_period": "Year 1",
+                  "period_amounts": "Year 1 Year 2 Year 3",
+                  "service_start_date": "Start Date 11/1/2023",
+                  "service_end_date": "End Date 10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice.",
+                  "special_notes": "Up to Customer Employee Size: 25,000"
+                }
+              },
+              {
+                "sku_code": "SKU-003",
+                "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+                "currency": "USD",
+                "total_listed_value": 152100,
+                "quantity": 1,
+                "unit_price": 50700,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 50700
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 50700
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 50700
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "recurring",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55 from the date of the invoice",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$50,700.00 $50,700.00 $50,700.00",
+                  "quantity": "Premium Support",
+                  "unit_price": "$50,700.00",
+                  "unit_price_period": "Year 1",
+                  "period_amounts": "Year 1 Year 2 Year 3",
+                  "service_start_date": "Start Date 11/1/2023",
+                  "service_end_date": "End Date 10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "SKU-004",
+              "SKU-005"
+            ],
+            "ambiguities": [],
+            "inferred_dates": [],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01Lj5KazFWNKf2TF4GZAcoK3",
+          "content": "Submission 1/3 not accepted.\nWarnings (fix if wrong; if correct as written, resubmit with an override {check, item_index, reason}):\n- [missing_value] item None: order_form.effective_date is null. If the document states it, extract it; if it is genuinely ambiguous, add an ambiguity entry; if the document does not state it, override this warning with that reason. A null here is flagged for review either way. You were shown only part of this long document: use search_document and read_pages to look for it before concluding.",
+          "is_error": true
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_017mWjYHP5rrt8NMj9HNXyfk",
+          "input": {
+            "query": "Effective Date"
+          },
+          "name": "search_document",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_017mWjYHP5rrt8NMj9HNXyfk",
+          "content": "No matches for 'Effective Date' in the 500-page document.",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_018wArMRrycjRHu81oqPxbox",
+          "input": {
+            "order_form": {
+              "customer_name": null,
+              "vendor_name": "AI Inc.",
+              "effective_date": null,
+              "contract_signed_date_buying_company": "2023-10-12",
+              "contract_signed_date_selling_company": "2023-10-12",
+              "currency": "USD",
+              "grand_total": 1142100.0,
+              "grand_total_label": "TOTAL AMOUNT DUE",
+              "evidence": {
+                "vendor_name": "this Sales Order Form provided by ... AI Inc.",
+                "contract_signed_date_buying_company": "Corporation ... Date (Print): 12 October 2023",
+                "contract_signed_date_selling_company": "AI Inc. ... Date (Print): 12 October 2023",
+                "currency": "Rates are list prices in USD",
+                "grand_total": "TOTAL AMOUNT DUE ... $1,142,100.00",
+                "grand_total_label": "TOTAL AMOUNT DUE"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "SKU-001",
+                "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+                "currency": "USD",
+                "total_listed_value": 765000,
+                "quantity": 1,
+                "unit_price": 255000,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 255000
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 255000
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 255000
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "recurring",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55 from the date of the invoice",
+                "special_notes": "Up to Customer Employee Size: 25,000",
+                "evidence": {
+                  "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$255,000.00 $255,000.00 $255,000.00",
+                  "quantity": "Talent Intelligence Platform Premium Edition",
+                  "unit_price": "$255,000.00",
+                  "unit_price_period": "Year 1",
+                  "period_amounts": "Year 1 Year 2 Year 3",
+                  "service_start_date": "Start Date 11/1/2023",
+                  "service_end_date": "End Date 10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice.",
+                  "special_notes": "Up to Customer Employee Size: 25,000"
+                }
+              },
+              {
+                "sku_code": "SKU-002",
+                "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+                "currency": "USD",
+                "total_listed_value": 225000,
+                "quantity": 1,
+                "unit_price": 75000,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 75000
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 75000
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 75000
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "recurring",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55 from the date of the invoice",
+                "special_notes": "Up to Customer Employee Size: 25,000",
+                "evidence": {
+                  "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$75,000.00 $75,000.00 $75,000.00",
+                  "quantity": "Talent Acquisition",
+                  "unit_price": "$75,000.00",
+                  "unit_price_period": "Year 1",
+                  "period_amounts": "Year 1 Year 2 Year 3",
+                  "service_start_date": "Start Date 11/1/2023",
+                  "service_end_date": "End Date 10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice.",
+                  "special_notes": "Up to Customer Employee Size: 25,000"
+                }
+              },
+              {
+                "sku_code": "SKU-003",
+                "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+                "currency": "USD",
+                "total_listed_value": 152100,
+                "quantity": 1,
+                "unit_price": 50700,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 50700
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 50700
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 50700
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "recurring",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55 from the date of the invoice",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$50,700.00 $50,700.00 $50,700.00",
+                  "quantity": "Premium Support",
+                  "unit_price": "$50,700.00",
+                  "unit_price_period": "Year 1",
+                  "period_amounts": "Year 1 Year 2 Year 3",
+                  "service_start_date": "Start Date 11/1/2023",
+                  "service_end_date": "End Date 10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "SKU-004",
+              "SKU-005"
+            ],
+            "ambiguities": [],
+            "inferred_dates": [],
+            "overrides": [
+              {
+                "check": "missing_value",
+                "item_index": null,
+                "reason": "The Sales Order Form never uses the term 'effective date' or states a date on which it becomes effective; a search of the full 500-page document returns no 'Effective Date' text. Only a service Start Date (11/1/2023), End Date (10/31/2026) and signature dates (12 October 2023) are printed, so effective_date is correctly null."
+              }
+            ]
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_018wArMRrycjRHu81oqPxbox",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": null,
+      "vendor_name": "AI Inc.",
+      "effective_date": null,
+      "contract_signed_date_buying_company": "2023-10-12",
+      "contract_signed_date_selling_company": "2023-10-12",
+      "currency": "USD",
+      "grand_total": 1142100.0,
+      "grand_total_label": "TOTAL AMOUNT DUE",
+      "evidence": {
+        "vendor_name": "this Sales Order Form provided by ... AI Inc.",
+        "contract_signed_date_buying_company": "Corporation ... Date (Print): 12 October 2023",
+        "contract_signed_date_selling_company": "AI Inc. ... Date (Print): 12 October 2023",
+        "currency": "Rates are list prices in USD",
+        "grand_total": "TOTAL AMOUNT DUE ... $1,142,100.00",
+        "grand_total_label": "TOTAL AMOUNT DUE"
+      },
+      "ambiguous_fields": {},
+      "missing_fields": {
+        "effective_date": {
+          "status": "not_found",
+          "reason": "the model's reason: The Sales Order Form never uses the term 'effective date' or states a date on which it becomes effective; a search of the full 500-page document returns no 'Effective Date' text. Only a service Start Date (11/1/2023), End Date (10/31/2026) and signature dates (12 October 2023) are printed, so effective_date is correctly null."
+        }
+      },
+      "inferred_dates": {}
+    },
+    "contract_items_count": 3,
+    "contract_items": [
+      {
+        "name": "Talent Intelligence Platform Premium Edition",
+        "sku_id": "SKU-001",
+        "sku_code": "SKU-001",
+        "currency": "USD",
+        "total_listed_value": 765000.0,
+        "quantity": 1.0,
+        "unit_price": 255000.0,
+        "unit_price_period": "year",
+        "period_amounts": [
+          {
+            "label": "Year 1",
+            "amount": 255000.0
+          },
+          {
+            "label": "Year 2",
+            "amount": 255000.0
+          },
+          {
+            "label": "Year 3",
+            "amount": 255000.0
+          }
+        ],
+        "discount": null,
+        "service_start_date": "2023-11-01",
+        "service_end_date": "2026-10-31",
+        "invoicing_schedule_type": "recurring",
+        "invoicing_frequency": {
+          "value": "yearly",
+          "source": "stated",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 55 from the date of the invoice",
+        "special_notes": "Up to Customer Employee Size: 25,000",
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+        "evidence": {
+          "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+          "currency": "Rates are list prices in USD",
+          "total_listed_value": "$255,000.00 $255,000.00 $255,000.00",
+          "quantity": "Talent Intelligence Platform Premium Edition",
+          "unit_price": "$255,000.00",
+          "unit_price_period": "Year 1",
+          "period_amounts": "Year 1 Year 2 Year 3",
+          "service_start_date": "Start Date 11/1/2023",
+          "service_end_date": "End Date 10/31/2026",
+          "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+          "invoicing_frequency": "Invoices are sent Annually, in advance",
+          "payment_terms": "Payment is due Net 55 from the date of the invoice.",
+          "special_notes": "Up to Customer Employee Size: 25,000"
+        }
+      },
+      {
+        "name": "Talent Acquisition",
+        "sku_id": "SKU-002",
+        "sku_code": "SKU-002",
+        "currency": "USD",
+        "total_listed_value": 225000.0,
+        "quantity": 1.0,
+        "unit_price": 75000.0,
+        "unit_price_period": "year",
+        "period_amounts": [
+          {
+            "label": "Year 1",
+            "amount": 75000.0
+          },
+          {
+            "label": "Year 2",
+            "amount": 75000.0
+          },
+          {
+            "label": "Year 3",
+            "amount": 75000.0
+          }
+        ],
+        "discount": null,
+        "service_start_date": "2023-11-01",
+        "service_end_date": "2026-10-31",
+        "invoicing_schedule_type": "recurring",
+        "invoicing_frequency": {
+          "value": "yearly",
+          "source": "stated",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 55 from the date of the invoice",
+        "special_notes": "Up to Customer Employee Size: 25,000",
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+        "evidence": {
+          "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+          "currency": "Rates are list prices in USD",
+          "total_listed_value": "$75,000.00 $75,000.00 $75,000.00",
+          "quantity": "Talent Acquisition",
+          "unit_price": "$75,000.00",
+          "unit_price_period": "Year 1",
+          "period_amounts": "Year 1 Year 2 Year 3",
+          "service_start_date": "Start Date 11/1/2023",
+          "service_end_date": "End Date 10/31/2026",
+          "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+          "invoicing_frequency": "Invoices are sent Annually, in advance",
+          "payment_terms": "Payment is due Net 55 from the date of the invoice.",
+          "special_notes": "Up to Customer Employee Size: 25,000"
+        }
+      },
+      {
+        "name": "Premium Support",
+        "sku_id": "SKU-003",
+        "sku_code": "SKU-003",
+        "currency": "USD",
+        "total_listed_value": 152100.0,
+        "quantity": 1.0,
+        "unit_price": 50700.0,
+        "unit_price_period": "year",
+        "period_amounts": [
+          {
+            "label": "Year 1",
+            "amount": 50700.0
+          },
+          {
+            "label": "Year 2",
+            "amount": 50700.0
+          },
+          {
+            "label": "Year 3",
+            "amount": 50700.0
+          }
+        ],
+        "discount": null,
+        "service_start_date": "2023-11-01",
+        "service_end_date": "2026-10-31",
+        "invoicing_schedule_type": "recurring",
+        "invoicing_frequency": {
+          "value": "yearly",
+          "source": "stated",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 55 from the date of the invoice",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+        "evidence": {
+          "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+          "currency": "Rates are list prices in USD",
+          "total_listed_value": "$50,700.00 $50,700.00 $50,700.00",
+          "quantity": "Premium Support",
+          "unit_price": "$50,700.00",
+          "unit_price_period": "Year 1",
+          "period_amounts": "Year 1 Year 2 Year 3",
+          "service_start_date": "Start Date 11/1/2023",
+          "service_end_date": "End Date 10/31/2026",
+          "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+          "invoicing_frequency": "Invoices are sent Annually, in advance",
+          "payment_terms": "Payment is due Net 55 from the date of the invoice."
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "SKU-004",
+      "SKU-005"
+    ],
+    "overrides": [
+      {
+        "check": "missing_value",
+        "item_index": null,
+        "reason": "The Sales Order Form never uses the term 'effective date' or states a date on which it becomes effective; a search of the full 500-page document returns no 'Effective Date' text. Only a service Start Date (11/1/2023), End Date (10/31/2026) and signature dates (12 October 2023) are printed, so effective_date is correctly null."
+      }
+    ],
+    "needs_review": true,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": 0,
+        "message": "quotes for ['source_row'] were not found verbatim in the text layer"
+      },
+      {
+        "severity": "note",
+        "check": "missing_value",
+        "item_index": null,
+        "message": "order_form.effective_date is blank: the model's reason: The Sales Order Form never uses the term 'effective date' or states a date on which it becomes effective; a search of the full 500-page document returns no 'Effective Date' text. Only a service Start Date (11/1/2023), End Date (10/31/2026) and signature dates (12 October 2023) are printed, so effective_date is correctly null."
+      }
+    ],
+    "meta": {
+      "source_pdf": "n500_at206.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 5,
+      "submissions": 2,
+      "stop_note": null,
+      "seconds": 63.3,
+      "usage": {
+        "input_tokens": 10,
+        "output_tokens": 6061,
+        "cache_creation_input_tokens": 58612,
+        "cache_read_input_tokens": 213574
+      },
+      "cost_usd": 0.6247,
+      "long_document": {
+        "pages_total": 500,
+        "pages_sent": {
+          "1": "first pages",
+          "2": "first pages",
+          "168": "before page 169",
+          "169": "top score 43",
+          "170": "after page 169",
+          "205": "before page 206",
+          "206": "top score 81.5",
+          "207": "after page 206",
+          "493": "before page 494",
+          "494": "top score 43",
+          "495": "after page 494"
+        },
+        "pages_read": [
+          208,
+          209,
+          210,
+          211
+        ],
+        "searches": 2
+      }
+    }
+  }
+}

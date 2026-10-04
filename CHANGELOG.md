@@ -291,3 +291,120 @@ The `example_order_form_redacted.pdf` arrived after v0.8 and was run with no cod
 - First live exercise of the v0.8 blank handling: the form states no effective date; submission 1 was
   sent back with `missing_value`, the model overrode it with the reason, and the output is marked
   `needs_review` with that reason in `missing_fields`.
+
+## v0.9 - long documents: page selection with search and read tools (2026-10-04)
+
+**Test data** (`scripts/make_long_doc.py`, seeded, byte-for-byte reproducible): the real 5-page example form
+inserted unchanged into contract boilerplate, with decoy pages (table of contents pointing to the form,
+an optional-services rate card using catalog product names, SLA tables, date-dense amendment logs, dollar
+amounts in ordinary clauses). Variants: form at page 412 / 3 / 990 of 1,000 pages, at 82 of 200, at 206 of 500.
+Expected output is the example's `expected.json`.
+
+**Baseline** (`scripts/count_full_doc.py`, token-counting API, nothing run): the current approach sends the whole
+PDF plus its whole text layer.
+
+| Document | Pages | First-turn input tokens | Cost of that turn | Possible? |
+|---|---|---|---|---|
+| example form | 5 | 19K | $0.12 | yes |
+| n200_at82 | 200 | 795K | $4.97 | yes, just under the 1M context |
+| n500_at206 | 500 | 2.0M | $12.54 | no: over the 1M-token context |
+| n1000_at412 | 1000 | 4.0M | $25.22 | no: over the API's 600-page limit |
+
+**What** (`ofparser/pages.py`; only for documents over 30 pages, shorter ones are sent whole as before)
+- Every page is indexed with plain code and scored on generic signals: currency amounts, table-like rows,
+  dates, billing words (qty, total, term, invoice, ...) and the catalog's own product names.
+- Sent first: the best page and any page scoring at least 35% of it (up to 6), each with its neighbours, the
+  first 2 pages, and up to 3 pages with signature cues; at most 20 pages. The model gets those pages as a PDF
+  plus their text, labelled with their page numbers in the full document.
+- Two new tools: `search_document(query)` over every page's text, and `read_pages(first, last)` returning up to
+  10 pages as PDF plus text (tool results can carry PDF pages, checked with a live call).
+- The checker still grounds amounts and dates against the whole document's text. When only part of the
+  document was shown, the grand-total mismatch and missing-value warnings tell the model to search further.
+- Up to 24 turns for long documents (12 otherwise). Output `meta.long_document` records pages sent, pages read
+  and searches.
+- Tried and changed: a "keep at least 3 top pages" rule let a near-zero page in as a top page (caught by a unit
+  test); replaced by the relative cutoff.
+- 10 new tests (48 total). A live check on of-0001 gave the same values as v0.8 through the unchanged short path.
+
+**Results** (`runs/long_doc/report.md`, $3.19 for all 5):
+
+| Variant | Pages sent | Read later | Input tokens (all turns) | Cost | Time | 3 items correct |
+|---|---|---|---|---|---|---|
+| n1000_at412 | 11 | 5 | 295K | $0.47 | 80 s | yes |
+| n1000_at3 | 10 | 5 | 316K | $0.68 | 70 s | yes |
+| n1000_at990 | 11 | 5 | 355K | $0.71 | 63 s | yes |
+| n200_at82 | 11 | 6 | 312K | $0.71 | 70 s | yes |
+| n500_at206 | 11 | 4 | 272K | $0.62 | 63 s | yes |
+
+- Every variant: exactly SKU-001/002/003 with the expected totals, unit prices, quantity, currency, dates,
+  schedule type and frequency. SKU-004 and SKU-005 listed as explicitly excluded (the rate-card decoy offers
+  them as optional, not purchased).
+- Cost tracks the pages read, not the document's length: the 1,000-page variants cost about the same as the
+  200-page one, roughly twice the 5-page form on its own ($0.32).
+- In every run the model read the rest of the form (its product-description pages) with `read_pages`, and,
+  after the missing-value warning, searched the whole document for an effective date before concluding there
+  is none. All 5 are `needs_review` for that blank effective date, as with the 5-page form.
+- Run-to-run variation in the two fields that already differed on the 5-page form: payment terms are "Net 55"
+  in one run and "Net 55 from the date of the invoice" in four; special notes are empty in three runs and the
+  employee-size line on 2 of 3 items in two.
+- Limits: scanned long documents (no text layer) can't be indexed and still take the old path; the page scorer
+  has only been tested on this generated boilerplate, so decoys and real long contracts may score differently.
+
+## v0.10 - scattered form, and outline navigation for long documents (2026-10-04)
+
+**Scattered test variant** (`n1000_scattered`): the form's first page split into three pages placed far apart
+(service term p.120, pricing p.415, invoicing schedule and payment terms p.640), its signature page at p.880, and a
+one-page amendment at p.955 that changes Premium Support to $45,000.00 a year (total $135,000.00; the amendment
+also restates the order total as $1,125,000.00). Expected output: `edge_cases/long_document/expected_scattered.json`.
+- Splitting by cropping a copy of the original page was tried first and rejected: a live check showed the model
+  still reads text outside the crop ("Page 1 of 5", the PO section) even though pdftotext doesn't. The pieces are
+  redrawn word by word from the original page at the original positions and sizes. Bold headings come out with
+  extra spacing ("SUBSCRIPTION    SERVICE FEES") and one merged word ("Feesare"); amounts and dates are intact.
+- The generator refactor leaves the earlier 5 variants byte-for-byte identical (same hash).
+- `variants.json` now lists, per variant, the pages that hold information the order needs.
+
+**Outline navigation** (`PageIndex.outline()`, now the default for documents over 30 pages; v0.9 page selection
+remains as `parse.py --long-doc select`)
+- Built with plain code from the text layer: running headers/footers are dropped (lines on 20%+ of pages, digits
+  ignored); headings are short all-caps lines, numbered clause headings, lines starting with words like Exhibit /
+  Schedule / Amendment, and title-like first lines of a page; sentence tails ("... in Exhibit G.") are not
+  headings. Pages with part headings get a line; runs of pages with only numbered clauses collapse to one line.
+  Page scores are tags only: [score N] on the top pages, [signatures] on pages with signature cues.
+- 1,000 pages -> 25-32 outline lines (about 800 tokens). The first message is the outline only; the model then
+  fetches pages with read_pages and can use search_document.
+- First attempt gave 402 lines: wrapped sentence fragments ("Section 21.2.", "Exhibit G.") counted as headings,
+  and a regex dropped the first letter of clause titles. Both fixed before any run.
+- New general prompt rule (all documents): use values as amended by an amendment, addendum or change order, quote
+  the amending text, and mention it in special_notes. Short-form check on of-0001 after the change: same values as
+  v0.8.
+- Output `meta.long_document` adds mode, outline_lines and pages_seen. `scripts/long_doc_report.py` reports page
+  recall: of the pages needed for the order, how many the model saw (sent or read; search results don't count).
+- 3 new outline tests (51 total).
+
+**Results**
+
+Outline mode, all 6 variants (`runs/long_doc_outline/report.md`, $3.60):
+
+| Variant | Pages seen | Page recall | Searches | Cost | Time | Items correct |
+|---|---|---|---|---|---|---|
+| n1000_at412 | 7 | 2/2 | 6 | $0.46 | 70 s | yes |
+| n1000_at3 | 11 | 2/2 | 9 | $0.68 | 92 s | yes |
+| n1000_at990 | 9 | 2/2 | 6 | $0.54 | 77 s | yes |
+| n200_at82 | 7 | 2/2 | 4 | $0.46 | 74 s | yes |
+| n500_at206 | 15 | 2/2 | 3 | $0.74 | 88 s | yes |
+| n1000_scattered | 12 | 5/5 | 10 | $0.72 | 113 s | yes |
+
+- Scattered: all five pieces read, the amendment applied (SKU-003 $45,000.00 / $135,000.00, grand total
+  $1,125,000.00) and noted in SKU-003's special_notes.
+- For comparison, v0.9 select mode on the 5 standard variants (re-scored from `runs/long_doc`): recall 2/2 on all,
+  15-17 pages seen, $0.47-0.71. Select mode on the scattered variant (`runs/long_doc_select_scattered`, $1.26):
+  recall 5/5 but 29 pages seen; items, amounts and the amendment correct, but invoicing_schedule_type "upfront"
+  instead of "recurring" on all 3 items, from the same "Invoices are sent Annually, in advance" sentence that the
+  outline run read as recurring. A reading slip, not a navigation miss; one run each, so not evidence either
+  mode reads better.
+- Every run is needs_review for the blank effective date only (the form states none), as before.
+- special_notes vary more in outline mode: the model reads the product-description pages and sometimes copies
+  entitlements from them (e.g. SMS message allowances). Not graded; consistent with special_notes being the least
+  settled field.
+- Limits: one run per variant; the outline heuristics have only seen this generated boilerplate and the example
+  form; scanned long documents still can't be indexed.

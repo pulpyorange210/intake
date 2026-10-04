@@ -1,0 +1,996 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nEvery contract item must map to exactly one SKU in this catalog. Each SKU carries parsing instructions from the selling company; follow them, they take precedence over the general rules below.\n\n<catalog>\n- code: SKU-001\n  name: Talent Intelligence Platform Premium Edition\n  description: Foundational platform layer integrating with HR/IT systems, providing AI-driven talent insights and workflow automation.\n  parsing_instructions: |\n\n- code: SKU-002\n  name: Talent Acquisition\n  description: Product suite for finding and hiring talent, covering the full candidate journey from sourcing through selection.\n  parsing_instructions: |\n\n- code: SKU-003\n  name: Premium Support\n  description: Dedicated support services including priority response times and extended support hours.\n  parsing_instructions: |\n\n- code: SKU-004\n  name: Professional Services\n  description: Implementation, training, and consulting services.\n  parsing_instructions: |\n\n- code: SKU-005\n  name: Data Analytics Add-on\n  description: Advanced reporting and data warehouse capabilities.\n  parsing_instructions: |\n\n</catalog>\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- Every date you give must be printed in the document (in any format). If a date is not printed but follows from one that is (e.g. an end date from a start date and a stated term), add an inferred_dates entry: the printed from_date, the add_months / add_days that produce the value, and an explanation quoting the text it relies on. The calculation is re-checked. Never supply a date that is neither printed nor calculated from a printed date; leave it null.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). Billing \"in advance\" or \"in arrears\" describes timing within a period, not the schedule type or frequency. If the document does not say, use null.\n- Amendments: if the document contains an amendment, addendum or change order that modifies this order (e.g. a changed price, quantity or date), use the values as amended, quote the amending text as evidence, and mention the amendment in special_notes.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Before treating a field as ambiguous, test each candidate reading against the rest of the document: the arithmetic of prices, quantities and the service term, and the other dates. A reading that contradicts the document is not a valid reading. If exactly one reading survives, use it and quote the deciding evidence. Closeness or typicality (e.g. a date being near the signature date) never eliminates a reading; it can only make one likely.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). If surrounding context makes one candidate more likely (e.g. its closeness to other dates in the document), give it as likely with that evidence in likely_reason; the field itself still stays null. Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Order form file: n200_at82.pdf\n\nThis is a long document (200 pages). Instead of its pages you get an outline built by code from the text layer: the headings found on each page, with long runs of pages that only have numbered clause headings collapsed into one line. Running page headers and footers are left out. Some pages also carry hints from a simple page scorer: [score N] for pages dense with amounts, prices and billing words, and [signatures] for pages with signature blocks. Hints are only hints: a high-scoring page can be a price list that is not part of this order, and a page that matters can score low or have no heading.\n\nUse the outline to decide which pages to read, fetch them with read_pages, and use search_document for anything the outline doesn't show. Before extracting, make sure you have read every page that holds information for this order: the priced items, the service term and dates, billing and payment terms, signatures, and anything that changes the order (amendments, addenda, change orders). Use only values from pages you have read. Amounts and dates are checked against the whole document.\n\n<outline>\np.1: 3 numbered clause heading(s), e.g. WARRANTIES, DEFINITIONS\np.2: TABLE OF CONTENTS | Exhibit C - Sales Order Form ... 82 | Exhibit E - Service Level Agreement ... 86; 22 numbered clause heading(s)\np.3-15: 37 numbered clause heading(s), e.g. ASSIGNMENT, CONFIDENTIALITY, ACCESSIBILITY, GRANT OF RIGHTS\np.16: EXHIBIT E - SERVICE LEVEL AGREEMENT\np.17-21: 10 numbered clause heading(s), e.g. SECURITY, NON-SOLICITATION, AUDIT RIGHTS, ANTI-CORRUPTION\np.22: AMENDMENT AND NOTICE LOG\np.23-27: 16 numbered clause heading(s), e.g. INDEMNIFICATION, BUSINESS CONTINUITY, EXPORT CONTROL, ASSIGNMENT\np.28: AMENDMENT AND NOTICE LOG\np.29-41: 31 numbered clause heading(s), e.g. DISPUTE RESOLUTION, EXPORT CONTROL, BUSINESS CONTINUITY, EFFECT OF TERMINATION\np.42: EXHIBIT D - SCHEDULE OF OPTIONAL SERVICES AND RATES [score 43]\np.43-81: 85 numbered clause heading(s), e.g. TERM AND TERMINATION, NOTICES, RESTRICTIONS, DISCLAIMERS\np.82: Sales Order Form | SUBSCRIPTION SERVICE FEES | IMPLEMENTATION SERVICES | INVOICING SCHEDULE. (+1 more) [score 81.5]\np.83: TERMS & CONDITIONS | QUOTE/PRODUCT SPECIAL TERMS; 1 numbered clause heading(s) [signatures]\np.84: RODUCT DESCRIPTIONS\np.85-90: 11 numbered clause heading(s), e.g. GOVERNING LAW, EXPORT CONTROL, GRANT OF RIGHTS, INDEMNIFICATION\np.91: EXHIBIT D - SCHEDULE OF OPTIONAL SERVICES AND RATES [score 43]\np.92-101: 19 numbered clause heading(s), e.g. WARRANTIES, SUBCONTRACTORS, CONFIDENTIALITY, ASSIGNMENT\np.102: AMENDMENT AND NOTICE LOG\np.103-109: 14 numbered clause heading(s), e.g. GOVERNING LAW, PUBLICITY, DISPUTE RESOLUTION, INTELLECTUAL PROPERTY\np.110: EXHIBIT E - SERVICE LEVEL AGREEMENT\np.111-145: 95 numbered clause heading(s), e.g. WARRANTIES, GRANT OF RIGHTS, AUDIT RIGHTS, SECURITY\np.146: AMENDMENT AND NOTICE LOG\np.147-174: 72 numbered clause heading(s), e.g. GRANT OF RIGHTS, ANTI-CORRUPTION, EFFECT OF TERMINATION, AUDIT RIGHTS\np.175: EXHIBIT E - SERVICE LEVEL AGREEMENT\np.176-200: 56 numbered clause heading(s), e.g. BUSINESS CONTINUITY, RECORDS RETENTION, DEFINITIONS, INSURANCE\n</outline>\n\nRead the pages you need, extract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "I'll start by reading the main order form pages.",
+          "type": "text"
+        },
+        {
+          "id": "toolu_01XJQiPjgLzTjA9N6LQaEKVi",
+          "input": {
+            "first": 82,
+            "last": 84
+          },
+          "name": "read_pages",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_0153NasQWVtma6nA1rpeVtuN",
+          "input": {
+            "first": 42,
+            "last": 42
+          },
+          "name": "read_pages",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01XJQiPjgLzTjA9N6LQaEKVi",
+          "content": [
+            {
+              "type": "text",
+              "text": "Pages 82-84 of 200. The PDF below contains exactly these pages; their text layer follows it.\n"
+            },
+            {
+              "type": "document",
+              "source": "<pdf omitted: n200_at82.pdf>"
+            },
+            {
+              "type": "text",
+              "text": "=== Page 82 of 200 ===\n                                                                             Sales Order Form\n\n Sold/Ship To:                                                                              Bill To:\n  Sold/Ship To Customer:                                                                    Bill To Customer:\n  Sold To Address:                                                                          Bill to Address:\n\n\n\n\n                                USA                                                                                    US\n\n  Primary Contact:                                                                          Billing Contact Name:\n\n  Primary Contact Email:                                                                    Billing Contact Email:\n\n\n\n  Start Date                    11/1/2023                                                   Up to Customer Employee Size: 25,000\n  End Date                      10/31/2026\n\n\n\n\n  SUBSCRIPTION SERVICE FEES\n\n\n            Product/Service                     Year 1                      Year 2                       Year 3\n  Talent Intelligence Platform               $255,000.00                 $255,000.00                   $255,000.00\n       Premium Edition\n        Talent Acquisition                    $75,000.00                  $75,000.00                   $75,000.00\n         Premium Support                      $50,700.00                  $50,700.00                   $50,700.00\n    TOTAL SUBSCRIPTION                       $380,700.00                 $380,700.00                   $380,700.00\n\n\n\n\nIMPLEMENTATION SERVICES\n\nAs applicable, Implementation Services and Fees are described in the Statement of Work (SOW). Customer will contract directly wit                s authorized certified\nimplementation partner, Blue Crab Consulting, for the professional services, including implementation services and training.\n\n\nINVOICING SCHEDULE.\nInvoices are sent Annually, in advance as of 11/1/2023. Payment is due Net 55 from the date of the invoice.\n\n\n                                       Invoice Date                                                                          Invoice Amount\n                                         11/1/2023                                                                                 $380,700.00\n                                         11/1/2024                                                                                 $380,700.00\n                                         11/1/2025                                                                                 $380,700.00\n                                TOTAL AMOUNT DUE                                                                               $1,142,100.00\n\n\n\n\nPURCHASE ORDER INFORMATION\n\nIs a Purchase Order (PO) required for the purchase or payment of the products on this Order Form? (Customer to complete)\n\nYes, send            .ai a copy of the PO or No, I will sign a PO exception form (Yes/No)\n\n\n\n\n                                                                                  Page 1 of 5\n\n=== Page 83 of 200 ===\nTERMS & CONDITIONS\n\nThe Subscription Services set forth above in this Sales Order Form provided by           AI Inc. (\u201c         \u201d) to the Customer listed above (\u201cCustomer\u201d) are governed\nby the terms and conditions of the Master Subscription Agreement or similar agreement for the Subscription Services and applicable Statement of Work signed by the\nparties, which are incorporated here by reference. Customer hereby confirms that Customer\u2019s Sold-To address is the place of use for sales tax purposes. On the End\nDate, the products and/or services purchased under this Sales Order Form will expire and shall not automatically renew.\n\n\nQUOTE/PRODUCT SPECIAL TERMS\n\n\n\nI HEREBY REPRESENT THAT: (I) I AM AN AUTHORIZED SIGNATORY FOR CUSTOMER; (II) I HAVE READ AND AGREED TO THE TERMS OF THIS\nORDER FORM; AND (III) BY SIGNING THIS ORDER FORM, I AM ENTERING INTO A LEGALLY BINDING CONTRACT.\n\n\n          Corporation                                                                              AI Inc.\n\n\nBy:                                                                                      By:\n\nName (Print):                                                                            Name (Print):\n\nTitle (Print):                                                                           Title (Print):\n\nDate (Print):                     12 October 2023                                        Date (Print):\n                                                                                                                     12 October 2023\n\n\n\n\n                                                                           Page 2 of 5\n\n=== Page 84 of 200 ===\n                 RODUCT DESCRIPTIONS\n\nThis document is for informational purposes only. No warranties of any kind are expressed or implied.                  is not\nresponsible for any actions taken in reliance thereon or any losses, direct or indirect, incurred as a result of the use of any of\nthe information.\n\n\n\nTalent Intelligence Platform Premium Edition\n\n             alent Intelligence Platform Premium Edition (\u201cPlatform\u201d) is the foundational layer of            applications, that integrates\nw t ex st ng HR/IT systems (HRIS, ATS, LMS, VMS, Email, SSO and others) and leverages the enterprise talent data and outcomes\nthrough artificial intelligence to derive insights and inform workflows across the talent lifecycle management. The Platform comes\nwith Enterprise grade security and privacy standards including ISO27001, SOC II Type II, and ISO 27701, and with encryption of\ndata at rest and in transit.The Platform supports multiple languages and has the ability to configure role-based access across the\norganization.The                Job Intelligence Engine (JIE) provides a framework for streamlining your talent practices. By replacing\narchaic, ineffective, inconsistent, and often-recycled job descriptions with centrally defined \u2018Roles\u2019, Job Intelligence Engine combines\nAI, automation, and human expertise to enable more transparent, effective, and consistent decision-making around acquiring,\ncultivating, and retaining talent.\n\n Functionality                                                                          Talent Intelligence Platform Premium Edition\n Enterprise Talent Network (leads, rediscovery)                                                                  \u2022\n Multi-language Support                                                                                          \u2022\n Calibration                                                                                                     \u2022\n Matching                                                                                                        \u2022\n Capability Matrix (predicating what candidates are capable of based on skills                                   \u2022\n and experience)\n Resume Parsing (parsing resumes across languages and formats)                                                   \u2022\n Talent Diversity                                                                                                \u2022\n Diversity Dashboard                                                                                             \u2022\n Candidate Masking                                                                                               \u2022\n Integrations (HRIS, ATS, LMS)                                                                                   \u2022\n Admin Console                                                                                                   \u2022\n Dashboard Authoring Console (enables users to build custom dashboards)                                          \u2022\n Workflow Automation                                                                                             \u2022\n Sandbox (1)                                                                                                     \u2022\n Job Intelligence Engine                                                                                         \u2022\n Role Library seeded with sample set (10-15) of calibrated Roles and ability to                                  \u2022\n create/ maintain additional roles manually\n Bulk Create and Update Roles using Admin Console (file-based)                                                   \u2022\n Skill Groups and Definitions                                                                                    \u2022\n                                                               Page 3 of 5\n"
+            }
+          ],
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_0153NasQWVtma6nA1rpeVtuN",
+          "content": [
+            {
+              "type": "text",
+              "text": "Pages 42-42 of 200. The PDF below contains exactly these pages; their text layer follows it.\n"
+            },
+            {
+              "type": "document",
+              "source": "<pdf omitted: n200_at82.pdf>"
+            },
+            {
+              "type": "text",
+              "text": "=== Page 42 of 200 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\nEXHIBIT D - SCHEDULE OF OPTIONAL SERVICES AND RATES\nThe following optional services are available on request at the rates below. They are not included in,\nand are not purchased under, any Order Form unless separately ordered in writing. Rates are list prices\nin USD and exclude applicable taxes.\n\nService                                                         Unit                     Qty              Rate (USD)\nProfessional Services - Implementation                          per hour                 1                $300.00\nProfessional Services - Training Workshop                       per day                  1                $3200.00\nData Analytics Add-on                                           per year                 1                $42,000.00\nPremium Support - Enhanced Tier                                 per year                 1                $66,500.00\nSandbox Environment                                             per year                 1                $15,000.00\nAdditional Data Storage (1 TB)                                  per month                1                $400.00\nDedicated Customer Success Manager                              per year                 1                $110,000.00\n\nRates may be adjusted annually upon sixty (60) days written notice. Minimum engagement for Professional\nServices is eight (8) hours.\n\n\n\n\n                                                                                                                  Page 42 of 200\n"
+            }
+          ],
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAIS7QQK2AIIEhgCKkAhyzCvaoqAIWkt9qEWeb4y9rIYkjq3aKhOJJkF1F524NyvSPsz3TjYh3IiqiIPMpf6hs+Z3t5zq7im601JPY0pMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAfLShtYGwgFSCAwQABokARGKArklA083BbauBCatBW9aCpX8Cs8NA083DL2jDPbrBCatIAIyBBJxzyU6BNZtwqNCBKn23qdKBKHEyApQBFoE2QXhVmAEaAFwAdoBYAoWcHJlZml4X2JlZm9yZV9ibG9ja192MRIg4Bo4DgxETpWZEx2pIgCcponc9aTyG6AX8nmd5guGhakiADIgwsATyGqckuIvlm89hhd2j4t6RMkCrcwJe/oeCYr7Th9IAxIMHEnqr3uSE7iDOscEGgwmBkcntgEOJDn6FpgiMEnxtp2cY7u4Z0BC9zV4nGi9LbGj8fjehz61wOWwzycPsZ8Ezy1Uh8LWrsSReqVQqSrBAfeqc6XzP/I8kHF6DLb8aWajNworQaDORgQVxG7AH28l9PPIbyoFPHO6HbU8HWNNIP/kMNeKanioX361UpUIPmkZGN2EBDuAhRjJnjnvGFZlSOeKGLZs12YNbbsickhNmLuapPgYrA66yIjvmNjUsusrLAqogvo4+wc8cJUkAopwOyahCNkYllTPWmR1mx0CV7qes2O5WhWtho9PJSF6lANVV+7c6sXxN2hJyLvZzGZfmGIW7ReRD0wE7B90FPv/DJMYAQ==",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_0185QprsiC35KQYyuNa7R2i5",
+          "input": {
+            "first": 85,
+            "last": 86
+          },
+          "name": "read_pages",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01M3QkRV91Mgub7EyB6jWhn6",
+          "input": {
+            "first": 22,
+            "last": 22
+          },
+          "name": "read_pages",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_0185QprsiC35KQYyuNa7R2i5",
+          "content": [
+            {
+              "type": "text",
+              "text": "Pages 85-86 of 200. The PDF below contains exactly these pages; their text layer follows it.\n"
+            },
+            {
+              "type": "document",
+              "source": "<pdf omitted: n200_at82.pdf>"
+            },
+            {
+              "type": "text",
+              "text": "=== Page 85 of 200 ===\nSanta Clara, CA 95054\n\n Globally Observed Roles / JIE Search                                                                          \u2022\n TA: Calibration Assistant                                                                                     \u2022\n JIE for TM: Assessments                                                                                       \u2022\n Data Warehouse                                                                                                \u2022\n Enterprise Key Management (BYOK) - [Add-on only]\n\n\nTalent Acquisition\n\n            alent Acquisition (TA) product line empowers global organizations to find and hire high potential and diverse talent, faster.\nTalent Acquisition helps streamline the candidate journey across every stage including: attract, engage & nurture, identify & source,\nscreen, interview and selection.\n\n                                   Functionality                                      Talent Acquisition (TA)\n Recruiter Experience in              App\n Core Talent Acquisition (Talent network, leads, rediscovery, candidate profile)                  \u2022\n Screening                                                                                        \u2022\n Candidate Engagement with Email                                                                  \u2022\n Smart Scheduling                                                                                 \u2022\n Interview Feedback                                                                               \u2022\n Video Interviewing integration                                                                   \u2022\n JIE role library and 10-15 sample roles                                                          \u2022\n Chrome Extension                                                                                 \u2022\n Dashboards (Talent Acquisition Analytics)                                                        \u2022\n Talent Communities                                                                               \u2022\n Smart Campaigns                                                                                  \u2022\n Events Recruiting                                                                                \u2022\n Candidate Engagement with SMS (includes 2500 messages per month)                                 \u2022\n Candidate Engagement with Whatsapp [Add-on only]\n Smart Referrals                                                                                  \u2022\n Internal Job Hub                                                                                 \u2022\n Masking                                                                                          \u2022\n Talent Experience (Personalized Career Site and more)\n Job Search (no resume)                                                                           \u2022\n\n                                                              Page 4 of 5\n\n=== Page 86 of 200 ===\nFind jobs using resume upload                                       \u2022\nSmart Apply (One-Click Apply) or Redirect                           \u2022\nPublish PCS to Google                                               \u2022\nXML Feeds                                                           \u2022\nAI-powered Job Insights                                             \u2022\nSocial Recruiting (\"share this job\")                                \u2022\nCareer Site Dashboards                                              \u2022\nLogged in PCS (Candidate Owned Profile)                             \u2022\nChatbot                                                             \u2022\nTalent Branding / CMS Via Red Crackle [Add-on only]\n\n\n\n\n                                                      Page 5 of 5\n"
+            }
+          ],
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01M3QkRV91Mgub7EyB6jWhn6",
+          "content": [
+            {
+              "type": "text",
+              "text": "Pages 22-22 of 200. The PDF below contains exactly these pages; their text layer follows it.\n"
+            },
+            {
+              "type": "document",
+              "source": "<pdf omitted: n200_at82.pdf>"
+            },
+            {
+              "type": "text",
+              "text": "=== Page 22 of 200 ===\nMASTER SERVICES AGREEMENT - CONFIDENTIAL\n\n\n\nAMENDMENT AND NOTICE LOG\nRef           Section           Effective    Notice Given   Description\nA-31          36.2.5            07/05/2017   09/05/2024     Cure period extended\nA-97          4.3.4             07/06/2016   10/27/2022     Definition amended\nA-33          37.4.3            12/09/2026   07/04/2015     Definition amended\nA-14          2.5.2             05/25/2017   03/14/2016     Exhibit replaced\nA-49          20.9.2            08/08/2022   11/17/2024     Cure period extended\nA-67          36.4.7            02/19/2019   10/13/2017     Cure period extended\nA-83          16.7.6            09/09/2025   02/23/2026     Notice address updated\nA-80          31.4.6            01/15/2022   06/22/2026     Clause restated\nA-60          21.4.7            02/07/2023   07/13/2017     Clause restated\nA-48          24.7.8            06/05/2018   11/07/2019     Notice address updated\nA-05          33.3.7            10/14/2025   02/16/2024     Definition amended\nA-43          37.9.6            06/23/2021   06/06/2022     Notice address updated\nA-87          11.7.6            02/21/2019   09/21/2018     Clause restated\nA-91          38.4.6            05/21/2019   03/27/2016     Exhibit replaced\nA-59          38.1.4            01/20/2023   07/24/2023     Cure period extended\nA-04          5.1.3             02/23/2018   01/06/2018     Clause restated\nA-34          16.1.1            02/03/2016   04/05/2022     Cure period extended\nA-10          34.6.6            05/14/2026   08/28/2019     Cure period extended\nA-08          6.5.3             05/03/2016   10/02/2026     Cure period extended\nA-17          22.6.9            08/05/2018   10/18/2015     Clause restated\nA-89          28.7.5            12/01/2018   05/26/2016     Definition amended\nA-13          5.3.4             12/15/2022   04/20/2016     Definition amended\nA-73          28.3.1            04/19/2018   02/27/2025     Definition amended\nA-31          17.9.7            09/18/2020   12/02/2015     Clause restated\nA-93          2.4.9             05/07/2025   12/23/2022     Exhibit replaced\nA-25          12.4.5            11/09/2017   03/02/2018     Definition amended\nA-99          22.5.7            06/17/2026   05/02/2024     Cure period extended\nA-12          19.1.6            09/08/2017   03/21/2018     Definition amended\nA-04          13.6.2            09/23/2023   06/22/2026     Definition amended\nA-68          20.2.2            11/03/2024   07/14/2022     Notice address updated\n\n\n\n\n                                                                                     Page 22 of 200\n"
+            }
+          ],
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISogYKqwMIEhgCKkBpGtsP+li9FA5Chzwv0CB3+H/+P57xYIPNNn1g+5wICm4F7yT7mui2jDioesWQabshYS0lgi0Mm0qBn4cT9jIBMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAffShtYGwgFkCBIQABo2ARGKArklA083BbauBCatBW9aCpX8Cs8NA083DL2jDPbrBCatCrQfCuv5A083DCdgDBnjBCatIAIyBBJxzyU6BNZtwqNCBKn23qdKBKHEyApQBFoE2QXhVmAGaAFwAdoBoAEKFnByZWZpeF9iZWZvcmVfYmxvY2tfdjESIBaO4N+zRfLQIp+vljg++w//HrBZvoQ+YovSdCKYYJ67IkAhyzCvaoqAIWkt9qEWeb4y9rIYkjq3aKhOJJkF1F524NyvSPsz3TjYh3IiqiIPMpf6hs+Z3t5zq7im601JPY0pMiDCwBPIapyS4i+Wbz2GF3aPi3pEyQKtzAl7+h4JivtOH0gDEgx7ROLwaPTofXy8/WAaDGm0b2GVLvlEYoSY+iIwd6XA1jKGRXAQQaSdEyzqZCmYcc0SiWz3PTYdAvwxDMj3vGopGM13bcwT8Nm6A4FKKqMCe97GugR4d3+zRs1ebYXZtJ1fDE1ybq1EWNQAI8ELdCwnuWBSpmxFiYF/uRuYx0/2j8PcGNvjnZp470g502jRNNjpvITo3W3GYzFtYRCHnsDqdMnzRSN2942f9KSzQ4dlPYfAUUB1JeCOtTTHgA5Rtwarlr2kakiHhftQeKXjJkM7enjhBSPPoKTm5YdJxvC3WYW6RT5bgKSjG65NotM+Vb/PTDpICdos4lOiQESg/4dkkYmJQDBrmXMGgkXonQNoIP6VQrCRVPvnSdE5PW+TxyPD2DXYh7iH9VEAPw9fksWxv2xY02Y7VkiVrvbd6Af5rrzBOq2RP8AJojLCgPaKbt/+pxga1R5/rPxV0+f96FWyzoYM59zvN0MKYPMoaBsbQEczGAE=",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01GvUruTygGLx4fVBjYD2X3b",
+          "input": {
+            "query": "Order Form"
+          },
+          "name": "search_document",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01FJf8P8UwtVitTrWVvhUFdd",
+          "input": {
+            "query": "change order"
+          },
+          "name": "search_document",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01GvUruTygGLx4fVBjYD2X3b",
+          "content": "8 matching line(s) (exact) on 5 page(s): 2, 42, 82, 83, 91\np.2: Exhibit C - Sales Order Form  ..............................  82\np.42: and are not purchased under, any Order Form unless separately ordered in writing. Rates are list prices\np.82: Sales Order Form\np.82: Is a Purchase Order (PO) required for the purchase or payment of the products on this Order Form? (Customer to complete)\np.83: The Subscription Services set forth above in this Sales Order Form provided by  AI Inc. (\u201c  \u201d) to the Customer listed above (\u201cCustomer\u201d) are governed\np.83: Date, the products and/or services purchased under this Sales Order Form will expire and shall not automatically renew.\np.83: ORDER FORM; AND (III) BY SIGNING THIS ORDER FORM, I AM ENTERING INTO A LEGALLY BINDING CONTRACT.\np.91: and are not purchased under, any Order Form unless separately ordered in writing. Rates are list prices",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01FJf8P8UwtVitTrWVvhUFdd",
+          "content": "No matches for 'change order' in the 200-page document.",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_014iiw2Bchs9sKtxH1Yyw7JJ",
+          "input": {
+            "expression": "255000*3"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01PD3JB3dWgyUTrrw75kuz6F",
+          "input": {
+            "expression": "75000*3"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01SQPSi69NajvYwSnGNi9cVN",
+          "input": {
+            "expression": "50700*3"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01UwNJyeSP5yXDNfEjiG6ynR",
+          "input": {
+            "expression": "765000+225000+152100"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_014iiw2Bchs9sKtxH1Yyw7JJ",
+          "content": "255000*3 = 765000 (rounded to cents: 765000.00)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01PD3JB3dWgyUTrrw75kuz6F",
+          "content": "75000*3 = 225000 (rounded to cents: 225000.00)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01SQPSi69NajvYwSnGNi9cVN",
+          "content": "50700*3 = 152100 (rounded to cents: 152100.00)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01UwNJyeSP5yXDNfEjiG6ynR",
+          "content": "765000+225000+152100 = 1142100 (rounded to cents: 1142100.00)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISxgQK3AMIEhgCKkD/IKvfcliLNObkpTYS+tl9OL7coTAN0cLpDFndk9vmHe00ge2nnXJqztKXVZuROZUTiHpLqf5fD6SCI71Jmq5SMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAYrThtYGwgGUAQgiEAAaZgERigK5JQNPNwW2rgQmrQVvWgqV/ArPDQNPNwy9owz26wQmrQq0Hwrr+QNPNwwnYAwZ4wQmrQp73AqzDQNPNwtL4wtvvAQmrQqkQArNHwqSegqQ1QNPNwvuCQv6OQtmMQs+QgQmrSACMgQScc8lOgTWbcKjQgSp9t6nSgShxMgKUARaBNkF4VZgCmgBcAHaAaABChZwcmVmaXhfYmVmb3JlX2Jsb2NrX3YxEiB+5PNFJ/Sb52k42xVUUHSCY4eMVLU80iFn7A/PlpnAmiJAKLtvhs2hU+3lqjZQf/r/9rFwSYmcNgAY1QdFs+za+pfOuSQqFfCto48qDv5KSaaess1G6yJz+ouPCJ6ZGj4cPTIgwsATyGqckuIvlm89hhd2j4t6RMkCrcwJe/oeCYr7Th9IAxIMTraOctvi7jCVy2RKGgz2hZpO8k0DtlLV+1siMIO4rl9TMQf9EXmcRA9cMPTQxf1p/2sb7uEtLGk0pDFQ5LF7oE8ppAj0CDOWdorxLSoX39qkTzm0ixCRtyXUhVC9mOh+UtmRgQEYAQ==",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01SKjnhMfosVXSBRrtnPugdA",
+          "input": {
+            "order_form": {
+              "customer_name": null,
+              "vendor_name": null,
+              "effective_date": null,
+              "contract_signed_date_buying_company": "2023-10-12",
+              "contract_signed_date_selling_company": "2023-10-12",
+              "currency": "USD",
+              "grand_total": 1142100,
+              "grand_total_label": "TOTAL AMOUNT DUE",
+              "evidence": {
+                "contract_signed_date_buying_company": "Corporation ... Date (Print): 12 October 2023",
+                "contract_signed_date_selling_company": "AI Inc. ... Date (Print): 12 October 2023",
+                "currency": "Rates are list prices in USD",
+                "grand_total": "TOTAL AMOUNT DUE $1,142,100.00",
+                "grand_total_label": "TOTAL AMOUNT DUE"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "SKU-001",
+                "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+                "currency": "USD",
+                "total_listed_value": 765000,
+                "quantity": 1,
+                "unit_price": 255000,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 255000
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 255000
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 255000
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "recurring",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55",
+                "special_notes": "Up to Customer Employee Size: 25,000; on the End Date the products/services will expire and shall not automatically renew.",
+                "evidence": {
+                  "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$255,000.00 $255,000.00 $255,000.00",
+                  "quantity": "Talent Intelligence Platform Premium Edition",
+                  "unit_price": "Year 1 ... $255,000.00",
+                  "unit_price_period": "Product/Service Year 1 Year 2 Year 3",
+                  "period_amounts": "Year 1 Year 2 Year 3 ... $255,000.00 $255,000.00 $255,000.00",
+                  "service_start_date": "Start Date 11/1/2023",
+                  "service_end_date": "End Date 10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice.",
+                  "special_notes": "Up to Customer Employee Size: 25,000 ... On the End Date, the products and/or services purchased under this Sales Order Form will expire and shall not automatically renew."
+                }
+              },
+              {
+                "sku_code": "SKU-002",
+                "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+                "currency": "USD",
+                "total_listed_value": 225000,
+                "quantity": 1,
+                "unit_price": 75000,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 75000
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 75000
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 75000
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "recurring",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55",
+                "special_notes": "Candidate Engagement with SMS includes 2500 messages per month; Whatsapp engagement and Talent Branding / CMS are add-on only.",
+                "evidence": {
+                  "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$75,000.00 $75,000.00 $75,000.00",
+                  "quantity": "Talent Acquisition",
+                  "unit_price": "Year 1 ... $75,000.00",
+                  "unit_price_period": "Product/Service Year 1 Year 2 Year 3",
+                  "period_amounts": "Year 1 Year 2 Year 3 ... $75,000.00 $75,000.00 $75,000.00",
+                  "service_start_date": "Start Date 11/1/2023",
+                  "service_end_date": "End Date 10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice.",
+                  "special_notes": "Candidate Engagement with SMS (includes 2500 messages per month)"
+                }
+              },
+              {
+                "sku_code": "SKU-003",
+                "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+                "currency": "USD",
+                "total_listed_value": 152100,
+                "quantity": 1,
+                "unit_price": 50700,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 50700
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 50700
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 50700
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "recurring",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$50,700.00 $50,700.00 $50,700.00",
+                  "quantity": "Premium Support",
+                  "unit_price": "Year 1 ... $50,700.00",
+                  "unit_price_period": "Product/Service Year 1 Year 2 Year 3",
+                  "period_amounts": "Year 1 Year 2 Year 3 ... $50,700.00 $50,700.00 $50,700.00",
+                  "service_start_date": "Start Date 11/1/2023",
+                  "service_end_date": "End Date 10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "SKU-004",
+              "SKU-005"
+            ],
+            "ambiguities": [],
+            "inferred_dates": [],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01SKjnhMfosVXSBRrtnPugdA",
+          "content": "Submission 1/3 not accepted.\nWarnings (fix if wrong; if correct as written, resubmit with an override {check, item_index, reason}):\n- [missing_value] item None: order_form.effective_date is null. If the document states it, extract it; if it is genuinely ambiguous, add an ambiguity entry; if the document does not state it, override this warning with that reason. A null here is flagged for review either way. You were shown only part of this long document: use search_document and read_pages to look for it before concluding.",
+          "is_error": true
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_0127phUfYnJUmBYjHupuDVaM",
+          "input": {
+            "query": "effective as of"
+          },
+          "name": "search_document",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_019HMYCbxfGJrXSuN3owUKrT",
+          "input": {
+            "query": "Effective Date"
+          },
+          "name": "search_document",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_0127phUfYnJUmBYjHupuDVaM",
+          "content": "No matches for 'effective as of' in the 200-page document.",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_019HMYCbxfGJrXSuN3owUKrT",
+          "content": "No matches for 'Effective Date' in the 200-page document.",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAIShQUK9AMIEhgCKkCUZ6z2HYQecIggmx0bXnR/HV9qc/dsZxovywvpzQfFFWreMutVeE3s9ykGhyRw9CqqGgkMknCQu5yG7g5kFnPcMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAaDThtYGwgGsAQgsEAIafgNPNwW2rgQmrQVvWgqV/ArPDQNPNwy9owz26wQmrQq0Hwrr+QNPNwwnYAwZ4wQmrQp73AqzDQNPNwtL4wtvvAQmrQqkQArNHwqSegqQ1QNPNwvuCQv6OQtmMQs+QgQmrQqIOANPNwuFAQQmrQo8dQqVUANPNwtqMgsP1AQmrSACMgQScc8lOgTWbcKjQgSp9t6nSgShxMgKUARaBNkF4VZgDmgBcAHaAaABChZwcmVmaXhfYmVmb3JlX2Jsb2NrX3YxEiC1/eV7/5OtV2cEXDc/abW4LEIE/hkWaKOluRUo4UacQyJA/yCr33JYizTm5KU2EvrZfTi+3KEwDdHC6QxZ3ZPb5h3tNIHtp51yas7Sl1WbkTmVE4h6S6n+Xw+kgiO9SZquUjIgwsATyGqckuIvlm89hhd2j4t6RMkCrcwJe/oeCYr7Th9IAxIMhH/zbh+KpJ5MTrmpGgzw81fmlm2zqxGmaOYiMO4H+alfVXwEW3FvIza22VlvHE31nGI+JwE0TM+/aMPKEc+/UgDCjBIFt4Uz9qb1qyo++dOYD+58XhTxybSfkU4jUqFniVVAu7/EQ0Zj9pbIymNXF2hQgbdr6mlKmEHDlZqnJyGvHeRR9MzzJpfNaEQYAQ==",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_012DnjFscK6Zkg3yXaEsi9bo",
+          "input": {
+            "order_form": {
+              "customer_name": null,
+              "vendor_name": null,
+              "effective_date": null,
+              "contract_signed_date_buying_company": "2023-10-12",
+              "contract_signed_date_selling_company": "2023-10-12",
+              "currency": "USD",
+              "grand_total": 1142100,
+              "grand_total_label": "TOTAL AMOUNT DUE",
+              "evidence": {
+                "contract_signed_date_buying_company": "Corporation ... Date (Print): 12 October 2023",
+                "contract_signed_date_selling_company": "AI Inc. ... Date (Print): 12 October 2023",
+                "currency": "Rates are list prices in USD",
+                "grand_total": "TOTAL AMOUNT DUE $1,142,100.00",
+                "grand_total_label": "TOTAL AMOUNT DUE"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "SKU-001",
+                "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+                "currency": "USD",
+                "total_listed_value": 765000,
+                "quantity": 1,
+                "unit_price": 255000,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 255000
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 255000
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 255000
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "recurring",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55",
+                "special_notes": "Up to Customer Employee Size: 25,000; on the End Date the products/services will expire and shall not automatically renew.",
+                "evidence": {
+                  "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$255,000.00 $255,000.00 $255,000.00",
+                  "quantity": "Talent Intelligence Platform Premium Edition",
+                  "unit_price": "Year 1 ... $255,000.00",
+                  "unit_price_period": "Product/Service Year 1 Year 2 Year 3",
+                  "period_amounts": "Year 1 Year 2 Year 3 ... $255,000.00 $255,000.00 $255,000.00",
+                  "service_start_date": "Start Date 11/1/2023",
+                  "service_end_date": "End Date 10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice.",
+                  "special_notes": "Up to Customer Employee Size: 25,000 ... On the End Date, the products and/or services purchased under this Sales Order Form will expire and shall not automatically renew."
+                }
+              },
+              {
+                "sku_code": "SKU-002",
+                "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+                "currency": "USD",
+                "total_listed_value": 225000,
+                "quantity": 1,
+                "unit_price": 75000,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 75000
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 75000
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 75000
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "recurring",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55",
+                "special_notes": "Candidate Engagement with SMS includes 2500 messages per month; Whatsapp engagement and Talent Branding / CMS are add-on only.",
+                "evidence": {
+                  "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$75,000.00 $75,000.00 $75,000.00",
+                  "quantity": "Talent Acquisition",
+                  "unit_price": "Year 1 ... $75,000.00",
+                  "unit_price_period": "Product/Service Year 1 Year 2 Year 3",
+                  "period_amounts": "Year 1 Year 2 Year 3 ... $75,000.00 $75,000.00 $75,000.00",
+                  "service_start_date": "Start Date 11/1/2023",
+                  "service_end_date": "End Date 10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice.",
+                  "special_notes": "Candidate Engagement with SMS (includes 2500 messages per month)"
+                }
+              },
+              {
+                "sku_code": "SKU-003",
+                "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+                "currency": "USD",
+                "total_listed_value": 152100,
+                "quantity": 1,
+                "unit_price": 50700,
+                "unit_price_period": "year",
+                "period_amounts": [
+                  {
+                    "label": "Year 1",
+                    "amount": 50700
+                  },
+                  {
+                    "label": "Year 2",
+                    "amount": 50700
+                  },
+                  {
+                    "label": "Year 3",
+                    "amount": 50700
+                  }
+                ],
+                "discount": null,
+                "service_start_date": "2023-11-01",
+                "service_end_date": "2026-10-31",
+                "invoicing_schedule_type": "recurring",
+                "invoicing_frequency": "yearly",
+                "payment_terms": "Net 55",
+                "special_notes": null,
+                "evidence": {
+                  "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+                  "currency": "Rates are list prices in USD",
+                  "total_listed_value": "$50,700.00 $50,700.00 $50,700.00",
+                  "quantity": "Premium Support",
+                  "unit_price": "Year 1 ... $50,700.00",
+                  "unit_price_period": "Product/Service Year 1 Year 2 Year 3",
+                  "period_amounts": "Year 1 Year 2 Year 3 ... $50,700.00 $50,700.00 $50,700.00",
+                  "service_start_date": "Start Date 11/1/2023",
+                  "service_end_date": "End Date 10/31/2026",
+                  "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "invoicing_frequency": "Invoices are sent Annually, in advance as of 11/1/2023",
+                  "payment_terms": "Payment is due Net 55 from the date of the invoice."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "SKU-004",
+              "SKU-005"
+            ],
+            "ambiguities": [],
+            "inferred_dates": [],
+            "overrides": [
+              {
+                "check": "missing_value",
+                "item_index": null,
+                "reason": "The Sales Order Form states only a Start Date (11/1/2023) and End Date (10/31/2026) plus signature dates; no 'effective date' is stated anywhere in the document (searches for 'Effective Date' and 'effective as of' return no matches in the order form or MSA body)."
+              }
+            ]
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_012DnjFscK6Zkg3yXaEsi9bo",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": null,
+      "vendor_name": null,
+      "effective_date": null,
+      "contract_signed_date_buying_company": "2023-10-12",
+      "contract_signed_date_selling_company": "2023-10-12",
+      "currency": "USD",
+      "grand_total": 1142100.0,
+      "grand_total_label": "TOTAL AMOUNT DUE",
+      "evidence": {
+        "contract_signed_date_buying_company": "Corporation ... Date (Print): 12 October 2023",
+        "contract_signed_date_selling_company": "AI Inc. ... Date (Print): 12 October 2023",
+        "currency": "Rates are list prices in USD",
+        "grand_total": "TOTAL AMOUNT DUE $1,142,100.00",
+        "grand_total_label": "TOTAL AMOUNT DUE"
+      },
+      "ambiguous_fields": {},
+      "missing_fields": {
+        "effective_date": {
+          "status": "not_found",
+          "reason": "the model's reason: The Sales Order Form states only a Start Date (11/1/2023) and End Date (10/31/2026) plus signature dates; no 'effective date' is stated anywhere in the document (searches for 'Effective Date' and 'effective as of' return no matches in the order form or MSA body)."
+        }
+      },
+      "inferred_dates": {}
+    },
+    "contract_items_count": 3,
+    "contract_items": [
+      {
+        "name": "Talent Intelligence Platform Premium Edition",
+        "sku_id": "SKU-001",
+        "sku_code": "SKU-001",
+        "currency": "USD",
+        "total_listed_value": 765000.0,
+        "quantity": 1.0,
+        "unit_price": 255000.0,
+        "unit_price_period": "year",
+        "period_amounts": [
+          {
+            "label": "Year 1",
+            "amount": 255000.0
+          },
+          {
+            "label": "Year 2",
+            "amount": 255000.0
+          },
+          {
+            "label": "Year 3",
+            "amount": 255000.0
+          }
+        ],
+        "discount": null,
+        "service_start_date": "2023-11-01",
+        "service_end_date": "2026-10-31",
+        "invoicing_schedule_type": "recurring",
+        "invoicing_frequency": {
+          "value": "yearly",
+          "source": "stated",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 55",
+        "special_notes": "Up to Customer Employee Size: 25,000; on the End Date the products/services will expire and shall not automatically renew.",
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+        "evidence": {
+          "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+          "currency": "Rates are list prices in USD",
+          "total_listed_value": "$255,000.00 $255,000.00 $255,000.00",
+          "quantity": "Talent Intelligence Platform Premium Edition",
+          "unit_price": "Year 1 ... $255,000.00",
+          "unit_price_period": "Product/Service Year 1 Year 2 Year 3",
+          "period_amounts": "Year 1 Year 2 Year 3 ... $255,000.00 $255,000.00 $255,000.00",
+          "service_start_date": "Start Date 11/1/2023",
+          "service_end_date": "End Date 10/31/2026",
+          "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+          "invoicing_frequency": "Invoices are sent Annually, in advance as of 11/1/2023",
+          "payment_terms": "Payment is due Net 55 from the date of the invoice.",
+          "special_notes": "Up to Customer Employee Size: 25,000 ... On the End Date, the products and/or services purchased under this Sales Order Form will expire and shall not automatically renew."
+        }
+      },
+      {
+        "name": "Talent Acquisition",
+        "sku_id": "SKU-002",
+        "sku_code": "SKU-002",
+        "currency": "USD",
+        "total_listed_value": 225000.0,
+        "quantity": 1.0,
+        "unit_price": 75000.0,
+        "unit_price_period": "year",
+        "period_amounts": [
+          {
+            "label": "Year 1",
+            "amount": 75000.0
+          },
+          {
+            "label": "Year 2",
+            "amount": 75000.0
+          },
+          {
+            "label": "Year 3",
+            "amount": 75000.0
+          }
+        ],
+        "discount": null,
+        "service_start_date": "2023-11-01",
+        "service_end_date": "2026-10-31",
+        "invoicing_schedule_type": "recurring",
+        "invoicing_frequency": {
+          "value": "yearly",
+          "source": "stated",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 55",
+        "special_notes": "Candidate Engagement with SMS includes 2500 messages per month; Whatsapp engagement and Talent Branding / CMS are add-on only.",
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+        "evidence": {
+          "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+          "currency": "Rates are list prices in USD",
+          "total_listed_value": "$75,000.00 $75,000.00 $75,000.00",
+          "quantity": "Talent Acquisition",
+          "unit_price": "Year 1 ... $75,000.00",
+          "unit_price_period": "Product/Service Year 1 Year 2 Year 3",
+          "period_amounts": "Year 1 Year 2 Year 3 ... $75,000.00 $75,000.00 $75,000.00",
+          "service_start_date": "Start Date 11/1/2023",
+          "service_end_date": "End Date 10/31/2026",
+          "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+          "invoicing_frequency": "Invoices are sent Annually, in advance as of 11/1/2023",
+          "payment_terms": "Payment is due Net 55 from the date of the invoice.",
+          "special_notes": "Candidate Engagement with SMS (includes 2500 messages per month)"
+        }
+      },
+      {
+        "name": "Premium Support",
+        "sku_id": "SKU-003",
+        "sku_code": "SKU-003",
+        "currency": "USD",
+        "total_listed_value": 152100.0,
+        "quantity": 1.0,
+        "unit_price": 50700.0,
+        "unit_price_period": "year",
+        "period_amounts": [
+          {
+            "label": "Year 1",
+            "amount": 50700.0
+          },
+          {
+            "label": "Year 2",
+            "amount": 50700.0
+          },
+          {
+            "label": "Year 3",
+            "amount": 50700.0
+          }
+        ],
+        "discount": null,
+        "service_start_date": "2023-11-01",
+        "service_end_date": "2026-10-31",
+        "invoicing_schedule_type": "recurring",
+        "invoicing_frequency": {
+          "value": "yearly",
+          "source": "stated",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 55",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+        "evidence": {
+          "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+          "currency": "Rates are list prices in USD",
+          "total_listed_value": "$50,700.00 $50,700.00 $50,700.00",
+          "quantity": "Premium Support",
+          "unit_price": "Year 1 ... $50,700.00",
+          "unit_price_period": "Product/Service Year 1 Year 2 Year 3",
+          "period_amounts": "Year 1 Year 2 Year 3 ... $50,700.00 $50,700.00 $50,700.00",
+          "service_start_date": "Start Date 11/1/2023",
+          "service_end_date": "End Date 10/31/2026",
+          "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+          "invoicing_frequency": "Invoices are sent Annually, in advance as of 11/1/2023",
+          "payment_terms": "Payment is due Net 55 from the date of the invoice."
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "SKU-004",
+      "SKU-005"
+    ],
+    "overrides": [
+      {
+        "check": "missing_value",
+        "item_index": null,
+        "reason": "The Sales Order Form states only a Start Date (11/1/2023) and End Date (10/31/2026) plus signature dates; no 'effective date' is stated anywhere in the document (searches for 'Effective Date' and 'effective as of' return no matches in the order form or MSA body)."
+      }
+    ],
+    "needs_review": true,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": 0,
+        "message": "quotes for ['source_row'] were not found verbatim in the text layer"
+      },
+      {
+        "severity": "note",
+        "check": "missing_value",
+        "item_index": null,
+        "message": "order_form.effective_date is blank: the model's reason: The Sales Order Form states only a Start Date (11/1/2023) and End Date (10/31/2026) plus signature dates; no 'effective date' is stated anywhere in the document (searches for 'Effective Date' and 'effective as of' return no matches in the order form or MSA body)."
+      }
+    ],
+    "meta": {
+      "source_pdf": "n200_at82.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 7,
+      "submissions": 2,
+      "stop_note": null,
+      "seconds": 74.0,
+      "usage": {
+        "input_tokens": 14,
+        "output_tokens": 7175,
+        "cache_creation_input_tokens": 33171,
+        "cache_read_input_tokens": 147506
+      },
+      "cost_usd": 0.4605,
+      "long_document": {
+        "mode": "outline",
+        "pages_total": 200,
+        "outline_lines": 25,
+        "pages_sent": null,
+        "pages_read": [
+          82,
+          83,
+          84,
+          42,
+          85,
+          86,
+          22
+        ],
+        "pages_seen": [
+          22,
+          42,
+          82,
+          83,
+          84,
+          85,
+          86
+        ],
+        "searches": 4
+      }
+    }
+  }
+}

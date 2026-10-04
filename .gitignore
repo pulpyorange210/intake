@@ -4,3 +4,4 @@ __pycache__/
 runs/*.log
 runs/smoke/
 
+edge_cases/long_document/generated/

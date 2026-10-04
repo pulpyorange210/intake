@@ -1,0 +1,274 @@
+{
+  "order_form": {
+    "customer_name": null,
+    "vendor_name": null,
+    "effective_date": null,
+    "contract_signed_date_buying_company": "2023-10-12",
+    "contract_signed_date_selling_company": "2023-10-12",
+    "currency": "USD",
+    "grand_total": 1125000.0,
+    "grand_total_label": "TOTAL AMOUNT DUE",
+    "evidence": {
+      "contract_signed_date_buying_company": "Corporation ... Date (Print): 12 October 2023",
+      "contract_signed_date_selling_company": "AI Inc. ... Date (Print): 12 October 2023",
+      "currency": "$380,700.00 ... Rates are list prices in USD",
+      "grand_total": "the Total Amount Due under the Order Form is $1,125,000.00",
+      "grand_total_label": "TOTAL AMOUNT DUE"
+    },
+    "ambiguous_fields": {},
+    "missing_fields": {
+      "effective_date": {
+        "status": "not_found",
+        "reason": "the model's reason: The Sales Order Form states only a Start Date (11/1/2023) and End Date (10/31/2026) and signature dates; nowhere does the document state an effective date for the order form (a full-text search for 'effective date' returns no match in the order form pages)."
+      }
+    },
+    "inferred_dates": {}
+  },
+  "contract_items_count": 3,
+  "contract_items": [
+    {
+      "name": "Talent Intelligence Platform Premium Edition",
+      "sku_id": "SKU-001",
+      "sku_code": "SKU-001",
+      "currency": "USD",
+      "total_listed_value": 765000.0,
+      "quantity": 1.0,
+      "unit_price": 255000.0,
+      "unit_price_period": "year",
+      "period_amounts": [
+        {
+          "label": "Year 1",
+          "amount": 255000.0
+        },
+        {
+          "label": "Year 2",
+          "amount": 255000.0
+        },
+        {
+          "label": "Year 3",
+          "amount": 255000.0
+        }
+      ],
+      "discount": null,
+      "service_start_date": "2023-11-01",
+      "service_end_date": "2026-10-31",
+      "invoicing_schedule_type": "recurring",
+      "invoicing_frequency": {
+        "value": "yearly",
+        "source": "stated",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 55",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+      "evidence": {
+        "source_row": "Talent Intelligence Platform Premium Edition $255,000.00 $255,000.00 $255,000.00",
+        "currency": "$255,000.00",
+        "total_listed_value": "Year 1 Year 2 Year 3 ... $255,000.00 $255,000.00 $255,000.00",
+        "quantity": "Talent Intelligence Platform Premium Edition",
+        "unit_price": "$255,000.00",
+        "unit_price_period": "Year 1",
+        "period_amounts": "Year 1 Year 2 Year 3",
+        "service_start_date": "Start Date 11/1/2023",
+        "service_end_date": "End Date 10/31/2026",
+        "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+        "invoicing_frequency": "Invoices are sent Annually, in advance",
+        "payment_terms": "Payment is due Net 55 from the date of the invoice."
+      }
+    },
+    {
+      "name": "Talent Acquisition",
+      "sku_id": "SKU-002",
+      "sku_code": "SKU-002",
+      "currency": "USD",
+      "total_listed_value": 225000.0,
+      "quantity": 1.0,
+      "unit_price": 75000.0,
+      "unit_price_period": "year",
+      "period_amounts": [
+        {
+          "label": "Year 1",
+          "amount": 75000.0
+        },
+        {
+          "label": "Year 2",
+          "amount": 75000.0
+        },
+        {
+          "label": "Year 3",
+          "amount": 75000.0
+        }
+      ],
+      "discount": null,
+      "service_start_date": "2023-11-01",
+      "service_end_date": "2026-10-31",
+      "invoicing_schedule_type": "recurring",
+      "invoicing_frequency": {
+        "value": "yearly",
+        "source": "stated",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 55",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+      "evidence": {
+        "source_row": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+        "currency": "$75,000.00",
+        "total_listed_value": "Talent Acquisition $75,000.00 $75,000.00 $75,000.00",
+        "quantity": "Talent Acquisition",
+        "unit_price": "$75,000.00",
+        "unit_price_period": "Year 1",
+        "period_amounts": "Year 1 Year 2 Year 3",
+        "service_start_date": "Start Date 11/1/2023",
+        "service_end_date": "End Date 10/31/2026",
+        "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+        "invoicing_frequency": "Invoices are sent Annually, in advance",
+        "payment_terms": "Payment is due Net 55 from the date of the invoice."
+      }
+    },
+    {
+      "name": "Premium Support",
+      "sku_id": "SKU-003",
+      "sku_code": "SKU-003",
+      "currency": "USD",
+      "total_listed_value": 135000.0,
+      "quantity": 1.0,
+      "unit_price": 45000.0,
+      "unit_price_period": "year",
+      "period_amounts": [
+        {
+          "label": "Year 1",
+          "amount": 45000.0
+        },
+        {
+          "label": "Year 2",
+          "amount": 45000.0
+        },
+        {
+          "label": "Year 3",
+          "amount": 45000.0
+        }
+      ],
+      "discount": null,
+      "service_start_date": "2023-11-01",
+      "service_end_date": "2026-10-31",
+      "invoicing_schedule_type": "recurring",
+      "invoicing_frequency": {
+        "value": "yearly",
+        "source": "stated",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 55",
+      "special_notes": "Amendment No. 1 (10/27/2023) replaced the annual Premium Support fee of $50,700.00 with $45,000.00 per year for each of Year 1, Year 2 and Year 3, reducing the annual Total Subscription to $375,000.00.",
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+      "evidence": {
+        "source_row": "Premium Support $50,700.00 $50,700.00 $50,700.00",
+        "currency": "$45,000.00",
+        "total_listed_value": "The annual fee for Premium Support ... is replaced with $45,000.00 per year for each of Year 1, Year 2 and Year 3",
+        "quantity": "Premium Support",
+        "unit_price": "replaced with $45,000.00 per year",
+        "unit_price_period": "$45,000.00 per year",
+        "period_amounts": "$45,000.00 per year for each of Year 1, Year 2 and Year 3",
+        "service_start_date": "Start Date 11/1/2023",
+        "service_end_date": "End Date 10/31/2026",
+        "invoicing_schedule_type": "Invoices are sent Annually, in advance as of 11/1/2023",
+        "invoicing_frequency": "Invoices are sent Annually, in advance",
+        "payment_terms": "Payment is due Net 55 from the date of the invoice.",
+        "special_notes": "AMENDMENT NO. 1 TO SALES ORDER FORM ... entered into as of 10/27/2023 ... is replaced with $45,000.00 per year"
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "SKU-004",
+    "SKU-005"
+  ],
+  "overrides": [
+    {
+      "check": "missing_value",
+      "item_index": null,
+      "reason": "The Sales Order Form states only a Start Date (11/1/2023) and End Date (10/31/2026) and signature dates; nowhere does the document state an effective date for the order form (a full-text search for 'effective date' returns no match in the order form pages)."
+    }
+  ],
+  "needs_review": true,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": 0,
+      "message": "quotes for ['source_row'] were not found verbatim in the text layer"
+    },
+    {
+      "severity": "note",
+      "check": "missing_value",
+      "item_index": null,
+      "message": "order_form.effective_date is blank: the model's reason: The Sales Order Form states only a Start Date (11/1/2023) and End Date (10/31/2026) and signature dates; nowhere does the document state an effective date for the order form (a full-text search for 'effective date' returns no match in the order form pages)."
+    }
+  ],
+  "meta": {
+    "source_pdf": "n1000_scattered.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 13,
+    "submissions": 2,
+    "stop_note": null,
+    "seconds": 113.3,
+    "usage": {
+      "input_tokens": 26,
+      "output_tokens": 8641,
+      "cache_creation_input_tokens": 48053,
+      "cache_read_input_tokens": 400493
+    },
+    "cost_usd": 0.7167,
+    "long_document": {
+      "mode": "outline",
+      "pages_total": 1000,
+      "outline_lines": 32,
+      "pages_sent": null,
+      "pages_read": [
+        120,
+        415,
+        416,
+        640,
+        880,
+        955,
+        336,
+        982,
+        417,
+        418,
+        53,
+        850
+      ],
+      "pages_seen": [
+        53,
+        120,
+        336,
+        415,
+        416,
+        417,
+        418,
+        640,
+        850,
+        880,
+        955,
+        982
+      ],
+      "searches": 10
+    }
+  }
+}

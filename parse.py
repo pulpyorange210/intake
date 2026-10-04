@@ -15,7 +15,7 @@ from pathlib import Path
 
 import anthropic
 
-from ofparser.agent import DEFAULT_MODEL, parse_order_form
+from ofparser.agent import DEFAULT_MODEL, LONG_DOC_MODES, parse_order_form
 from ofparser.catalog import Catalog
 
 
@@ -27,6 +27,9 @@ def main() -> int:
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--effort", default="high", choices=["low", "medium", "high", "xhigh", "max"])
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--long-doc", default="outline", choices=LONG_DOC_MODES,
+                    help="how documents over 30 pages are shown: a code-built outline the model navigates "
+                         "(default), or the highest-scoring pages sent up front")
     args = ap.parse_args()
 
     run_dir = args.out or Path("runs") / dt.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -36,7 +39,8 @@ def main() -> int:
 
     def work(pdf: Path):
         out = parse_order_form(pdf, catalog, client, model=args.model, effort=args.effort,
-                               transcript_path=run_dir / "transcripts" / f"{pdf.stem}.json")
+                               transcript_path=run_dir / "transcripts" / f"{pdf.stem}.json",
+                               long_doc=args.long_doc)
         (run_dir / "outputs" / f"{pdf.stem}.json").write_text(json.dumps(out, indent=2))
         return pdf, out
 
@@ -58,7 +62,7 @@ def main() -> int:
                   f"{meta['seconds']}s, ${meta['cost_usd']}{flag}")
 
     (run_dir / "run_meta.json").write_text(json.dumps({
-        "model": args.model, "effort": args.effort, "catalog": str(args.catalog),
+        "model": args.model, "effort": args.effort, "catalog": str(args.catalog), "long_doc": args.long_doc,
         "n_pdfs": len(args.pdfs), "failures": failures, "total_cost_usd": round(total_cost, 4),
     }, indent=2))
     print(f"\nRun dir: {run_dir}  |  total cost ${total_cost:.2f}  |  failures: {len(failures)}")
