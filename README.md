@@ -123,6 +123,8 @@ PDF -> text layer + the PDF itself -> agent loop -> checker -> post-processing -
   invoicing frequency: use it if the document states it, otherwise infer it from how the price
   is split (e.g. four quarterly prices -> quarterly), and mark it ambiguous when two labels fit. It also
   notes every empty important field and sets `needs_review` for it.
+- **`ofparser/pages.py`**: only for documents over 30 pages. Scores each page, builds the outline the agent
+  starts from, and serves the `search_document` and `read_pages` tools.
 - **`ofparser/schema.py`**: the output structure (Pydantic models).
 - **`ofparser/compute.py`**: the arithmetic behind the `compute` tool.
 - **`eval.py`**: scores a run against the ground truth. It matches items by SKU, compares fields
@@ -243,6 +245,35 @@ Two small differences: payment terms are quoted in full ("Net 55 from the date o
 "Net 55"), and a note printed once at the top of the form ("Up to Customer Employee Size: 25,000") went
 on all 3 items instead of just the platform licence.
 
+## Long documents
+
+The forms above are a few pages. Real contracts can bury the order form in hundreds of pages of legal terms,
+and sending all of it doesn't work: a 1,000-page PDF is about 4 million tokens, over the API's 600-page limit,
+and would cost around $25 per turn even if it fit.
+
+So for anything over 30 pages, the agent doesn't get the document up front. It gets a short outline built by
+plain code (headings and page numbers, about 30 lines for 1,000 pages), with hints on which pages look like
+prices or signatures. It reads the pages it needs with `read_pages` and can search the whole text with
+`search_document`. The checker still checks every amount and date against the full document, so seeing only
+some pages never weakens it.
+
+To test it, I generated long contracts with decoy pages (a price list of optional services using catalog
+product names, SLA tables, date-heavy logs, a table of contents) and buried a real form inside. One
+version splits the form apart, with the term, pricing, invoicing and signatures hundreds of pages from each
+other, and adds an amendment that changes a price.
+
+| Document | Pages it read | Found every page it needed | Cost | Items correct |
+|---|---|---|---|---|
+| 1,000 pages, form in the middle | 7 | yes | $0.46 | yes |
+| 1,000 pages, form at the start / end | 11 / 9 | yes | $0.68 / $0.54 | yes |
+| 200 / 500 pages | 7 / 15 | yes | $0.46 / $0.74 | yes |
+| 1,000 pages, form scattered + amendment | 12 | yes (5 of 5) | $0.72 | yes, with the amended price |
+
+The optional products on the decoy price list were left out every time. Caveats: one run per document, and
+the documents are generated, so real long contracts may be laid out in ways the outline handles less well.
+Long scanned PDFs can't be outlined yet. Details are in `CHANGELOG.md` (v0.9, v0.10) and
+`edge_cases/long_document/`.
+
 ## Running it
 
 Needs Python 3.9+, poppler (`brew install poppler`, for `pdftotext`) and an Anthropic API key.
@@ -261,6 +292,12 @@ export ANTHROPIC_API_KEY=...
 
 # re-check a saved run with the current checker (no API calls)
 .venv/bin/python replay.py runs/mine
+
+# long-document test case: build the PDFs, run them, report recall and correctness
+.venv/bin/pip install -r requirements-dev.txt && .venv/bin/python scripts/make_long_doc.py
+.venv/bin/python parse.py --catalog edge_cases/example_order_form_redacted/catalog.json \
+    edge_cases/long_document/generated/*.pdf --out runs/long
+.venv/bin/python scripts/long_doc_report.py runs/long
 
 # tests (no API calls)
 .venv/bin/python -m unittest discover -s tests -t .
