@@ -47,6 +47,29 @@ class GraderTest(unittest.TestCase):
             res = run_with({form: pred})
             self.assertEqual((res["items"]["precision"], res["items"]["recall"]), (1.0, 1.0))
 
+    def flag_first_item(self, value, alternatives):
+        pred = prediction_from_gold("of-0001")
+        pred["contract_items"][0]["sku_code"] = {"value": value, "ambiguous": True, "alternatives": alternatives,
+                                                 "reason": "name fits both"}
+        return run_with({"of-0001": pred})["items"]
+
+    def test_flagged_sku_with_expected_alternative_is_its_own_column(self):
+        expected = prediction_from_gold("of-0001")["contract_items"][0]["sku_code"]
+        items = self.flag_first_item("COPILOT", [expected])
+        self.assertEqual((items["fp"], items["fn"]), (0, 0))
+        self.assertEqual(items["flagged"], {"n": 1, "expected_is_value": 0, "expected_in_alternatives": 1})
+        self.assertEqual(items["tp"], len(prediction_from_gold("of-0001")["contract_items"]) - 1)
+
+    def test_flagged_sku_keeping_the_expected_value_is_not_counted_correct(self):
+        expected = prediction_from_gold("of-0001")["contract_items"][0]["sku_code"]
+        items = self.flag_first_item(expected, ["COPILOT"])
+        self.assertEqual(items["flagged"]["expected_is_value"], 1)
+        self.assertEqual(items["tp"], len(prediction_from_gold("of-0001")["contract_items"]) - 1)
+
+    def test_flagged_sku_without_the_expected_candidate_is_wrong(self):
+        items = self.flag_first_item("COPILOT", ["SANDBOX"])
+        self.assertEqual((items["fp"], items["fn"], items["flagged"]["n"]), (1, 1, 0))
+
     def test_one_cent_change_fails_exactly_one_field(self):
         preds = json.loads(json.dumps(self.perfect))
         preds["of-0037"]["contract_items"][2]["unit_price"] += 0.01

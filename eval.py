@@ -52,19 +52,46 @@ def read_field(obj: dict, name: str):
 BUCKETS = ("unflagged", "flagged", "abstained")
 
 
+def sku_flagged(item) -> bool:
+    sku = item.get("sku_code")
+    return isinstance(sku, dict) and bool(sku.get("ambiguous"))
+
+
+def sku_candidates(item) -> set:
+    sku = item.get("sku_code")
+    return {sku_value(sku)} | set(sku.get("alternatives") or []) if isinstance(sku, dict) else {sku}
+
+
 def match_items(pred, gold):
-    """Pair items by SKU code; with repeated SKUs, pair by closest total value."""
-    pairs, unmatched_pred = [], list(range(len(pred)))
+    """Pair items by SKU code; with repeated SKUs, pair by closest total value.
+
+    An unflagged prediction pairs on its SKU. A prediction whose SKU is flagged ambiguous pairs with an expected
+    item whose SKU is among its candidates (value or alternatives); such pairs are returned separately, so they
+    count as neither correct nor wrong. A flagged SKU whose candidates don't include the expected one is an error.
+    Returns (pairs, flagged_pairs, unmatched_pred, unmatched_gold).
+    """
+    pairs, flagged_pairs, unmatched_pred = [], [], list(range(len(pred)))
     unmatched_gold = []
+
+    def closest(cands, g):
+        return min(cands, key=lambda pi: abs((pred[pi].get("total_listed_value") or 0) - g["total_listed_value"]))
+
     for gi, g in enumerate(gold):
-        cands = [pi for pi in unmatched_pred if sku_value(pred[pi]["sku_code"]) == g["sku_code"]]
-        if not cands:
-            unmatched_gold.append(gi)
+        cands = [pi for pi in unmatched_pred
+                 if not sku_flagged(pred[pi]) and sku_value(pred[pi]["sku_code"]) == g["sku_code"]]
+        if cands:
+            best = closest(cands, g)
+            unmatched_pred.remove(best)
+            pairs.append((best, gi))
             continue
-        best = min(cands, key=lambda pi: abs((pred[pi].get("total_listed_value") or 0) - g["total_listed_value"]))
-        unmatched_pred.remove(best)
-        pairs.append((best, gi))
-    return pairs, unmatched_pred, unmatched_gold
+        cands = [pi for pi in unmatched_pred if sku_flagged(pred[pi]) and g["sku_code"] in sku_candidates(pred[pi])]
+        if cands:
+            best = closest(cands, g)
+            unmatched_pred.remove(best)
+            flagged_pairs.append((best, gi))
+            continue
+        unmatched_gold.append(gi)
+    return pairs, flagged_pairs, unmatched_pred, unmatched_gold
 
 
 def _fold(s: str) -> str:
@@ -96,7 +123,8 @@ def score_run(run_dir: Path, dataset: Path):
     twin = Counter()
     perfect_forms, needs_review, freq_source = 0, 0, Counter()
     errors, n_forms, cost = [], 0, 0.0
-    item_errors = []
+    flagged = Counter()  # SKUs flagged ambiguous with the expected SKU among the candidates
+    item_errors, flagged_items = [], []
 
     def score(f, obj, gold_value, label) -> bool:
         value, bucket = read_field(obj, f)
@@ -116,8 +144,14 @@ def score_run(run_dir: Path, dataset: Path):
         cost += (pred.get("meta") or {}).get("cost_usd") or 0
         needs_review += bool(pred.get("needs_review"))
         p_items, g_items = pred.get("contract_items") or [], gold["contract_items"]
-        pairs, up, ug = match_items(p_items, g_items)
+        pairs, fpairs, up, ug = match_items(p_items, g_items)
         tp += len(pairs); fp += len(up); fn += len(ug)
+        for pi, gi in fpairs:
+            expected_is_value = sku_value(p_items[pi]["sku_code"]) == g_items[gi]["sku_code"]
+            flagged["n"] += 1
+            flagged["value" if expected_is_value else "alternative"] += 1
+            flagged_items.append(f"{form}: {sku_value(p_items[pi]['sku_code'])} flagged, alternatives "
+                                 f"{p_items[pi]['sku_code'].get('alternatives')}, expected {g_items[gi]['sku_code']}")
         for pi in up:
             item_errors.append(f"{form}: extra item {sku_value(p_items[pi]['sku_code'])}")
         for gi in ug:
@@ -126,9 +160,10 @@ def score_run(run_dir: Path, dataset: Path):
         is_twin = near_twin(extract_text(dataset / "pdfs" / f"{form}.pdf"), g_items, catalog)
         if is_twin:
             twin["forms"] += 1; twin["tp"] += len(pairs); twin["fp"] += len(up); twin["fn"] += len(ug)
+            twin["flagged"] += len(fpairs)
 
-        form_perfect = not up and not ug
-        for pi, gi in pairs:
+        form_perfect = not up and not ug and not fpairs
+        for pi, gi in pairs + fpairs:  # a flagged SKU's other fields still describe the same line
             p, g = p_items[pi], g_items[gi]
             freq = p.get("invoicing_frequency")
             freq_source[freq.get("source") if isinstance(freq, dict) else p.get("invoicing_frequency_source")] += 1
@@ -148,8 +183,11 @@ def score_run(run_dir: Path, dataset: Path):
 
     result = {
         "forms": n_forms,
-        "items": {"tp": tp, "fp": fp, "fn": fn, "precision": prec, "recall": rec, "f1": f1},
-        "near_twin_forms": {"forms": twin["forms"], "precision": twin_p, "recall": twin_r},
+        "items": {"tp": tp, "fp": fp, "fn": fn, "precision": prec, "recall": rec, "f1": f1,
+                  "flagged": {"n": flagged["n"], "expected_is_value": flagged["value"],
+                              "expected_in_alternatives": flagged["alternative"]}},
+        "near_twin_forms": {"forms": twin["forms"], "precision": twin_p, "recall": twin_r,
+                            "flagged": twin["flagged"]},
         "fields": {f: {"overall": ratio(sum(stats[f][b][0] for b in BUCKETS), sum(stats[f][b][1] for b in BUCKETS)),
                        **{b: {"accuracy": ratio(*stats[f][b]), "n": stats[f][b][1]} for b in BUCKETS}}
                    for f in ITEM_FIELDS + HEADER_FIELDS},
@@ -158,14 +196,21 @@ def score_run(run_dir: Path, dataset: Path):
         "invoicing_frequency_source": dict(freq_source),
         "total_cost_usd": round(cost, 4),
         "failures": {"items": item_errors, **{f: m for f, m in field_misses.items() if m}},
+        "flagged_items": flagged_items,
     }
 
     md = [f"# Eval: {run_dir.name}", "",
           f"Forms: {n_forms} | fully correct: {perfect_forms} | needs_review: {needs_review} | cost: ${cost:.2f}", "",
           "## Item detection", "",
-          f"Precision {prec:.1%} | Recall {rec:.1%} | F1 {f1:.1%} (TP {tp}, FP {fp}, FN {fn})", "",
-          f"Near-twin forms (a non-sold catalog name overlaps a sold one): {twin['forms']} forms, "
-          f"precision {twin_p:.1%}, recall {twin_r:.1%}", "",
+          "Products are scored like the fields: unflagged SKUs give precision and recall; a SKU flagged "
+          "ambiguous with the expected SKU among its candidates is counted in its own column, as neither "
+          "correct nor wrong.", "",
+          "| | Precision | Recall | F1 | TP | FP | FN | Flagged ambiguous |", "|---|---|---|---|---|---|---|---|",
+          f"| All forms | {prec:.1%} | {rec:.1%} | {f1:.1%} | {tp} | {fp} | {fn} | "
+          + (f"{flagged['n']} (expected SKU as the value: {flagged['value']}, "
+             f"among the alternatives: {flagged['alternative']})" if flagged["n"] else "-") + " |",
+          f"| Near-twin forms ({twin['forms']}) | {twin_p:.1%} | {twin_r:.1%} | | | | | {twin['flagged'] or '-'} |",
+          "", "(Near-twin forms: a catalog name that isn't sold overlaps a sold one.)", "",
           "## Field accuracy", "",
           "Overall counts every matched item (abstentions count as wrong). The other columns split it by how "
           "the output was marked: unflagged answers, answers flagged ambiguous (value given with the ambiguity "
@@ -182,6 +227,8 @@ def score_run(run_dir: Path, dataset: Path):
     md += [f"invoicing_frequency source: {dict(freq_source)}", "", "## Failures", ""]
     if item_errors:
         md += ["### Item detection"] + [f"- {e}" for e in item_errors] + [""]
+    if flagged_items:
+        md += ["### SKUs flagged ambiguous (not failures)"] + [f"- {e}" for e in flagged_items] + [""]
     for f in ITEM_FIELDS + HEADER_FIELDS:
         if field_misses[f]:
             md += [f"### {f} ({len(field_misses[f])})"] + [f"- {m}" for m in field_misses[f]] + [""]

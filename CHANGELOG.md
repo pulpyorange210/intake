@@ -490,6 +490,14 @@ null fields.
   - The other 19: no flags, no warnings, all items correct. No false alarms.
   - of-0031 kept PREMIER_SUPPORT as its likelier value (the earlier run guessed Premium). Nothing in the document
     favours either, so that pick is arbitrary; it's flagged, with the expected PREMIUM_SUPPORT as the alternative.
-    `eval.py` still scores items by the value only, so this form counts as one missed and one extra item. Scoring a
-    flagged SKU whose alternatives contain the expected one as "flagged ambiguous" is not done yet.
+    Scored as described below: a flagged item, not a correct or a wrong one.
   - of-0044 needs_review again for its ambiguous effective date (see v0.11).
+
+**Scoring flagged SKUs** (`eval.py`). Products are now scored like the fields: an item whose SKU is flagged
+ambiguous, with the expected SKU as its value or among its alternatives, goes in its own "flagged ambiguous"
+column, counted neither as correct nor as wrong, the same as the 28 flagged invoicing frequencies. Precision and
+recall come from unflagged items only. A flagged SKU whose candidates don't include the expected one still counts
+as an extra plus a missed item. The flagged item's other fields are still scored (same line), and a form with a
+flagged SKU is not "fully correct". Re-scored `runs/sku_tie_check`: 56 unflagged items 100% / 100%, flagged 2
+(of-0019 kept the expected SKU as the value, of-0031 has it as the alternative). Earlier runs (v0.8, the
+2,000-SKU retrieval run) score exactly as before. 3 new tests (73 total).
