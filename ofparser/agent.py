@@ -102,7 +102,7 @@ def _submit(session: Session, payload: dict):
     session.last_submission = sub
     all_issues = validate(sub, session.ctx)
     session.last_notes = [i for i in all_issues if i.severity == "note"]
-    issues = active_issues(all_issues, sub)
+    issues = active_issues(all_issues, sub, session.ctx)
     session.last_issues = issues
     if not issues:
         session.accepted = True

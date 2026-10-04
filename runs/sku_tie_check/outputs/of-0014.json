@@ -1,0 +1,259 @@
+{
+  "order_form": {
+    "customer_name": "Brightwave Industries",
+    "vendor_name": "Northstar Systems LLC",
+    "effective_date": "2022-12-11",
+    "contract_signed_date_buying_company": "2022-12-17",
+    "contract_signed_date_selling_company": "2022-12-20",
+    "currency": "USD",
+    "grand_total": 573452.48,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Brightwave Industries",
+      "vendor_name": "Northstar Systems LLC",
+      "effective_date": "This order form becomes effective on 11 Dec 2022.",
+      "contract_signed_date_buying_company": "Brightwave Industries...Date (Print): 12/17/2022",
+      "contract_signed_date_selling_company": "Northstar Systems LLC...Date (Print): 12/20/2022",
+      "currency": "573,452.48 USD",
+      "grand_total": "TOTAL SUBSCRIPTION 573,452.48 USD",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {},
+    "missing_fields": {},
+    "inferred_dates": {}
+  },
+  "contract_items_count": 2,
+  "contract_items": [
+    {
+      "name": "Talent Acquisition",
+      "sku_id": "d6f20b62-9bec-421b-8d33-489712746aee",
+      "sku_code": {
+        "value": "TALENT_ACQUISITION",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "currency": "USD",
+      "total_listed_value": 429639.46,
+      "quantity": 2.0,
+      "unit_price": 214819.73,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-01-07",
+      "service_end_date": "2025-01-05",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Due on Receipt",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Acquisition 2 214,819.73 USD 429,639.46 USD",
+      "evidence": {
+        "sku_code": "Talent Acquisition",
+        "source_row": "Talent Acquisition 2 214,819.73 USD 429,639.46 USD",
+        "currency": "429,639.46 USD",
+        "total_listed_value": "429,639.46 USD",
+        "quantity": "2",
+        "unit_price": "214,819.73 USD",
+        "unit_price_period": "Unit Price ... Total Contract Value",
+        "service_start_date": "Start Date: Jan 07, 2023",
+        "service_end_date": "End Date: 2025-01-05",
+        "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Management Enterprise",
+      "sku_id": "4e976929-ebff-4189-b7ab-1b650edabc4e",
+      "sku_code": {
+        "value": "TALENT_MANAGEMENT_ENTERPRISE",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "currency": "USD",
+      "total_listed_value": 143813.02,
+      "quantity": 1.0,
+      "unit_price": 143813.02,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-01-07",
+      "service_end_date": "2025-01-05",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Due on Receipt",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Mgmt Ent. 1 143,813.02 USD 143,813.02 USD",
+      "evidence": {
+        "sku_code": "Talent Mgmt Ent.",
+        "source_row": "Talent Mgmt Ent. 1 143,813.02 USD 143,813.02 USD",
+        "currency": "143,813.02 USD",
+        "total_listed_value": "143,813.02 USD",
+        "quantity": "1",
+        "unit_price": "143,813.02 USD",
+        "unit_price_period": "Unit Price ... Total Contract Value",
+        "service_start_date": "Start Date: Jan 07, 2023",
+        "service_end_date": "End Date: 2025-01-05",
+        "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+    "ELEVATE_SUCCESS_PLAN"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [],
+  "meta": {
+    "source_pdf": "of-0014.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 4,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 25.1,
+    "usage": {
+      "input_tokens": 8,
+      "output_tokens": 2518,
+      "cache_creation_input_tokens": 15947,
+      "cache_read_input_tokens": 55018,
+      "per_turn": [
+        {
+          "input": 2,
+          "output": 143,
+          "cache_write": 5478,
+          "cache_read": 6121
+        },
+        {
+          "input": 2,
+          "output": 188,
+          "cache_write": 4462,
+          "cache_read": 11599
+        },
+        {
+          "input": 2,
+          "output": 714,
+          "cache_write": 5176,
+          "cache_read": 16061
+        },
+        {
+          "input": 2,
+          "output": 1473,
+          "cache_write": 831,
+          "cache_read": 21237
+        }
+      ]
+    },
+    "cost_usd": 0.1902,
+    "catalog": {
+      "mode": "retrieval",
+      "size": 2001,
+      "searches": [
+        {
+          "query": "Talent Acquisition",
+          "candidates": [
+            "TALENT_ACQUISITION",
+            "TALENT_ACQUISITION_ADD_ON",
+            "TALENT_ACQUISITION_AMERICAS",
+            "TALENT_ACQUISITION_ANALYTICS",
+            "TALENT_ACQUISITION_CORE",
+            "TALENT_ACQUISITION_SUITE",
+            "TALENT_ACQUISITION_STARTER",
+            "TALENT_ACQUISITION_LATAM",
+            "TALENT_ACQUISITION_TALENT_TRACKING_ADDON",
+            "TALENT_ACQUISITION_TALENT_PIPELINE_ADD_ON",
+            "TALENT_ACQUISITION_CRM_ADD_ON",
+            "TALENT_ACQUISITION_IMPLEMENTATION",
+            "TALENT_ACQUISITION_FEDRAMP",
+            "TALENT_ACQUISITION_EMEA",
+            "TALENT_ACQUISITION_CRM",
+            "TALENT_ACQUISITION_CORE_PLUS",
+            "TALENT_ACQUISITION_CORE_LITE",
+            "TALENT_ACQUISITION_CORE_JAPAN"
+          ]
+        },
+        {
+          "query": "Talent Mgmt Ent.",
+          "candidates": [
+            "TALENT_MANAGEMENT_ENTERPRISE",
+            "TALENT_MANAGEMENT_ESSENTIALS",
+            "TALENT_MANAGEMENT_ENTERPRISE_ADD_ON",
+            "TALENT_MANAGEMENT_ENTERPRISE_AMERICAS",
+            "TALENT_MANAGEMENT_ENTERPRISE_FEDRAMP",
+            "TALENT_MANAGEMENT_ENTERPRISE_UK",
+            "TALENT_MANAGEMENT_ENTERPRISE_PLUS",
+            "TALENT_MANAGEMENT_ENTERPRISE_MONTHLY",
+            "VENDOR_MANAGEMENT_ESSENTIALS",
+            "TALENT_MANAGEMENT_STANDARD",
+            "TALENT_MANAGEMENT_PROFESSIONAL",
+            "TALENT_MANAGEMENT_ENTERPRISE_LITE",
+            "TALENT_MANAGEMENT_ENTERPRISE_JAPAN",
+            "TALENT_MANAGEMENT_CORE_ADD_ON",
+            "TALENT_MANAGEMENT_CORE_AMERICAS",
+            "TALENT_MANAGEMENT_ENTERPRISE_PER_1_000_EMPLOYEES",
+            "TALENT_MANAGEMENT_ENTERPRISE_GOVERNMENT_CLOUD",
+            "TALENT_MANAGEMENT_CORE_FEDRAMP"
+          ]
+        },
+        {
+          "query": "Overages - Talent Acquisition AI Interviewer Agent Add-on",
+          "candidates": [
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_AMERICAS",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANZ",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_LATAM",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_RECRUITER",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_1_000_EMPLOYEES",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_GOVERNMENT_CLOUD",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANNUAL_PREPAID",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_JAPAN",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_INDIA",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_EMEA",
+            "OVERAGES_TALENT_ACQUISITION_AI_SOURCING_AGENT_ADD_ON",
+            "OVERAGES_TALENT_ACQUISITION_AI_SCHEDULING_AGENT_ADD_ON",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_US_DATA_RESIDENCY",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_EMPLOYEE",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_MULTI_YEAR",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_GOVERNMENT_CLOUD",
+            "TALENT_ACQUISITION_AI_SOURCING_AGENT_ADD_ON",
+            "TALENT_ACQUISITION_AI_SCREENING_AGENT_ADD_ON"
+          ]
+        },
+        {
+          "query": "Elevate Success Plan",
+          "candidates": [
+            "ELEVATE_SUCCESS_PLAN",
+            "ELEVATE_SUCCESS_PLAN_ADD_ON",
+            "ELEVATE_SUCCESS_PLAN_EMEA",
+            "ELEVATE_SUCCESS_PLAN_INDIA",
+            "ELEVATE_SUCCESS_PLAN_JAPAN",
+            "ELEVATE_SUCCESS_PLAN_PLUS",
+            "ELEVATE_SUCCESS_PLAN_MONTHLY",
+            "ELEVATE_SUCCESS_PLAN_LITE",
+            "ELEVATE_SUCCESS_PLAN_PER_USER"
+          ]
+        }
+      ]
+    }
+  }
+}

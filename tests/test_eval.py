@@ -39,6 +39,14 @@ class GraderTest(unittest.TestCase):
         self.assertEqual(result["forms_fully_correct"], len(FORMS))
         self.assertEqual(failure_count(result), 0)
 
+    def test_sku_block_and_plain_string_both_score(self):
+        for form in ("of-0001",):
+            pred = prediction_from_gold(form)
+            for it in pred["contract_items"]:
+                it["sku_code"] = {"value": it["sku_code"], "ambiguous": False, "alternatives": [], "reason": None}
+            res = run_with({form: pred})
+            self.assertEqual((res["items"]["precision"], res["items"]["recall"]), (1.0, 1.0))
+
     def test_one_cent_change_fails_exactly_one_field(self):
         preds = json.loads(json.dumps(self.perfect))
         preds["of-0037"]["contract_items"][2]["unit_price"] += 0.01

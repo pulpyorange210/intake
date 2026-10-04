@@ -11,9 +11,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from ofparser.postprocess import sku_value  # noqa: E402
 CASE_DIR = ROOT / "edge_cases" / "long_document"
 VARIANTS = CASE_DIR / "variants.json"
 
@@ -36,7 +39,7 @@ CHECKED = ["currency", "total_listed_value", "quantity", "unit_price", "service_
 
 
 def compare(output: dict, expected: dict):
-    pred = {i["sku_code"]: i for i in output.get("contract_items", [])}
+    pred = {sku_value(i["sku_code"]): i for i in output.get("contract_items", [])}
     gold = {i["sku_reference"]: i for i in expected["contract_items"]}
     problems = [f"extra {c}" for c in sorted(set(pred) - set(gold))]
     problems += [f"missing {c}" for c in sorted(set(gold) - set(pred))]
@@ -87,10 +90,10 @@ def main() -> None:
         if long_doc.get("pages_sent"):
             print(f"- pages sent up front: {', '.join(map(str, long_doc['pages_sent']))}")
         print(f"- pages read: {', '.join(map(str, long_doc.get('pages_read', []))) or 'none'}")
-        print(f"- items: {[i['sku_code'] for i in out['contract_items']]}; "
+        print(f"- items: {[sku_value(i['sku_code']) for i in out['contract_items']]}; "
               f"excluded: {out.get('explicitly_excluded_skus')}")
         print(f"- needs_review: {out['needs_review']}; problems: {problems or 'none'}")
-        terms = {i["sku_code"]: (i["payment_terms"], i["special_notes"]) for i in out["contract_items"]}
+        terms = {sku_value(i["sku_code"]): (i["payment_terms"], i["special_notes"]) for i in out["contract_items"]}
         print(f"- payment terms / special notes: {terms}")
         h = out["order_form"] or {}
         print(f"- header: effective {h.get('effective_date')}, signed buyer "

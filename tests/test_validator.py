@@ -90,6 +90,56 @@ class CheckerTest(unittest.TestCase):
         self.assertEqual(checks(self.sub), set())
 
 
+class SkuTieTest(unittest.TestCase):
+    """A line whose printed name fits two catalog SKUs equally ("Prem. Support": Premium / Premier Support)."""
+
+    def setUp(self):
+        from ofparser.catalog import Catalog
+        from tests.helpers import CATALOG
+        self.form = "of-0031"
+        self.sub = submission_from_gold(self.form)
+        self.ctx = context(self.form)
+        self.idx = [i.sku_code for i in self.sub.contract_items].index("PREMIUM_SUPPORT")
+        self.sub.contract_items[self.idx].evidence["sku_code"] = "Prem. Support"
+        premier = {"sku_code": "PREMIER_SUPPORT", "name": "Premier Support", "description": "",
+                   "parsing_instructions": ""}
+        self.ctx.catalog = Catalog(CATALOG.entries + [premier])
+
+    def checks(self):
+        return {i.check for i in active_issues(validate(self.sub, self.ctx), self.sub, self.ctx)}
+
+    def ambiguity(self, candidates, likely="PREMIUM_SUPPORT"):
+        from ofparser.schema import Ambiguity
+        return Ambiguity(item_index=self.idx, field="sku_code", candidates=candidates, likely=likely,
+                         reason="'Prem.' fits Premium and Premier")
+
+    def test_tie_is_a_warning(self):
+        self.assertIn("sku_tie", self.checks())
+
+    def test_no_tie_when_the_catalog_has_only_one_match(self):
+        self.assertEqual(checks(self.sub, context(self.form)), set())
+
+    def test_flagging_the_sku_resolves_it_and_keeps_the_code(self):
+        self.sub.ambiguities = [self.ambiguity(["PREMIUM_SUPPORT", "PREMIER_SUPPORT"])]
+        self.assertEqual(self.checks(), set())
+
+    def test_sku_ambiguity_must_use_catalog_codes_and_include_the_choice(self):
+        self.sub.ambiguities = [self.ambiguity(["PREMIUM_SUPPORT", "NOT_A_SKU"])]
+        self.assertIn("bad_ambiguity", self.checks())
+        self.sub.ambiguities = [self.ambiguity(["PREMIER_SUPPORT", "SANDBOX"], likely=None)]
+        self.assertIn("bad_ambiguity", self.checks())
+
+    def test_override_needs_a_quote_found_in_the_document(self):
+        from ofparser.schema import Override
+        self.sub.overrides = [Override(check="sku_tie", item_index=self.idx, reason="it is obviously Premium")]
+        self.assertIn("sku_tie", self.checks())
+        self.sub.overrides = [Override(check="sku_tie", item_index=self.idx,
+                                       reason='the form says "Premium Support Agreement v2"')]
+        self.assertIn("sku_tie", self.checks())  # quote not in the document
+        self.sub.overrides = [Override(check="sku_tie", item_index=self.idx, reason='decided by "Prem. Support"')]
+        self.assertNotIn("sku_tie", self.checks())
+
+
 class DateGroundingTest(unittest.TestCase):
     def setUp(self):
         self.sub = submission_from_gold(FORM)

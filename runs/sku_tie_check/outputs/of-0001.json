@@ -1,0 +1,308 @@
+{
+  "order_form": {
+    "customer_name": "Orchid Logistics",
+    "vendor_name": "Acme Software Inc.",
+    "effective_date": "2026-07-29",
+    "contract_signed_date_buying_company": "2026-08-05",
+    "contract_signed_date_selling_company": "2026-08-08",
+    "currency": "USD",
+    "grand_total": 607643.58,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Orchid Logistics",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "This order form becomes effective on 29-Jul-2026.",
+      "contract_signed_date_buying_company": "Orchid Logistics...Date (Print): Aug 05, 2026",
+      "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): Aug 08, 2026",
+      "currency": "607,643.58 USD",
+      "grand_total": "TOTAL SUBSCRIPTION 607,643.58 USD",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {},
+    "missing_fields": {},
+    "inferred_dates": {}
+  },
+  "contract_items_count": 3,
+  "contract_items": [
+    {
+      "name": "Talent Acquisition Core",
+      "sku_id": "89ab57ac-9aad-49a5-b9f5-4b99698dd292",
+      "sku_code": {
+        "value": "TALENT_ACQUISITION_CORE",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "currency": "USD",
+      "total_listed_value": 197510.77,
+      "quantity": 1.0,
+      "unit_price": 197510.77,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-08-01",
+      "service_end_date": "2027-07-31",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": true,
+        "alternatives": [
+          "yearly"
+        ],
+        "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Acquisition Core 1 197,510.77 USD 197,510.77 USD",
+      "evidence": {
+        "sku_code": "Talent Acquisition Core",
+        "source_row": "Talent Acquisition Core 1 197,510.77 USD 197,510.77 USD",
+        "currency": "197,510.77 USD",
+        "total_listed_value": "197,510.77 USD",
+        "quantity": "Qty ... 1",
+        "unit_price": "Unit Fee ... 197,510.77 USD",
+        "unit_price_period": "Start Date: 01-Aug-2026 End Date: 31 Jul 2027",
+        "service_start_date": "Start Date: 01-Aug-2026",
+        "service_end_date": "End Date: 31 Jul 2027",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+      "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+      "sku_code": {
+        "value": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "currency": "USD",
+      "total_listed_value": 167214.88,
+      "quantity": 1.0,
+      "unit_price": 167214.88,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-08-01",
+      "service_end_date": "2027-07-31",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": true,
+        "alternatives": [
+          "yearly"
+        ],
+        "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 167,214.88 USD 167,214.88 USD",
+      "evidence": {
+        "sku_code": "Talent Intel. Platf. Prem. Ed. (Add-on)",
+        "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 167,214.88 USD 167,214.88 USD",
+        "currency": "167,214.88 USD",
+        "total_listed_value": "167,214.88 USD",
+        "quantity": "Qty ... 1",
+        "unit_price": "Unit Fee ... 167,214.88 USD",
+        "unit_price_period": "Start Date: 01-Aug-2026 End Date: 31 Jul 2027",
+        "service_start_date": "Start Date: 01-Aug-2026",
+        "service_end_date": "End Date: 31 Jul 2027",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Professional Service",
+      "sku_id": "2a4fa79f-0fb7-42a3-a4ad-143f3cce8e36",
+      "sku_code": {
+        "value": "PROFESSIONAL_SERVICE",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "currency": "USD",
+      "total_listed_value": 242917.93,
+      "quantity": 1.0,
+      "unit_price": 242917.93,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-08-01",
+      "service_end_date": "2027-07-31",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": true,
+        "alternatives": [
+          "yearly"
+        ],
+        "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Professiona1 Service 1 242,917.93 USD 242,917.93 USD",
+      "evidence": {
+        "sku_code": "Professiona1 Service",
+        "source_row": "Professiona1 Service 1 242,917.93 USD 242,917.93 USD",
+        "currency": "242,917.93 USD",
+        "total_listed_value": "242,917.93 USD",
+        "quantity": "Qty ... 1",
+        "unit_price": "Unit Fee ... 242,917.93 USD",
+        "unit_price_period": "Start Date: 01-Aug-2026 End Date: 31 Jul 2027",
+        "service_start_date": "Start Date: 01-Aug-2026",
+        "service_end_date": "End Date: 31 Jul 2027",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "SANDBOX",
+    "TALENT_ACQUISITION"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": null,
+      "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+    },
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": 1,
+      "message": "quotes for ['sku_code', 'source_row'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0001.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 3,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 31.0,
+    "usage": {
+      "input_tokens": 6,
+      "output_tokens": 3044,
+      "cache_creation_input_tokens": 19819,
+      "cache_read_input_tokens": 30763,
+      "per_turn": [
+        {
+          "input": 2,
+          "output": 257,
+          "cache_write": 11638,
+          "cache_read": 0
+        },
+        {
+          "input": 2,
+          "output": 649,
+          "cache_write": 7487,
+          "cache_read": 11638
+        },
+        {
+          "input": 2,
+          "output": 2138,
+          "cache_write": 694,
+          "cache_read": 19125
+        }
+      ]
+    },
+    "cost_usd": 0.2154,
+    "catalog": {
+      "mode": "retrieval",
+      "size": 2001,
+      "searches": [
+        {
+          "query": "Talent Acquisition Core",
+          "candidates": [
+            "TALENT_ACQUISITION_CORE",
+            "TALENT_ACQUISITION_CORE_ADD_ON",
+            "TALENT_ACQUISITION_CORE_APAC",
+            "TALENT_ACQUISITION_CORE_CANADA",
+            "TALENT_ACQUISITION_CORE_IMPLEMENTATION",
+            "TALENT_ACQUISITION_CORE_PLUS",
+            "TALENT_ACQUISITION_CORE_LITE",
+            "TALENT_ACQUISITION_CORE_JAPAN",
+            "TALENT_ACQUISITION_ADD_ON",
+            "TALENT_MANAGEMENT_CORE_ADD_ON",
+            "TALENT_ACQUISITION_TALENT_TRACKING_ADDON",
+            "TALENT_MANAGEMENT_CORE_APAC",
+            "TALENT_ACQUISITION_CORE_PRIVATE_CLOUD",
+            "TALENT_ACQUISITION_CORE_PER_RECRUITER",
+            "TALENT_ACQUISITION_TALENT_TRACKING_ADD_ON_CANADA",
+            "TALENT_ACQUISITION_CORE_PER_EMPLOYEE",
+            "TALENT_ACQUISITION_CORE_ANNUAL_PREPAID",
+            "TALENT_ACQUISITION_IMPLEMENTATION",
+            "TALENT_ACQUISITION"
+          ]
+        },
+        {
+          "query": "Talent Intel. Platf. Prem. Ed. (Add-on)",
+          "candidates": [
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_LATAM",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_MONTHLY",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_RENEWAL_UPLIFT",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_LOCATION",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_EMPLOYEE",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_GOVERNMENT_CLOUD",
+            "TALENT_INTELLIGENCE_PLATFORM_STANDARD_EDITION_ADD_ON",
+            "TALENT_INTELLIGENCE_PLATFORM_ENTERPRISE_EDITION_ADD_ON",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_US_DATA_RESIDENCY",
+            "TALENT_INTELLIGENCE_PLATFORM_ADD_ON",
+            "TALENT_INTELLIGENCE_PREMIUM_ANALYTICS_ADD_ON"
+          ]
+        },
+        {
+          "query": "Professiona1 Service",
+          "candidates": [
+            "PROFESSIONAL_SERVICE",
+            "PROFESSIONAL_SERVICE_ADD_ON",
+            "PROFESSIONAL_SERVICE_ADVISORY",
+            "PROFESSIONAL_SERVICE_APAC",
+            "PROFESSIONAL_SERVICE_DACH",
+            "PROFESSIONAL_SERVICE_LATAM",
+            "PROFESSIONAL_SERVICE_PRIVATE_CLOUD",
+            "PROFESSIONAL_SERVICE_PER_LOCATION"
+          ]
+        },
+        {
+          "query": "Sandbox",
+          "candidates": [
+            "SANDBOX",
+            "DEVELOPER_SANDBOX",
+            "SANDBOX_ADD_ON",
+            "SANDBOX_CANADA",
+            "SANDBOX_ENVIRONMENT",
+            "SANDBOX_UK",
+            "SANDBOX_REFRESH",
+            "SANDBOX_LATAM",
+            "SANDBOX_ENVIRONMENT_ADD_ON",
+            "SANDBOX_ENVIRONMENT_PLUS_ADD_ON",
+            "SANDBOX_ENVIRONMENT_LITE_ADD_ON",
+            "SANDBOX_ENVIRONMENT_LATAM",
+            "IMPLEMENTATION_SANDBOX_ENVIRONMENT",
+            "WORKDAY_CONNECTOR_FOR_SANDBOX_ENVIRONMENT"
+          ]
+        }
+      ]
+    }
+  }
+}

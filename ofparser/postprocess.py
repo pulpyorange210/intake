@@ -11,6 +11,11 @@ from .validator import (EXPECTED_ITEM_FIELDS, HEADER_DATE_FIELDS, Issue, parse_i
 PERIOD_MONTHS_TO_FREQUENCY = {1: "monthly", 3: "quarterly", 6: "biannually", 12: "yearly"}
 
 
+def sku_value(sku) -> str:
+    """The SKU code from an output item's sku_code, which is a block since v0.12 (a plain string before)."""
+    return sku["value"] if isinstance(sku, dict) else sku
+
+
 def frequency_block(value=None, source=None, alternatives=(), reason=None) -> dict:
     """invoicing_frequency is always this block, so the ambiguity flag sits next to the value."""
     return {"value": value, "source": source, "ambiguous": bool(alternatives) or (value is None and bool(reason)),
@@ -86,6 +91,14 @@ def build_output(sub: Submission, catalog: Catalog, unresolved: List[Issue], not
         sku = catalog.by_code.get(item.sku_code, {})
         item_ambiguous = dict(ambiguous.get(idx, {}))
         model_flag = item_ambiguous.pop("invoicing_frequency", None)
+        sku_flag = item_ambiguous.pop("sku_code", None)
+        sku_block = {"value": item.sku_code, "ambiguous": bool(sku_flag),
+                     "alternatives": [c for c in sku_flag["candidates"] if c != item.sku_code] if sku_flag else [],
+                     "reason": sku_flag["reason"] if sku_flag else None}
+        if sku_flag:
+            notes.append(Issue("note", "sku_ambiguous", idx,
+                               f"sku_code {item.sku_code} is ambiguous with {sku_block['alternatives']}: "
+                               f"{sku_flag['reason']}"))
         if item.invoicing_frequency:
             frequency = frequency_block(item.invoicing_frequency, "stated")
         elif model_flag:
@@ -99,7 +112,7 @@ def build_output(sub: Submission, catalog: Catalog, unresolved: List[Issue], not
         items.append({
             "name": sku.get("name"),
             "sku_id": sku.get("id"),
-            "sku_code": item.sku_code,
+            "sku_code": sku_block,
             "currency": item.currency,
             "total_listed_value": item.total_listed_value,
             "quantity": item.quantity,
@@ -126,7 +139,7 @@ def build_output(sub: Submission, catalog: Catalog, unresolved: List[Issue], not
     order_form["inferred_dates"] = inferred.get(None, {})
     notes += [Issue("note", "missing_value", None, f"order_form.{name} is blank: {m['reason']}")
               for name, m in order_form["missing_fields"].items()]
-    flagged_for_review = [n for n in notes if n.check in ("missing_value", "date_not_in_document")]
+    flagged_for_review = [n for n in notes if n.check in ("missing_value", "date_not_in_document", "sku_ambiguous")]
     return {
         "order_form": order_form,
         "contract_items_count": len(items),

@@ -203,6 +203,18 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
                      f"instruction requires null, override this warning with that reason. A null here is "
                      f"flagged for review either way.{look_further}")
 
+        if item.sku_code in ctx.catalog.by_code and (i, "sku_code") not in flagged:
+            name_text = item.evidence.get("sku_code") or item.source_row
+            mine, tied = ctx.catalog.ties(name_text, item.sku_code)
+            if tied:
+                listed = ", ".join(f"{c} ({ctx.catalog.by_code[c]['name']}, {s:.2f})" for c, s in tied[:4])
+                warn("sku_tie", i,
+                     f"the document's name for this item ({name_text[:80]!r}) matches {item.sku_code} "
+                     f"({mine:.2f}) no better than {listed}. If other document text decides between them, "
+                     f"override this warning and quote that text in double quotes in the reason (the quote is "
+                     f"checked against the document). Otherwise keep the likelier SKU in sku_code and add an "
+                     f"ambiguity entry for sku_code with the candidate codes, likely = your choice, and the reason.")
+
         if item.sku_code in sub.explicitly_excluded_skus:
             warn("excluded_conflict", i,
                  f"{item.sku_code} is listed in explicitly_excluded_skus. Re-read this priced line: is it really "
@@ -243,6 +255,17 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
             continue
         if a.likely is not None and a.likely not in a.candidates:
             err("bad_ambiguity", a.item_index, f"ambiguity 'likely' value {a.likely!r} is not one of its candidates.")
+        if a.field == "sku_code" and a.item_index is not None:
+            # A contract item always needs a SKU: the likelier one stays in sku_code and the doubt sits next to it.
+            unknown = [c for c in a.candidates if c not in ctx.catalog.by_code]
+            if unknown:
+                err("bad_ambiguity", a.item_index, f"sku_code ambiguity candidates {unknown} are not catalog codes.")
+            if target.sku_code not in a.candidates or len(set(a.candidates)) < 2:
+                err("bad_ambiguity", a.item_index, "a sku_code ambiguity needs at least two candidate codes, "
+                                                   "including the sku_code chosen for the item.")
+            if a.likely is not None and a.likely != target.sku_code:
+                err("bad_ambiguity", a.item_index, "for sku_code, 'likely' must be the sku_code chosen for the item.")
+            continue
         if a.field not in fields:
             err("bad_ambiguity", a.item_index,
                 f"ambiguity field {a.field!r} is not a field of {where}. Item fields need the item's index.")
@@ -273,8 +296,21 @@ def validate(sub: Submission, ctx: ValidationContext) -> List[Issue]:
     return issues
 
 
-def active_issues(issues: List[Issue], sub: Submission) -> List[Issue]:
-    """Drop warnings the agent has overridden with a reason."""
-    overridden = {(o.check, o.item_index) for o in sub.overrides if o.reason.strip()}
+QUOTED = re.compile(r'"([^"]{6,})"|“([^”]{6,})”')
+
+
+def quoted_text_found(reason: str, ctx: Optional[ValidationContext]) -> bool:
+    """True if the reason quotes (in double quotes) at least one piece of text that is in the document."""
+    if ctx is None or not ctx.has_text_layer:
+        return True  # nothing to check against
+    norm = ctx.normalized_text
+    return any(quote_found(a or b, norm) for a, b in QUOTED.findall(reason))
+
+
+def active_issues(issues: List[Issue], sub: Submission, ctx: Optional[ValidationContext] = None) -> List[Issue]:
+    """Drop warnings the agent has overridden with a reason. A sku_tie override must quote deciding text that
+    appears in the document; without one it doesn't count."""
+    overridden = {(o.check, o.item_index) for o in sub.overrides if o.reason.strip()
+                  and (o.check != "sku_tie" or quoted_text_found(o.reason, ctx))}
     return [i for i in issues if i.severity == "error"
             or (i.severity == "warning" and (i.check, i.item_index) not in overridden)]

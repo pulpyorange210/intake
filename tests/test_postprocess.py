@@ -56,6 +56,25 @@ class FrequencyTest(unittest.TestCase):
         self.assertIsNone(f["value"])
 
 
+class SkuBlockTest(unittest.TestCase):
+    def test_plain_sku_is_an_unflagged_block(self):
+        out = build_output(submission(item(100, 1, 100, "2025-01-01", "2025-12-31")), CATALOG, [])
+        self.assertEqual(out["contract_items"][0]["sku_code"],
+                         {"value": "SANDBOX", "ambiguous": False, "alternatives": [], "reason": None})
+        self.assertFalse(out["needs_review"])
+
+    def test_ambiguous_sku_keeps_the_likely_code_flags_it_and_needs_review(self):
+        from ofparser.schema import Ambiguity
+        sub = submission(item(100, 1, 100, "2025-01-01", "2025-12-31"))
+        sub.ambiguities = [Ambiguity(item_index=0, field="sku_code", candidates=["SANDBOX", "COPILOT"],
+                                     likely="SANDBOX", reason="name fits both")]
+        out = build_output(sub, CATALOG, [])
+        sku = out["contract_items"][0]["sku_code"]
+        self.assertEqual((sku["value"], sku["ambiguous"], sku["alternatives"]), ("SANDBOX", True, ["COPILOT"]))
+        self.assertTrue(out["needs_review"])
+        self.assertNotIn("sku_code", out["contract_items"][0]["ambiguous_fields"])
+
+
 class MissingFieldsTest(unittest.TestCase):
     def test_complete_output_is_not_flagged(self):
         # null schedule type / special notes and a label-ambiguous frequency are blank or flagged by design

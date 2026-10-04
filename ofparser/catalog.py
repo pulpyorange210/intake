@@ -10,6 +10,12 @@ INLINE_LIMIT = 200   # catalogs up to this size go into the prompt; larger ones 
 TOP_K = 5
 SIBLINGS_PER_MATCH = 3
 SIBLING_SIMILARITY = 0.5
+# Tie check: another SKU matching the document's name text within TIE_MARGIN of the chosen SKU's score is a tie.
+# A tie means the text alone can't decide (e.g. "Prem. Support" vs Premier / Premium Support). The margin is
+# small on purpose: "Talent Mgmt Ent." matches Enterprise by prefix and Essentials only by scattered letters,
+# 0.03 apart, and that is not a real ambiguity.
+TIE_MARGIN = 0.02
+TIE_MIN_SCORE = 0.6
 
 # OCR-confusable characters are treated as equal: 0/o, 1/l/i/|, 5/s, 8/b.
 _CONFUSABLE = str.maketrans({"0": "o", "1": "l", "i": "l", "|": "l", "5": "s", "8": "b"})
@@ -111,6 +117,14 @@ class Catalog:
                 used.add(best_j)
                 matched += best
         return 2 * matched / (len(query) + len(name))
+
+    def ties(self, text: str, chosen: str) -> Tuple[float, List[Tuple[str, float]]]:
+        """Other SKUs that match `text` about as well as `chosen` does: (chosen's score, [(code, score)])."""
+        query = _tokens(text)
+        mine = self._score(query, self._name_tokens.get(chosen, []))
+        others = [(code, self._score(query, toks)) for code, toks in self._name_tokens.items() if code != chosen]
+        floor = max(mine - TIE_MARGIN, TIE_MIN_SCORE)
+        return mine, sorted(((c, s) for c, s in others if s >= floor), key=lambda x: -x[1])
 
     def search(self, line_text: str) -> List[Tuple[dict, float, str]]:
         """Top matches for a line of document text plus close siblings of each: (entry, score, why)."""

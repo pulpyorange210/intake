@@ -13,6 +13,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 from ofparser.pdf import cents, extract_text
+from ofparser.postprocess import sku_value
 
 MONEY_FIELDS = ["total_listed_value", "unit_price"]
 ITEM_FIELDS = ["currency", "total_listed_value", "quantity", "unit_price", "service_start_date",
@@ -56,7 +57,7 @@ def match_items(pred, gold):
     pairs, unmatched_pred = [], list(range(len(pred)))
     unmatched_gold = []
     for gi, g in enumerate(gold):
-        cands = [pi for pi in unmatched_pred if pred[pi]["sku_code"] == g["sku_code"]]
+        cands = [pi for pi in unmatched_pred if sku_value(pred[pi]["sku_code"]) == g["sku_code"]]
         if not cands:
             unmatched_gold.append(gi)
             continue
@@ -118,7 +119,7 @@ def score_run(run_dir: Path, dataset: Path):
         pairs, up, ug = match_items(p_items, g_items)
         tp += len(pairs); fp += len(up); fn += len(ug)
         for pi in up:
-            item_errors.append(f"{form}: extra item {p_items[pi]['sku_code']}")
+            item_errors.append(f"{form}: extra item {sku_value(p_items[pi]['sku_code'])}")
         for gi in ug:
             item_errors.append(f"{form}: missed item {g_items[gi]['sku_code']}")
 

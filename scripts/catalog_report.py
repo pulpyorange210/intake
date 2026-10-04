@@ -16,6 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from eval import score_run  # noqa: E402
+from ofparser.postprocess import sku_value  # noqa: E402
 
 DATASET = ROOT / "synthetic_order_form_dataset_50"
 FIELDS = ["total_listed_value", "quantity", "unit_price", "service_start_date", "service_end_date", "payment_terms"]
@@ -44,7 +45,7 @@ def run_stats(run_dir: Path, forms=None) -> dict:
         if cat.get("mode") == "retrieval":
             recall_n += len(gold)
             recall_hit += sum(g in cands for g in gold)
-        pred = [i["sku_code"] for i in out.get("contract_items") or []]
+        pred = [sku_value(i["sku_code"]) for i in out.get("contract_items") or []]
         extra, missed = sorted(set(pred) - set(gold)), sorted(set(gold) - set(pred))
         if extra or missed:
             wrong.append(f"{p.stem}: chose {extra or '-'} where expected {missed or '-'}")

@@ -455,3 +455,41 @@ first 211/211 (201/211 before removing "Premier Support"). 8 new tests (59 total
 - Limits: both modes made no SKU errors, so this catalog did not find where matching breaks. The forms always
   print enough to decide (no form omits an edition or region that a look-alike adds), and abbreviations are mild.
   Harder cases (forms naming a product family only, unseen abbreviations, two plausible siblings) are untested.
+
+## v0.12 - an ambiguous SKU is flagged, not guessed (2026-10-04)
+
+**Motivation.** With "Premier Support" restored next to "Premium Support" in the 2,000-SKU catalog
+(`catalog_2000_with_premier.json`, a gitignored copy; the committed generator still leaves it out), of-0031 prints
+only "Prem. Support". search_catalog returned both at the same score, and the model silently picked
+PREMIUM_SUPPORT: no flag, needs_review false (`runs/premier_check`). It matched the answer key, so accuracy could
+not see it. It also had no way to flag it: sku_code was required, and ambiguity entries were only accepted on
+null fields.
+
+**What**
+- `sku_code` in the output is now a block like `invoicing_frequency`: `{value, ambiguous, alternatives, reason}`.
+  The likelier SKU is kept (an item always needs one) and the doubt sits next to it. An ambiguous SKU adds a
+  `sku_ambiguous` review note and sets `needs_review`. Readers (`eval.py`, report scripts) accept the block and the
+  old plain string, so earlier runs still score.
+- Submissions: an ambiguity entry on `sku_code` is the one allowed on a filled field. Its candidates must be
+  catalog codes, at least two, including the chosen code; `likely`, if given, must be the chosen code. Prompt rule
+  added for this case.
+- Checker: new `sku_tie` warning. The item's printed name (its sku_code evidence, else source_row) is scored
+  against every catalog SKU; another SKU within 0.02 of the chosen one's score (and at least 0.6) is a tie.
+  Resolved by flagging the SKU, or by an override whose reason quotes, in double quotes, text that is in the
+  document (checked; an override without such a quote doesn't count). The margin is tight on purpose: "Talent Mgmt
+  Ent." matches Enterprise by prefix and Essentials by scattered letters, 0.03 apart, which is not a real tie.
+- 11 new tests (70 total).
+
+**Checks**
+- Offline, every printed product name of the 50 forms (132 items) through the tie check: 21-SKU catalog 0 warnings;
+  2,000-SKU catalog 0; 2,000 + Premier exactly 7 items, the 7 forms that print "Prem. Support".
+- Replaying the earlier silent-guess submission (`runs/premier_check`) through the new checker: `sku_tie` fires.
+- Live (`runs/sku_tie_check`, $4.48): of-0031 plus the 20 near-twin forms, 2,000 + Premier catalog, retrieval.
+  - of-0031 and of-0019 (the near-twin that also prints "Prem. Support"): both flagged by the model itself on the
+    first submission, with Premier and Premium as candidates and needs_review set. The warning didn't need to fire.
+  - The other 19: no flags, no warnings, all items correct. No false alarms.
+  - of-0031 kept PREMIER_SUPPORT as its likelier value (the earlier run guessed Premium). Nothing in the document
+    favours either, so that pick is arbitrary; it's flagged, with the expected PREMIUM_SUPPORT as the alternative.
+    `eval.py` still scores items by the value only, so this form counts as one missed and one extra item. Scoring a
+    flagged SKU whose alternatives contain the expected one as "flagged ambiguous" is not done yet.
+  - of-0044 needs_review again for its ambiguous effective date (see v0.11).

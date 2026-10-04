@@ -136,7 +136,7 @@ PDF -> text layer + the PDF itself -> agent loop -> checker -> post-processing -
 ## Output
 
 Each form gives an `order_form` block (parties, effective date, signature dates, grand total) and a
-list of `contract_items` with the fields (`sku_code` is the `sku_reference`).
+list of `contract_items` with the fields (`sku_code.value` is the `sku_reference`).
 Every value also carries the quote from the document it came from, under `evidence`. Trimmed
 example:
 
@@ -153,7 +153,12 @@ example:
   "contract_items": [
     {
       "name": "Talent Intelligence Platform Premium Edition (Add-on)",
-      "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+      "sku_code": {
+        "value": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
       "currency": "USD",
       "total_listed_value": 120721.04,
       "quantity": 1.0,
@@ -175,8 +180,9 @@ example:
 ```
 
 When a field is ambiguous it's either left empty with the candidate readings listed under
-`ambiguous_fields`, or, for invoicing frequency, given with `ambiguous: true` and the alternatives
-next to it. An empty important field also gets an entry in `missing_fields` saying why (ambiguous, or
+`ambiguous_fields`, or, for invoicing frequency and the SKU, given with `ambiguous: true` and the
+alternatives next to it (a contract item always needs a SKU, so the likelier one is kept and the form is
+marked `needs_review`). An empty important field also gets an entry in `missing_fields` saying why (ambiguous, or
 not found, with the model's reason if it gave one), and a calculated date shows its calculation under
 `inferred_dates`. Either way the output never looks more certain than it is.
 

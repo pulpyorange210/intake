@@ -58,6 +58,20 @@ class SearchTest(unittest.TestCase):
         self.assertEqual(codes[0], "TM_ENT")
 
 
+class TieTest(unittest.TestCase):
+    def test_exact_tie_between_two_skus(self):
+        cat = Catalog([entry("PREMIUM", "Premium Support"), entry("PREMIER", "Premier Support")])
+        mine, tied = cat.ties("Prem. Support", "PREMIUM")
+        self.assertEqual([c for c, _ in tied], ["PREMIER"])
+
+    def test_prefix_abbreviation_beats_scattered_letters(self):
+        # "Ent." is a prefix of Enterprise but only scattered letters of Essentials: not a tie
+        self.assertEqual(CATALOG.ties("Talent Mgmt Ent.", "TM_ENT")[1], [])
+
+    def test_more_specific_siblings_are_not_ties(self):
+        self.assertEqual(CATALOG.ties("Talent Management Enterprise", "TM_ENT")[1], [])
+
+
 class ModeTest(unittest.TestCase):
     def test_small_catalogs_stay_inline(self):
         self.assertTrue(CATALOG.inline)
