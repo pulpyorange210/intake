@@ -408,3 +408,50 @@ Outline mode, all 6 variants (`runs/long_doc_outline/report.md`, $3.60):
   settled field.
 - Limits: one run per variant; the outline heuristics have only seen this generated boilerplate and the example
   form; scanned long documents still can't be indexed.
+
+## v0.11 - catalog scaling: shared prompt cache, 2,000-SKU catalog, search_catalog retrieval (2026-10-04)
+
+**1. Prompt cache across forms.** Per-turn usage is now logged (`meta.usage.per_turn`). Measured before the fix
+(`runs/cache_before`, 3 forms run one after another): every form's first turn read 0 tokens from the cache and
+wrote the whole ~13.5K-token prompt again, because the only cache point was at the end of the messages, after
+the PDF, which differs per form. Fix: a cache point at the end of the system prompt (rules + catalog; tools render
+before it, so they're included). After (`runs/cache_after`, forms not run recently): each form's first turn reads
+the 8,115-token shared prefix and writes only its own PDF and text. Saving: 8,115 x (1.25 - 0.10) x $5/M = about
+$0.047 per form, roughly 28% of v0.8's $0.168. A first "after" run on the same 3 forms was discarded: it read their
+whole first message from the cache left by the "before" run, which overstated the saving.
+
+**2. 2,000-SKU catalog** (`scripts/make_big_catalog.py`, seeded, reproducible; generated file gitignored): the real
+21 plus look-alikes (editions, add-on vs base, regions, deployments, units, billing terms, near-name siblings) and
+a wider vendor price book. Each look-alike differs from a real SKU by something a form would print. Inline, the
+catalog is 220,705 tokens. "Premier Support" was generated at first and removed: the forms print "Prem. Support",
+which ties Premier and Premium, so the expected answer would not be decidable from the document.
+
+**3. search_catalog** (`ofparser/catalog.py`): token matching that folds OCR-confusable characters (0/O, 1/l/I,
+5/S, 8/B), accepts abbreviations by prefix ("Platf.") or letters in order ("Mgmt"), and one-character typos;
+ranked by a Dice-style overlap so unmentioned regions or editions lower a candidate's score. Returns the top 5
+plus up to 3 close siblings of each, with descriptions and parsing instructions. Catalogs up to 200 SKUs stay
+inline (prompt byte-for-byte unchanged); larger ones get a retrieval section and the tool
+(`parse.py --catalog-mode auto|inline|retrieval`). The checker still validates codes against the full catalog.
+Offline, on the 211 printed product rows of the 50 forms: correct SKU among the candidates 211/211 and ranked
+first 211/211 (201/211 before removing "Premier Support"). 8 new tests (59 total).
+
+**4. Results** (`runs/catalog_report.md`; checkpoint first: one form in each mode, then the full runs)
+
+| Run | Forms | Items (P / R) | Retrieval recall | Fields correct | Input tokens / form | Cost / form |
+|---|---|---|---|---|---|---|
+| v0.8, 21 SKUs, same 10 forms | 10 | 100% / 100% | - | 174/174 | 29,611 | $0.170 |
+| 2,000 SKUs inline (near-twin forms) | 10 | 100% / 100% | - | 174/174 | 534,947 | $0.511 |
+| v0.8, 21 SKUs, all forms | 50 | 100% / 100% | - | 792/792 | 29,889 | $0.168 |
+| 2,000 SKUs, retrieval | 50 | 100% / 100% | 132/132 | 792/792 | 57,547 | $0.196 |
+
+- Inline: $5.11 for 10 forms run one at a time. The first form paid $1.65 (writing the 232K-token prompt to the
+  cache); the other nine read it and cost $0.32-0.48 each. Run in parallel, every form would pay the write.
+- Retrieval: $9.80 for 50 forms; 4.6 searches per form, 3.3 turns on average, every form accepted on the first
+  submission. Queries were the printed names ("Prem. Support", "Talent Mgmt Ent."). 0 wrong SKUs; near-twin
+  forms 100% / 100%.
+- One difference from v0.8, not caused by the catalog: of-0044's effective date "03/01/2024" was left blank as
+  ambiguous (likely 2024-03-01, correct), where v0.8 answered it unflagged. Both readings fit the document
+  (signed 3 and 8 March, start 22 March), so the blank follows the ambiguity rule; run-to-run variation.
+- Limits: both modes made no SKU errors, so this catalog did not find where matching breaks. The forms always
+  print enough to decide (no form omits an edition or region that a look-alike adds), and abbreviations are mild.
+  Harder cases (forms naming a product family only, unseen abbreviations, two plausible siblings) are untested.

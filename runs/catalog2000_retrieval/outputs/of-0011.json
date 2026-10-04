@@ -1,0 +1,231 @@
+{
+  "order_form": {
+    "customer_name": "Helio Manufacturing",
+    "vendor_name": "Acme Software Inc.",
+    "effective_date": "2023-06-27",
+    "contract_signed_date_buying_company": "2023-06-28",
+    "contract_signed_date_selling_company": "2023-07-02",
+    "currency": "USD",
+    "grand_total": 14091721.92,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Helio Manufacturing",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "This order form becomes effective on Jun 27, 2023.",
+      "contract_signed_date_buying_company": "Helio Manufacturing...Date (Print): 28 Jun 2023",
+      "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): 02 Jul 2023",
+      "currency": "USD 14,091,721.92",
+      "grand_total": "TOTAL SUBSCRIPTION                     USD 14,091,721.92",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {},
+    "missing_fields": {},
+    "inferred_dates": {}
+  },
+  "contract_items_count": 2,
+  "contract_items": [
+    {
+      "name": "Professional Service",
+      "sku_id": "2a4fa79f-0fb7-42a3-a4ad-143f3cce8e36",
+      "sku_code": "PROFESSIONAL_SERVICE",
+      "currency": "USD",
+      "total_listed_value": 5252548.8,
+      "quantity": 1.0,
+      "unit_price": 218856.2,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-07-01",
+      "service_end_date": "2025-06-29",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "monthly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Professional Service                1             USD 218,856.20                 USD 5,252,548.80",
+      "evidence": {
+        "currency": "USD 218,856.20",
+        "total_listed_value": "USD 5,252,548.80",
+        "quantity": "Professional Service                1",
+        "unit_price": "USD 218,856.20",
+        "unit_price_period": "Start Date: Jul 01, 2023                    End Date: Jun 29, 2025...USD 218,856.20                 USD 5,252,548.80",
+        "service_start_date": "Start Date: Jul 01, 2023",
+        "service_end_date": "End Date: Jun 29, 2025",
+        "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Sandbox",
+      "sku_id": "bc8b9193-a684-41c5-ac83-c0356cbcb7f3",
+      "sku_code": "SANDBOX",
+      "currency": "USD",
+      "total_listed_value": 8839173.12,
+      "quantity": 2.0,
+      "unit_price": 184149.44,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-07-01",
+      "service_end_date": "2025-06-29",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "monthly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Sandbox                 2             USD 184,149.44                 USD 8,839,173.12",
+      "evidence": {
+        "currency": "USD 184,149.44",
+        "total_listed_value": "USD 8,839,173.12",
+        "quantity": "Sandbox                 2",
+        "unit_price": "USD 184,149.44",
+        "unit_price_period": "Start Date: Jul 01, 2023                    End Date: Jun 29, 2025...USD 184,149.44                 USD 8,839,173.12",
+        "service_start_date": "Start Date: Jul 01, 2023",
+        "service_end_date": "End Date: Jun 29, 2025",
+        "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+    "PREMIUM_SUPPORT"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": null,
+      "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0011.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 3,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 25.0,
+    "usage": {
+      "input_tokens": 6,
+      "output_tokens": 2402,
+      "cache_creation_input_tokens": 13424,
+      "cache_read_input_tokens": 36080,
+      "per_turn": [
+        {
+          "input": 2,
+          "output": 258,
+          "cache_write": 5412,
+          "cache_read": 6029
+        },
+        {
+          "input": 2,
+          "output": 664,
+          "cache_write": 7169,
+          "cache_read": 11441
+        },
+        {
+          "input": 2,
+          "output": 1480,
+          "cache_write": 843,
+          "cache_read": 18610
+        }
+      ]
+    },
+    "cost_usd": 0.162,
+    "catalog": {
+      "mode": "retrieval",
+      "size": 2000,
+      "searches": [
+        {
+          "query": "Professional Service",
+          "candidates": [
+            "PROFESSIONAL_SERVICE",
+            "PROFESSIONAL_SERVICE_ADD_ON",
+            "PROFESSIONAL_SERVICE_ADVISORY",
+            "PROFESSIONAL_SERVICE_APAC",
+            "PROFESSIONAL_SERVICE_DACH",
+            "PROFESSIONAL_SERVICE_LATAM",
+            "PROFESSIONAL_SERVICE_PRIVATE_CLOUD",
+            "PROFESSIONAL_SERVICE_PER_LOCATION"
+          ]
+        },
+        {
+          "query": "Sandbox",
+          "candidates": [
+            "SANDBOX",
+            "DEVELOPER_SANDBOX",
+            "SANDBOX_ADD_ON",
+            "SANDBOX_CANADA",
+            "SANDBOX_ENVIRONMENT",
+            "SANDBOX_UK",
+            "SANDBOX_REFRESH",
+            "SANDBOX_LATAM",
+            "SANDBOX_ENVIRONMENT_ADD_ON",
+            "SANDBOX_ENVIRONMENT_PLUS_ADD_ON",
+            "SANDBOX_ENVIRONMENT_LITE_ADD_ON",
+            "SANDBOX_ENVIRONMENT_LATAM",
+            "IMPLEMENTATION_SANDBOX_ENVIRONMENT",
+            "WORKDAY_CONNECTOR_FOR_SANDBOX_ENVIRONMENT"
+          ]
+        },
+        {
+          "query": "Overages - Talent Acquisition AI Interviewer Agent Add-on",
+          "candidates": [
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_AMERICAS",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANZ",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_LATAM",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_RECRUITER",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_1_000_EMPLOYEES",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_GOVERNMENT_CLOUD",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANNUAL_PREPAID",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_JAPAN",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_INDIA",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_EMEA",
+            "OVERAGES_TALENT_ACQUISITION_AI_SOURCING_AGENT_ADD_ON",
+            "OVERAGES_TALENT_ACQUISITION_AI_SCHEDULING_AGENT_ADD_ON",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_US_DATA_RESIDENCY",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_EMPLOYEE",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_MULTI_YEAR",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_GOVERNMENT_CLOUD",
+            "TALENT_ACQUISITION_AI_SOURCING_AGENT_ADD_ON",
+            "TALENT_ACQUISITION_AI_SCREENING_AGENT_ADD_ON"
+          ]
+        },
+        {
+          "query": "Premium Support",
+          "candidates": [
+            "PREMIUM_SUPPORT",
+            "PREMIUM_SUCCESS_SUPPORT",
+            "PREMIUM_SUPPORT_24X7",
+            "PREMIUM_SUPPORT_ADD_ON",
+            "PREMIUM_SUPPORT_AMERICAS",
+            "PREMIUM_SUPPORT_PLUS",
+            "PREMIUM_SUPPORT_JAPAN",
+            "PREMIUM_SUPPORT_DACH"
+          ]
+        }
+      ]
+    }
+  }
+}

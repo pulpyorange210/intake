@@ -1,0 +1,357 @@
+{
+  "order_form": {
+    "customer_name": "Orchid Logistics",
+    "vendor_name": "Pioneer Intelligence Ltd.",
+    "effective_date": "2022-07-06",
+    "contract_signed_date_buying_company": "2022-07-06",
+    "contract_signed_date_selling_company": "2022-07-06",
+    "currency": "USD",
+    "grand_total": 14208649.44,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Orchid Logistics",
+      "vendor_name": "Pioneer Intelligence Ltd.",
+      "effective_date": "This order form becomes effective on 2022-07-06.",
+      "contract_signed_date_buying_company": "Orchid Logistics...Date (Print): Jul 06, 2022",
+      "contract_signed_date_selling_company": "Pioneer Intelligence Ltd....Date (Print): Jul 06, 2022",
+      "currency": "14,208,649.44 USD",
+      "grand_total": "14,208,649.44 USD",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {},
+    "missing_fields": {},
+    "inferred_dates": {}
+  },
+  "contract_items_count": 4,
+  "contract_items": [
+    {
+      "name": "WhatsApp / SMS Credits",
+      "sku_id": "1d910302-7e31-4e37-9a4b-b14d244af7c5",
+      "sku_code": "WHATSAPP_SMS_CREDITS",
+      "currency": "USD",
+      "total_listed_value": 2165047.92,
+      "quantity": 3.0,
+      "unit_price": 60140.22,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2022-08-04",
+      "service_end_date": "2023-08-03",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "monthly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "WhatsApp / SMS Credits 3 60,140.22 USD 2,165,047.92 USD",
+      "evidence": {
+        "source_row": "WhatsApp / SMS Credits 3 60,140.22 USD 2,165,047.92 USD",
+        "currency": "2,165,047.92 USD",
+        "total_listed_value": "2,165,047.92 USD",
+        "quantity": "3",
+        "unit_price": "60,140.22 USD",
+        "unit_price_period": "Start Date: 04 Aug 2022 End Date: 03 Aug 2023",
+        "service_start_date": "Start Date: 04 Aug 2022",
+        "service_end_date": "End Date: 03 Aug 2023",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Acquisition CRM",
+      "sku_id": "24857132-4f8f-46f9-a89e-db212c44a8aa",
+      "sku_code": "TALENT_ACQUISITION_CRM",
+      "currency": "USD",
+      "total_listed_value": 7716079.44,
+      "quantity": 3.0,
+      "unit_price": 214335.54,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2022-08-04",
+      "service_end_date": "2023-08-03",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "monthly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Acquisition CRM 3 214,335.54 USD 7,716,079.44 USD",
+      "evidence": {
+        "source_row": "Talent Acquisition CRM 3 214,335.54 USD 7,716,079.44 USD",
+        "currency": "7,716,079.44 USD",
+        "total_listed_value": "7,716,079.44 USD",
+        "quantity": "3",
+        "unit_price": "214,335.54 USD",
+        "unit_price_period": "Start Date: 04 Aug 2022 End Date: 03 Aug 2023",
+        "service_start_date": "Start Date: 04 Aug 2022",
+        "service_end_date": "End Date: 03 Aug 2023",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Management Leader Experience",
+      "sku_id": "dd8cb75c-b04b-4f2a-992c-3cfd85a77677",
+      "sku_code": "TALENT_MANAGEMENT_LEADER_EXPERIENCE",
+      "currency": "USD",
+      "total_listed_value": 1770942.48,
+      "quantity": 2.0,
+      "unit_price": 73789.27,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2022-08-04",
+      "service_end_date": "2023-08-03",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "monthly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Mgmt Leader Experience 2 73,789.27 USD 1,770,942.48 USD",
+      "evidence": {
+        "source_row": "Talent Mgmt Leader Experience 2 73,789.27 USD 1,770,942.48 USD",
+        "currency": "1,770,942.48 USD",
+        "total_listed_value": "1,770,942.48 USD",
+        "quantity": "2",
+        "unit_price": "73,789.27 USD",
+        "unit_price_period": "Start Date: 04 Aug 2022 End Date: 03 Aug 2023",
+        "service_start_date": "Start Date: 04 Aug 2022",
+        "service_end_date": "End Date: 03 Aug 2023",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+      "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+      "currency": "USD",
+      "total_listed_value": 2556579.6,
+      "quantity": 1.0,
+      "unit_price": 213048.3,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2022-08-04",
+      "service_end_date": "2023-08-03",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "monthly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 213,048.30 USD 2,556,579.60 USD",
+      "evidence": {
+        "source_row": "Talent Intel. Platf. Prem. Ed.\n(Add-on) 1 213,048.30 USD 2,556,579.60 USD",
+        "currency": "2,556,579.60 USD",
+        "total_listed_value": "2,556,579.60 USD",
+        "quantity": "1",
+        "unit_price": "213,048.30 USD",
+        "unit_price_period": "Start Date: 04 Aug 2022 End Date: 03 Aug 2023",
+        "service_start_date": "Start Date: 04 Aug 2022",
+        "service_end_date": "End Date: 03 Aug 2023",
+        "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "PROFESSIONAL_SERVICE",
+    "SIGNATURE_SUCCESS"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": null,
+      "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+    },
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": 3,
+      "message": "quotes for ['source_row'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0049.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 4,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 34.4,
+    "usage": {
+      "input_tokens": 8,
+      "output_tokens": 3624,
+      "cache_creation_input_tokens": 16781,
+      "cache_read_input_tokens": 59766,
+      "per_turn": [
+        {
+          "input": 2,
+          "output": 272,
+          "cache_write": 5553,
+          "cache_read": 6029
+        },
+        {
+          "input": 2,
+          "output": 693,
+          "cache_write": 8103,
+          "cache_read": 11582
+        },
+        {
+          "input": 2,
+          "output": 166,
+          "cache_write": 2785,
+          "cache_read": 19685
+        },
+        {
+          "input": 2,
+          "output": 2493,
+          "cache_write": 340,
+          "cache_read": 22470
+        }
+      ]
+    },
+    "cost_usd": 0.2254,
+    "catalog": {
+      "mode": "retrieval",
+      "size": 2000,
+      "searches": [
+        {
+          "query": "WhatsApp / SMS Credits",
+          "candidates": [
+            "WHATSAPP_SMS_CREDITS",
+            "OVERAGES_WHATSAPP_SMS_CREDITS",
+            "WHATSAPP_SMS_CREDITS_ADD_ON",
+            "WHATSAPP_SMS_CREDITS_ANZ",
+            "WHATSAPP_SMS_CREDITS_BUNDLE",
+            "WHATSAPP_SMS_CREDITS_LATAM",
+            "WHATSAPP_SMS_CREDITS_INDIA",
+            "WHATSAPP_CREDITS",
+            "WHATSAPP_SMS_CREDITS_PER_LOCATION",
+            "WHATSAPP_SMS_CREDITS_ANNUAL_PREPAID",
+            "SMS_CREDITS"
+          ]
+        },
+        {
+          "query": "Talent Acquisition CRM",
+          "candidates": [
+            "TALENT_ACQUISITION_CRM",
+            "TALENT_ACQUISITION_CRM_ADD_ON",
+            "TALENT_ACQUISITION_CRM_DACH",
+            "TALENT_ACQUISITION_CRM_EMEA",
+            "TALENT_ACQUISITION_CRM_EVENTS",
+            "TALENT_ACQUISITION_CRM_PLUS",
+            "TALENT_ACQUISITION_CRM_MONTHLY",
+            "TALENT_ACQUISITION_CRM_LATAM",
+            "TALENT_ACQUISITION_CRM_CAMPAIGNS_ADD_ON",
+            "TALENT_ACQUISITION_ADD_ON",
+            "TALENT_ACQUISITION_TALENT_TRACKING_ADDON",
+            "TALENT_ACQUISITION_TALENT_TRACKING_ADD_ON_DACH",
+            "TALENT_ACQUISITION_CRM_PRIVATE_CLOUD",
+            "TALENT_ACQUISITION_CRM_PER_LOCATION",
+            "TALENT_ACQUISITION_EMEA",
+            "TALENT_ACQUISITION_CRM_PER_EMPLOYEE",
+            "TALENT_ACQUISITION"
+          ]
+        },
+        {
+          "query": "Talent Mgmt Leader Experience",
+          "candidates": [
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_ADD_ON",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_CANADA",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_DACH",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_EMEA",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_PLUS",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_PER_LOCATION",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_PER_EMPLOYEE",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_MULTI_YEAR",
+            "TALENT_MANAGEMENT_MANAGER_EXPERIENCE",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_US_DATA_RESIDENCY",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_EU_DATA_RESIDENCY",
+            "TALENT_MANAGEMENT_EMPLOYEE_EXPERIENCE"
+          ]
+        },
+        {
+          "query": "Talent Intel. Platf. Prem. Ed. (Add-on)",
+          "candidates": [
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_LATAM",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_MONTHLY",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_RENEWAL_UPLIFT",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_LOCATION",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_EMPLOYEE",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_GOVERNMENT_CLOUD",
+            "TALENT_INTELLIGENCE_PLATFORM_STANDARD_EDITION_ADD_ON",
+            "TALENT_INTELLIGENCE_PLATFORM_ENTERPRISE_EDITION_ADD_ON",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_US_DATA_RESIDENCY",
+            "TALENT_INTELLIGENCE_PLATFORM_ADD_ON",
+            "TALENT_INTELLIGENCE_PREMIUM_ANALYTICS_ADD_ON"
+          ]
+        },
+        {
+          "query": "Professional Service",
+          "candidates": [
+            "PROFESSIONAL_SERVICE",
+            "PROFESSIONAL_SERVICE_ADD_ON",
+            "PROFESSIONAL_SERVICE_ADVISORY",
+            "PROFESSIONAL_SERVICE_APAC",
+            "PROFESSIONAL_SERVICE_DACH",
+            "PROFESSIONAL_SERVICE_LATAM",
+            "PROFESSIONAL_SERVICE_PRIVATE_CLOUD",
+            "PROFESSIONAL_SERVICE_PER_LOCATION"
+          ]
+        },
+        {
+          "query": "Signature Success",
+          "candidates": [
+            "SIGNATURE_SUCCESS",
+            "SIGNATURE_SUCCESS_ADD_ON",
+            "SIGNATURE_SUCCESS_CANADA",
+            "SIGNATURE_SUCCESS_ESSENTIALS",
+            "SIGNATURE_SUCCESS_FEDRAMP",
+            "SIGNATURE_SUCCESS_UK",
+            "SIGNATURE_SUCCESS_PLUS",
+            "SIGNATURE_SUCCESS_LATAM",
+            "E_SIGNATURE_ADD_ON",
+            "E_SIGNATURE_ESSENTIALS"
+          ]
+        }
+      ]
+    }
+  }
+}

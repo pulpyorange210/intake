@@ -1,0 +1,306 @@
+{
+  "order_form": {
+    "customer_name": "Brightwave Industries",
+    "vendor_name": "Acme Software Inc.",
+    "effective_date": "2026-08-27",
+    "contract_signed_date_buying_company": "2026-09-02",
+    "contract_signed_date_selling_company": "2026-09-03",
+    "currency": "USD",
+    "grand_total": 1050301.53,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Brightwave Industries",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "This order form becomes effective on 27-Aug-2026.",
+      "contract_signed_date_buying_company": "Brightwave Industries...Title (Print): VP Finance...Date (Print): 2026-09-02",
+      "contract_signed_date_selling_company": "Acme Software Inc....Title (Print): Controller...Date (Print): 2026-09-03",
+      "currency": "$1,050,301.53",
+      "grand_total": "$1,050,301.53",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {},
+    "missing_fields": {},
+    "inferred_dates": {}
+  },
+  "contract_items_count": 3,
+  "contract_items": [
+    {
+      "name": "Talent Management Leader Experience",
+      "sku_id": "dd8cb75c-b04b-4f2a-992c-3cfd85a77677",
+      "sku_code": "TALENT_MANAGEMENT_LEADER_EXPERIENCE",
+      "currency": "USD",
+      "total_listed_value": 802051.05,
+      "quantity": 5.0,
+      "unit_price": 160410.21,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-09-01",
+      "service_end_date": "2028-08-30",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 55",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Mgmt Leader Experience 5 $160,410.21 $802,051.05",
+      "evidence": {
+        "currency": "$802,051.05",
+        "total_listed_value": "$802,051.05",
+        "quantity": "5",
+        "unit_price": "$160,410.21",
+        "unit_price_period": "Talent Mgmt Leader Experience 5 $160,410.21 $802,051.05",
+        "service_start_date": "Start Date: Sep 01, 2026",
+        "service_end_date": "End Date: 2028-08-30",
+        "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+      "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+      "currency": "USD",
+      "total_listed_value": 63181.37,
+      "quantity": 1.0,
+      "unit_price": 63181.37,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-09-01",
+      "service_end_date": "2028-08-30",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 55",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 $63,181.37 $63,181.37",
+      "evidence": {
+        "currency": "$63,181.37",
+        "total_listed_value": "$63,181.37",
+        "quantity": "1",
+        "unit_price": "$63,181.37",
+        "unit_price_period": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 $63,181.37 $63,181.37",
+        "service_start_date": "Start Date: Sep 01, 2026",
+        "service_end_date": "End Date: 2028-08-30",
+        "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Acquisition",
+      "sku_id": "d6f20b62-9bec-421b-8d33-489712746aee",
+      "sku_code": "TALENT_ACQUISITION",
+      "currency": "USD",
+      "total_listed_value": 185069.11,
+      "quantity": 1.0,
+      "unit_price": 185069.11,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-09-01",
+      "service_end_date": "2028-08-30",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 55",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Acquisition 1 $185,069.11 $185,069.11",
+      "evidence": {
+        "currency": "$185,069.11",
+        "total_listed_value": "$185,069.11",
+        "quantity": "1",
+        "unit_price": "$185,069.11",
+        "unit_price_period": "Talent Acquisition 1 $185,069.11 $185,069.11",
+        "service_start_date": "Start Date: Sep 01, 2026",
+        "service_end_date": "End Date: 2028-08-30",
+        "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "SANDBOX",
+    "TALENT_MANAGEMENT_ENTERPRISE"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": null,
+      "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+    },
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": 1,
+      "message": "quotes for ['unit_price_period', 'source_row'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0029.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 3,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 31.8,
+    "usage": {
+      "input_tokens": 6,
+      "output_tokens": 3132,
+      "cache_creation_input_tokens": 16722,
+      "cache_read_input_tokens": 35815,
+      "per_turn": [
+        {
+          "input": 2,
+          "output": 209,
+          "cache_write": 5484,
+          "cache_read": 6029
+        },
+        {
+          "input": 2,
+          "output": 921,
+          "cache_write": 6760,
+          "cache_read": 11513
+        },
+        {
+          "input": 2,
+          "output": 2002,
+          "cache_write": 4478,
+          "cache_read": 18273
+        }
+      ]
+    },
+    "cost_usd": 0.2008,
+    "catalog": {
+      "mode": "retrieval",
+      "size": 2000,
+      "searches": [
+        {
+          "query": "Talent Mgmt Leader Experience",
+          "candidates": [
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_ADD_ON",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_CANADA",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_DACH",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_EMEA",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_PLUS",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_PER_LOCATION",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_PER_EMPLOYEE",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_MULTI_YEAR",
+            "TALENT_MANAGEMENT_MANAGER_EXPERIENCE",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_US_DATA_RESIDENCY",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_EU_DATA_RESIDENCY",
+            "TALENT_MANAGEMENT_EMPLOYEE_EXPERIENCE"
+          ]
+        },
+        {
+          "query": "Talent Intel. Platf. Prem. Ed. (Add-on)",
+          "candidates": [
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_LATAM",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_MONTHLY",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_RENEWAL_UPLIFT",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_LOCATION",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_EMPLOYEE",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_GOVERNMENT_CLOUD",
+            "TALENT_INTELLIGENCE_PLATFORM_STANDARD_EDITION_ADD_ON",
+            "TALENT_INTELLIGENCE_PLATFORM_ENTERPRISE_EDITION_ADD_ON",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_US_DATA_RESIDENCY",
+            "TALENT_INTELLIGENCE_PLATFORM_ADD_ON",
+            "TALENT_INTELLIGENCE_PREMIUM_ANALYTICS_ADD_ON"
+          ]
+        },
+        {
+          "query": "Talent Acquisition",
+          "candidates": [
+            "TALENT_ACQUISITION",
+            "TALENT_ACQUISITION_ADD_ON",
+            "TALENT_ACQUISITION_AMERICAS",
+            "TALENT_ACQUISITION_ANALYTICS",
+            "TALENT_ACQUISITION_CORE",
+            "TALENT_ACQUISITION_SUITE",
+            "TALENT_ACQUISITION_STARTER",
+            "TALENT_ACQUISITION_LATAM",
+            "TALENT_ACQUISITION_TALENT_TRACKING_ADDON",
+            "TALENT_ACQUISITION_TALENT_PIPELINE_ADD_ON",
+            "TALENT_ACQUISITION_CRM_ADD_ON",
+            "TALENT_ACQUISITION_IMPLEMENTATION",
+            "TALENT_ACQUISITION_FEDRAMP",
+            "TALENT_ACQUISITION_EMEA",
+            "TALENT_ACQUISITION_CRM",
+            "TALENT_ACQUISITION_CORE_PLUS",
+            "TALENT_ACQUISITION_CORE_LITE",
+            "TALENT_ACQUISITION_CORE_JAPAN"
+          ]
+        },
+        {
+          "query": "Sandbox",
+          "candidates": [
+            "SANDBOX",
+            "DEVELOPER_SANDBOX",
+            "SANDBOX_ADD_ON",
+            "SANDBOX_CANADA",
+            "SANDBOX_ENVIRONMENT",
+            "SANDBOX_UK",
+            "SANDBOX_REFRESH",
+            "SANDBOX_LATAM",
+            "SANDBOX_ENVIRONMENT_ADD_ON",
+            "SANDBOX_ENVIRONMENT_PLUS_ADD_ON",
+            "SANDBOX_ENVIRONMENT_LITE_ADD_ON",
+            "SANDBOX_ENVIRONMENT_LATAM",
+            "IMPLEMENTATION_SANDBOX_ENVIRONMENT",
+            "WORKDAY_CONNECTOR_FOR_SANDBOX_ENVIRONMENT"
+          ]
+        },
+        {
+          "query": "Talent Management Enterprise",
+          "candidates": [
+            "TALENT_MANAGEMENT_ENTERPRISE",
+            "TALENT_MANAGEMENT_ENTERPRISE_ADD_ON",
+            "TALENT_MANAGEMENT_ENTERPRISE_AMERICAS",
+            "TALENT_MANAGEMENT_ENTERPRISE_FEDRAMP",
+            "TALENT_MANAGEMENT_ENTERPRISE_JAPAN",
+            "TALENT_MANAGEMENT_ENTERPRISE_UK",
+            "TALENT_MANAGEMENT_ENTERPRISE_PLUS",
+            "TALENT_MANAGEMENT_ENTERPRISE_MONTHLY",
+            "TALENT_MANAGEMENT_ENTERPRISE_LITE",
+            "TALENT_MANAGEMENT_CORE_ADD_ON",
+            "TALENT_MANAGEMENT_LEADER_EXPERIENCE_ADD_ON",
+            "TALENT_MANAGEMENT_CORE_AMERICAS",
+            "TALENT_MANAGEMENT_ENTERPRISE_PER_1_000_EMPLOYEES",
+            "TALENT_MANAGEMENT_ENTERPRISE_GOVERNMENT_CLOUD",
+            "TALENT_MANAGEMENT_CORE_FEDRAMP",
+            "VENDOR_MANAGEMENT_ENTERPRISE_EDITION_JAPAN"
+          ]
+        }
+      ]
+    }
+  }
+}

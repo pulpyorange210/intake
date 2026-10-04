@@ -9,13 +9,7 @@ You receive the order form as a PDF plus the text layer extracted from it. The t
 contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; \
 use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.
 
-# SKU catalog
-Every contract item must map to exactly one SKU in this catalog. Each SKU carries parsing \
-instructions from the selling company; follow them, they take precedence over the general rules below.
-
-<catalog>
-{catalog}
-</catalog>
+{catalog_section}
 
 # What is a contract item
 - A product or service the vendor sells in this order with its own price: a priced line or row, \
@@ -126,6 +120,50 @@ SUBMIT_TOOL_DESCRIPTION = (
     "Returns 'accepted', or a list of hard errors (must fix) and warnings (fix, or override with a "
     "reason if the value is correct as written)."
 )
+
+INLINE_CATALOG_SECTION = """\
+# SKU catalog
+Every contract item must map to exactly one SKU in this catalog. Each SKU carries parsing \
+instructions from the selling company; follow them, they take precedence over the general rules below.
+
+<catalog>
+{catalog}
+</catalog>"""
+
+RETRIEVAL_CATALOG_SECTION = """\
+# SKU catalog
+The selling company's catalog has {size} SKUs, too many to list here. Every contract item must map to \
+exactly one of them: for each priced line, call search_catalog with the line's text as printed (product \
+name, abbreviations and all). It returns the closest SKUs plus similar siblings (other editions, add-ons, \
+regions, deployments) with their parsing instructions. Choose the SKU the document actually describes; a \
+sibling that adds a region, edition or add-on the document doesn't mention is a different product. If no \
+candidate fits, search again with other wording before concluding the line isn't in the catalog. Use only \
+codes returned by search_catalog; each code is checked against the full catalog. Parsing instructions of \
+the SKU you choose take precedence over the general rules below."""
+
+
+def system_prompt(catalog, retrieval: bool) -> str:
+    section = (RETRIEVAL_CATALOG_SECTION.format(size=len(catalog.entries)) if retrieval
+               else INLINE_CATALOG_SECTION.format(catalog=catalog.to_prompt()))
+    return SYSTEM_TEMPLATE.format(catalog_section=section)
+
+
+SEARCH_CATALOG_TOOL = {
+    "name": "search_catalog",
+    "description": (
+        "Search the SKU catalog for a line of the order form. Tolerates abbreviations ('Mgmt', 'Platf.'), "
+        "OCR-style character errors and typos. Returns the top matches plus close siblings of each, with codes, "
+        "names, descriptions and parsing instructions."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "line_text": {"type": "string", "description": "The priced line or product name as printed"},
+        },
+        "required": ["line_text"],
+        "additionalProperties": False,
+    },
+}
 
 LONG_DOC_TEMPLATE = """\
 Order form file: {filename}

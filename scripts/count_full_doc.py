@@ -49,7 +49,7 @@ def main() -> None:
     args = ap.parse_args()
     client = anthropic.Anthropic()
     catalog = Catalog.load(args.catalog)
-    system = prompts.SYSTEM_TEMPLATE.format(catalog=catalog.to_prompt())
+    system = prompts.system_prompt(catalog, retrieval=False)
     tools = [prompts.COMPUTE_TOOL, {"name": "submit_extraction", "description": prompts.SUBMIT_TOOL_DESCRIPTION,
                                     "input_schema": submission_json_schema()}]
     price_in = PRICING[DEFAULT_MODEL][0]

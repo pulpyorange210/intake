@@ -1,0 +1,547 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nThe selling company's catalog has 2000 SKUs, too many to list here. Every contract item must map to exactly one of them: for each priced line, call search_catalog with the line's text as printed (product name, abbreviations and all). It returns the closest SKUs plus similar siblings (other editions, add-ons, regions, deployments) with their parsing instructions. Choose the SKU the document actually describes; a sibling that adds a region, edition or add-on the document doesn't mention is a different product. If no candidate fits, search again with other wording before concluding the line isn't in the catalog. Use only codes returned by search_catalog; each code is checked against the full catalog. Parsing instructions of the SKU you choose take precedence over the general rules below.\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- Every date you give must be printed in the document (in any format). If a date is not printed but follows from one that is (e.g. an end date from a start date and a stated term), add an inferred_dates entry: the printed from_date, the add_months / add_days that produce the value, and an explanation quoting the text it relies on. The calculation is re-checked. Never supply a date that is neither printed nor calculated from a printed date; leave it null.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). Billing \"in advance\" or \"in arrears\" describes timing within a period, not the schedule type or frequency. If the document does not say, use null.\n- Amendments: if the document contains an amendment, addendum or change order that modifies this order (e.g. a changed price, quantity or date), use the values as amended, quote the amending text as evidence, and mention the amendment in special_notes.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Before treating a field as ambiguous, test each candidate reading against the rest of the document: the arithmetic of prices, quantities and the service term, and the other dates. A reading that contradicts the document is not a valid reading. If exactly one reading survives, use it and quote the deciding evidence. Closeness or typicality (e.g. a date being near the signature date) never eliminates a reading; it can only make one likely.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). If surrounding context makes one candidate more likely (e.g. its closeness to other dates in the document), give it as likely with that evidence in likely_reason; the field itself still stays null. Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0010.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0010.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                                  Customer Order Schedule\n\nPrepared For: Atlas Retail Group                                               Quote Number: Q-211605\nAccount Executive: Morgan Diaz                                                 Offer Valid Through: 2023-09-14\n\n\n Sold/Ship To:                                                     Bill To:\n 8973 Technology Drive, Denver, CO 72744,                          Attn: Accounts Payable, 2667 Mission\n USA                                                               Street, Denver, CO 30765, USA\n\n\n\n Primary Contact: Avery Brown                                      Billing Contact: Alex Carter\n Primary Email: avery@atlasretailgroup.com                         Billing Email: ap@atlasretailgroup.com\n\n\n\nStart Date: 2023-09-14                      End Date: Sep 12, 2024                      Up to Customer Employee Size: 2,500\n\nLICENSE AND SERVICE FEES\n\n Product/Service                                            Qty            Unit Price                       Total\n\n Talent Acquisition                                          1             USD 62,749.66                    USD 62,749.66\n\n Talent Intel. Platf. Prem. Ed.                              2             USD 192,729.55                   USD 385,459.10\n (Add-on)\n\n TOTAL SUBSCRIPTION                                                                                         USD 448,208.76\n\nBILLING SCHEDULE\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Due on Receipt unless stated otherwise.\n\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\n\n\n\n                                                                                                                      Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on 2023-08-26. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Overages - Talent Acquisition AI Interviewer Agent\nAdd-on, Talent Design\n\nAtlas Retail Group                                                 Nimbus Data Platforms, Inc.\nBy:                                                                By:\n               SIGNED ELECTRONICALLY                                            SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                          Name (Print): ___________________________\nTitle (Print): Controller                                          Title (Print): VP Finance\nDate (Print): 08/29/2023                                           Date (Print): 08/31/2023\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: YES, copy to be provided.\n\n\n\n\nConfidential - pricing subject to agreement.                                                                   Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "I'll start by searching the catalog for each priced line and the excluded items.",
+          "type": "text"
+        },
+        {
+          "id": "toolu_01FCNLAmYREYfjEBjMMYGiDP",
+          "input": {
+            "line_text": "Talent Acquisition"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_015UnGqrz3ctBYTPgUDJPpMT",
+          "input": {
+            "line_text": "Talent Intel. Platf. Prem. Ed. (Add-on)"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01FCNLAmYREYfjEBjMMYGiDP",
+          "content": "Catalog candidates for 'Talent Acquisition' (best first; siblings are similar SKUs to rule out):\n- TALENT_ACQUISITION | Talent Acquisition | Subscription to Talent Acquisition module | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 1.00]\n- TALENT_ACQUISITION_ADD_ON | Talent Acquisition (Add-on) | Talent Acquisition (Add-on), billed per the order form | instructions: - Use Order Form Start Date for service start.  [match, score 0.80]\n- TALENT_ACQUISITION_AMERICAS | Talent Acquisition - Americas | Recurring subscription to Talent Acquisition - Americas | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [match, score 0.80]\n- TALENT_ACQUISITION_ANALYTICS | Talent Acquisition Analytics | Access to Talent Acquisition Analytics for the subscription term  [match, score 0.80]\n- TALENT_ACQUISITION_CORE | Talent Acquisition Core | Core package of Talent Acquisition | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.80]\n- TALENT_ACQUISITION_SUITE | Talent Acquisition Suite | Subscription to Talent Acquisition Suite | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_ACQUISITION, score 0.80]\n- TALENT_ACQUISITION_STARTER | Talent Acquisition Starter | Access to Talent Acquisition Starter for the subscription term | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_ACQUISITION, score 0.80]\n- TALENT_ACQUISITION_LATAM | Talent Acquisition - LATAM | Talent Acquisition - LATAM, billed per the order form | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_ACQUISITION, score 0.80]\n- TALENT_ACQUISITION_TALENT_TRACKING_ADDON | Talent Acquisition Talent Tracking Add-on | Recurring subscription to the Talent Tracking Add-on for Talent Acquisition | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_ACQUISITION_ADD_ON, score 0.57]\n- TALENT_ACQUISITION_TALENT_PIPELINE_ADD_ON | Talent Acquisition Talent Pipeline Add-on | Talent Acquisition Talent Pipeline Add-on, billed per the order form | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_ACQUISITION_ADD_ON, score 0.57]\n- TALENT_ACQUISITION_CRM_ADD_ON | Talent Acquisition CRM (Add-on) | Recurring subscription to Talent Acquisition CRM (Add-on) | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_ACQUISITION_ADD_ON, score 0.67]\n- TALENT_ACQUISITION_IMPLEMENTATION | Talent Acquisition Implementation | Recurring subscription to Talent Acquisition Implementation | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_ACQUISITION_AMERICAS, score 0.80]\n- TALENT_ACQUISITION_FEDRAMP | Talent Acquisition (FedRAMP) | Access to Talent Acquisition (FedRAMP) for the subscription term | instructions: - Use Order Form Start Date for service start.  [sibling of TALENT_ACQUISITION_AMERICAS, score 0.80]\n- TALENT_ACQUISITION_EMEA | Talent Acquisition - EMEA | Talent Acquisition - EMEA, billed per the order form | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of TALENT_ACQUISITION_AMERICAS, score 0.80]\n- TALENT_ACQUISITION_CRM | Talent Acquisition CRM | CRM component of Talent Acquisition | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_ACQUISITION_ANALYTICS, score 0.80]\n- TALENT_ACQUISITION_CORE_PLUS | Talent Acquisition Core Plus | Recurring subscription to Talent Acquisition Core Plus | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_ACQUISITION_CORE, score 0.67]\n- TALENT_ACQUISITION_CORE_LITE | Talent Acquisition Core Lite | Talent Acquisition Core Lite, billed per the order form | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of TALENT_ACQUISITION_CORE, score 0.67]\n- TALENT_ACQUISITION_CORE_JAPAN | Talent Acquisition Core - Japan | Access to Talent Acquisition Core - Japan for the subscription term  [sibling of TALENT_ACQUISITION_CORE, score 0.67]",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_015UnGqrz3ctBYTPgUDJPpMT",
+          "content": "Catalog candidates for 'Talent Intel. Platf. Prem. Ed. (Add-on)' (best first; siblings are similar SKUs to rule out):\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON | Talent Intelligence Platform Premium Edition (Add-on) | Premium add-on to Talent Intelligence Platform | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.88]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA | Talent Intelligence Platform Premium Edition (Add-on) - Canada | Subscription to Talent Intelligence Platform Premium Edition (Add-on) - Canada  [match, score 0.82]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA | Talent Intelligence Platform Premium Edition (Add-on) - EMEA | Talent Intelligence Platform Premium Edition (Add-on) - EMEA, billed per the order form | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.82]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_LATAM | Talent Intelligence Platform Premium Edition (Add-on) - LATAM | Talent Intelligence Platform Premium Edition (Add-on) - LATAM, billed per the order form | instructions: - Use Order Form Start Date for service start.  [match, score 0.82]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_MONTHLY | Talent Intelligence Platform Premium Edition (Add-on) - Monthly | Access to Talent Intelligence Platform Premium Edition (Add-on) - Monthly for the subscription term | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.82]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION | Talent Intelligence Platform Premium Edition | Access to Talent Intelligence Platform Premium Edition for the subscription term | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON, score 0.78]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_RENEWAL_UPLIFT | Talent Intelligence Platform Premium Edition (Add-on) - Renewal Uplift | Subscription to Talent Intelligence Platform Premium Edition (Add-on) - Renewal Uplift | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON, score 0.76]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_LOCATION | Talent Intelligence Platform Premium Edition (Add-on) - Per Location | Recurring subscription to Talent Intelligence Platform Premium Edition (Add-on) - Per Location  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON, score 0.76]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_EMPLOYEE | Talent Intelligence Platform Premium Edition (Add-on) - Per Employee | Access to Talent Intelligence Platform Premium Edition (Add-on) - Per Employee for the subscription term  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA, score 0.76]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_GOVERNMENT_CLOUD | Talent Intelligence Platform Premium Edition (Add-on) (Government Cloud) | Talent Intelligence Platform Premium Edition (Add-on) (Government Cloud), billed per the order form | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA, score 0.76]\n- TALENT_INTELLIGENCE_PLATFORM_STANDARD_EDITION_ADD_ON | Talent Intelligence Platform Standard Edition (Add-on) | Talent Intelligence Platform Standard Edition (Add-on), billed per the order form | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA, score 0.73]\n- TALENT_INTELLIGENCE_PLATFORM_ENTERPRISE_EDITION_ADD_ON | Talent Intelligence Platform Enterprise Edition (Add-on) | Subscription to Talent Intelligence Platform Enterprise Edition (Add-on) | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA, score 0.73]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_US_DATA_RESIDENCY | Talent Intelligence Platform Premium Edition (Add-on) (US Data Residency) | Subscription to Talent Intelligence Platform Premium Edition (Add-on) (US Data Residency) | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA, score 0.71]\n- TALENT_INTELLIGENCE_PLATFORM_ADD_ON | Talent Intelligence Platform (Add-on) | Talent Intelligence Platform (Add-on) capability for enterprise customers | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA, score 0.76]\n- TALENT_INTELLIGENCE_PREMIUM_ANALYTICS_ADD_ON | Talent Intelligence Premium Analytics (Add-on) | Access to Talent Intelligence Premium Analytics (Add-on) for the subscription term  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_LATAM, score 0.69]",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISggYK2wIIEhgCKkCk/R0LERLNJspUSmFwmi//KC3dkFQWCUpqwo8hbEArBbLMt9DME6PL7ctaGZvunip+1c80WuE7XXCOaBeumRBpMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAY7ghtYGwgFVCA0QABonAbchAi4bA083CC71BZDwBCatBXEjCkuZCu8NA083C+RiC96yBCatIAIyBBJxzyU6BGaLrlBCBAoAix1KBKwhgE9QA1oE2QXhVmAEaAFwAdoBYAoWcHJlZml4X2JlZm9yZV9ibG9ja192MRIgj1a5E1Afn3J+uK94wIhxx9wlbOAGCaXslWlGUmzvBA8iADIgwsATyGqckuIvlm89hhd2j4t6RMkCrcwJe/oeCYr7Th9IAxIMgbIGzuBCnbS2UPpFGgwQxTybt6A/9cKyYIYiMMkLgewShet48e3OctBtrMxcR04PvQKh0uhkNqeg8FORz8ek1nfMPe/T2/mMxv9eoirTAksh2bOQ2ZvIC9oEeUcFYcV7fKEp9u+I9/GCWGHn4EOfxg0ukobMmfsJmSYL4wzfXxUrt2Ma40dFfQkY8gQAZ3+xb2KROUTYJxoco3yb8IVNGFK1zaiu8V2o8cMMJbavmgu9N8XTR12kHbEZK+v6hkRNDsZBxSQ+M8o8qnlGfx+aNNz0kgeiqiaruf+bfENYbUDLLEhREtTadlHnbEa2jb9U1qsjEUDgwnKDkI2cutB7VRs7QT7lMf5QMSRGQwYT03ogAqI1RdatPEBODVOChudATSAfuTzQHamfqQxT3RMMplFFNokgfQR2lZmDU+3eEawxrHAK1KUQmz+LF2HGhak2WRfFh9UFfH15aJkSrtXg57MmbzIbEpivHHgktfq4xFUy2NiDPm3AmlNXdwUV/UYrI85Y3LR/Mhs37uBdTe1ySCbuZpwICLbDBjdpkXF6/bkUrBgB",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_011p3iDc7WKuXu4JZBJFEMBv",
+          "input": {
+            "line_text": "Overages - Talent Acquisition AI Interviewer Agent Add-on"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_013YcQ1aQpvgdFLTpTDHFkgf",
+          "input": {
+            "line_text": "Talent Design"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_011p3iDc7WKuXu4JZBJFEMBv",
+          "content": "Catalog candidates for 'Overages - Talent Acquisition AI Interviewer Agent Add-on' (best first; siblings are similar SKUs to rule out):\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON | Overages - Talent Acquisition AI Interviewer Agent Add-on | Usage-based overages for the AI Interviewer Agent Add-on | instructions: - Revenue recognized based on actual usage consumption. - Capture usage metrics as they occur for recognition.  [match, score 1.00]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_AMERICAS | Overages - Talent Acquisition AI Interviewer Agent Add-on - Americas | Overages - Talent Acquisition AI Interviewer Agent Add-on - Americas capability for enterprise customers | instructions: - Use Order Form Start Date for service start.  [match, score 0.93]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANZ | Overages - Talent Acquisition AI Interviewer Agent Add-on - ANZ | Recurring subscription to Overages - Talent Acquisition AI Interviewer Agent Add-on - ANZ | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [match, score 0.93]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_LATAM | Overages - Talent Acquisition AI Interviewer Agent Add-on - LATAM | Overages - Talent Acquisition AI Interviewer Agent Add-on - LATAM capability for enterprise customers | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [match, score 0.93]\n- TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON | Talent Acquisition AI Interviewer Agent Add-on | Recurring subscription to the AI Interviewer Agent Add-on for Talent Acquisition | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.92]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_RECRUITER | Overages - Talent Acquisition AI Interviewer Agent Add-on - Per Recruiter | Overages - Talent Acquisition AI Interviewer Agent Add-on - Per Recruiter, billed per the order form | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON, score 0.88]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_1_000_EMPLOYEES | Overages - Talent Acquisition AI Interviewer Agent Add-on - Per 1,000 Employees | Recurring subscription to Overages - Talent Acquisition AI Interviewer Agent Add-on - Per 1,000 Employees | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON, score 0.88]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_GOVERNMENT_CLOUD | Overages - Talent Acquisition AI Interviewer Agent Add-on (Government Cloud) | Subscription to Overages - Talent Acquisition AI Interviewer Agent Add-on (Government Cloud) | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON, score 0.88]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANNUAL_PREPAID | Overages - Talent Acquisition AI Interviewer Agent Add-on - Annual Prepaid | Access to Overages - Talent Acquisition AI Interviewer Agent Add-on - Annual Prepaid for the subscription term | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_AMERICAS, score 0.88]\n- TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_JAPAN | Talent Acquisition AI Interviewer Agent Add-on - Japan | Talent Acquisition AI Interviewer Agent Add-on - Japan, billed per the order form | instructions: - Use Order Form Start Date for service start.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_AMERICAS, score 0.86]\n- TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_INDIA | Talent Acquisition AI Interviewer Agent Add-on - India | Access to Talent Acquisition AI Interviewer Agent Add-on - India for the subscription term | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_AMERICAS, score 0.86]\n- TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_EMEA | Talent Acquisition AI Interviewer Agent Add-on - EMEA | Talent Acquisition AI Interviewer Agent Add-on - EMEA, billed per the order form | instructions: - Use Order Form Start Date for service start.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANZ, score 0.86]\n- OVERAGES_TALENT_ACQUISITION_AI_SOURCING_AGENT_ADD_ON | Overages - Talent Acquisition AI Sourcing Agent Add-on | Overages - Talent Acquisition AI Sourcing Agent Add-on capability for enterprise customers | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANZ, score 0.86]\n- OVERAGES_TALENT_ACQUISITION_AI_SCHEDULING_AGENT_ADD_ON | Overages - Talent Acquisition AI Scheduling Agent Add-on | Subscription to Overages - Talent Acquisition AI Scheduling Agent Add-on  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANZ, score 0.86]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_US_DATA_RESIDENCY | Overages - Talent Acquisition AI Interviewer Agent Add-on (US Data Residency) | Access to Overages - Talent Acquisition AI Interviewer Agent Add-on (US Data Residency) for the subscription term | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_LATAM, score 0.82]\n- TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_EMPLOYEE | Talent Acquisition AI Interviewer Agent Add-on - Per Employee | Talent Acquisition AI Interviewer Agent Add-on - Per Employee capability for enterprise customers | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_LATAM, score 0.80]\n- TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_MULTI_YEAR | Talent Acquisition AI Interviewer Agent Add-on - Multi-Year | Recurring subscription to Talent Acquisition AI Interviewer Agent Add-on - Multi-Year | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_LATAM, score 0.80]\n- TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_GOVERNMENT_CLOUD | Talent Acquisition AI Interviewer Agent Add-on (Government Cloud) | Access to Talent Acquisition AI Interviewer Agent Add-on (Government Cloud) for the subscription term | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON, score 0.80]\n- TALENT_ACQUISITION_AI_SOURCING_AGENT_ADD_ON | Talent Acquisition AI Sourcing Agent Add-on | Recurring subscription to Talent Acquisition AI Sourcing Agent Add-on  [sibling of TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON, score 0.77]\n- TALENT_ACQUISITION_AI_SCREENING_AGENT_ADD_ON | Talent Acquisition AI Screening Agent Add-on | Talent Acquisition AI Screening Agent Add-on, billed per the order form | instructions: - Use Order Form Start Date for service start.  [sibling of TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON, score 0.77]",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_013YcQ1aQpvgdFLTpTDHFkgf",
+          "content": "Catalog candidates for 'Talent Design' (best first; siblings are similar SKUs to rule out):\n- TALENT_DESIGN | Talent Design | Recurring subscription to Talent Design | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 1.00]\n- TALENT_DESIGN_ADD_ON | Talent Design (Add-on) | Access to Talent Design (Add-on) for the subscription term | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [match, score 0.80]\n- TALENT_DESIGN_APAC | Talent Design - APAC | Recurring subscription to Talent Design - APAC | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [match, score 0.80]\n- TALENT_DESIGN_EMEA | Talent Design - EMEA | Talent Design - EMEA, billed per the order form | instructions: - If the line is marked usage-based, capture the committed quantity.  [match, score 0.80]\n- TALENT_DESIGN_FEDRAMP | Talent Design (FedRAMP) | Talent Design (FedRAMP) capability for enterprise customers | instructions: - Use Order Form Start Date for service start.  [match, score 0.80]\n- TALENT_DESIGN_STUDIO | Talent Design Studio | Talent Design Studio capability for enterprise customers | instructions: - Use Order Form Start Date for service start.  [sibling of TALENT_DESIGN, score 0.80]\n- TALENT_DESIGN_PLUS | Talent Design Plus | Subscription to Talent Design Plus | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of TALENT_DESIGN, score 0.80]\n- TALENT_DESIGN_JAPAN | Talent Design - Japan | Subscription to Talent Design - Japan | instructions: - Use Order Form Start Date for service start.  [sibling of TALENT_DESIGN, score 0.80]\n- TALENT_ACQUISITION_ADD_ON | Talent Acquisition (Add-on) | Talent Acquisition (Add-on), billed per the order form | instructions: - Use Order Form Start Date for service start.  [sibling of TALENT_DESIGN_ADD_ON, score 0.40]\n- TALENT_ACQUISITION_EMEA | Talent Acquisition - EMEA | Talent Acquisition - EMEA, billed per the order form | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of TALENT_DESIGN_EMEA, score 0.40]\n- TALENT_ACQUISITION_FEDRAMP | Talent Acquisition (FedRAMP) | Access to Talent Acquisition (FedRAMP) for the subscription term | instructions: - Use Order Form Start Date for service start.  [sibling of TALENT_DESIGN_FEDRAMP, score 0.40]",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISkwwKrgMIEhgCKkBc2VJ8EebGuwen24u67NPl589M6W0QurgvsGD50tlEzysgmouaZu7x09erLlcYD0vhLzXYuYDgr3HAfFiEeHnjMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAZXghtYGwgFnCBMQABo5AbchAi4bA083CC71BZDwBCatBXEjCkuZCu8NA083C+RiC96yBCatCqPOCkgMA083C7EPC4qHBCatIAIyBBJxzyU6BGaLrlBCBAoAix1KBKwhgE9QA1oE2QXhVmAGaAFwAdoBoAEKFnByZWZpeF9iZWZvcmVfYmxvY2tfdjESIBaR/d3TGULKf9GSQ9BvVmyk6Sl8zEioOo6nlqQEDUk7IkCk/R0LERLNJspUSmFwmi//KC3dkFQWCUpqwo8hbEArBbLMt9DME6PL7ctaGZvunip+1c80WuE7XXCOaBeumRBpMiDCwBPIapyS4i+Wbz2GF3aPi3pEyQKtzAl7+h4JivtOH0gDEgyQ7qNvJOBpLX85n9caDDSU31oi/sF83UJMfiIwJsz0EYUlI8OU4jHTWwRhvlEh+ezy0zq4tskdWmFL9Gbj8NQHzzeNU6EoQ+ENRpKBKpEIRWoPTjyEFVu8waGnP3UEGs22hMYqZw/nqJlf5N7nIiUA8nYeMxpEwvGj8acablN06KyKN89RQ9JW+vMQYw+r7NPsNZSmTA/qQkKbK1hWamRPwc5AglytLlKHqMKFObyhQroVtOxkDA5zin0s+7AcsGh/1ffNx79ARBSavH6KvBhWgA1eEaFJptm7SVMXq0pHNTyeL33nWA4hJMOkWHnnzBw/nFz/UgZFwCl823jR4/a6sBkPC4DUiWEXgk/eB8Gg5S/8Vv1xQ/3WvWYEEh3uD/0zKoTHVyW0mZcfO0lu7fMgu9un057giKDk0VJJ/1xWhrJQdT/5Deud7gy0Y/0WfqHWjHaXJ+ipQKxcKd0UEQX1vK+0HLhxN+zH901sf+Foy5n+Hjbqjq0coXWH1jkYlob9WkKr5DHgNGRlqXa3cf93/+j+HQyQ28L6dJAQTdjjceFQuVKdRPUwyzAaCm7bTm/Pgpc43uF4dZHLF8sjFaeWhMOB3CIXxsITYnZZ47cbIVYlV/GWlMXjlZMDcmxtnc9SvjZNqLrp/dcWrHgTILajRFqpVvxODJ+YA/R64GZvwRZ6mHn+KN+XA4Jy68mnuaiV0hqkBLxKNKocQozjA8Cuce75aY2jqbXH+2BL6FWIEn/bDIG2VhxOROug4X0kV0iMgOYdLZSEQRa9KCYnCya//TNilhjQ3/4j8khScIiCQDvW56CfnU0wQ0MIiwLAVnZnQ1BSssfBZtL4y5spRVc0F9AiEhD0SBi/PshdIKR6eN+fp7iQOHlumYcDgEYGVGFHlrg38ViNT6ZrdYV/hcaIj48vXE0pBxlwT+5UvNAfdYvdpwWS5MblpYhbC6v0ThRptvpU9Z+Lc0cgODvxn6u5WJkDlWyqkBMNGSFL9AW4WklTyrZjh0pdmtlLfkNljVcg2pbhotetlYBWoaxKat2Bq3K678f1j0VTBaIUXK60M/8c1MojKz/FffGLXfAP029lfXWu9n5O1F6Sj+QlvAmVuJt/WVikYQI5Jnb2ZAq7JH3xLY31+ibEcdc/BfOCu5ABVSQPJjPaz/6xQGIk99dPDEgGmoDiW1M02/b05rJB220rqa9zHowNl2NNV1+M5/jU97xs3sQO4tHW8UDNVGFYRDRkIOY6vl0ST/yUjuPLX76z1FrpNwZ+XV2Fj48MQvyXeTTSnrtOVrvQjxlZ4twxQjccTeDVyrZqnDsLBGe5z0zHkoy1v53Hs7TG/eF9Ey7IvPEgYtpPloKt36GnIFCCZE4gu6MGGap/LFeaPG1UHaq9fZEFnGajEaaknqo5fETjmw68rn8QA54QlchOSL+uuy0XnSJaxUYpKNbOPGKf1hetgN1e6hYlnyJ0Hyr7EPjJ5HcxoF+zsPKbpg88mVsEGAE=",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01TyiqTu9eEAdTDx2NpzK2Do",
+          "input": {
+            "expression": "2 * 192729.55"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01KeMBKvpsd1X5kMugmmoUH9",
+          "input": {
+            "expression": "62749.66 + 385459.10"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01TyiqTu9eEAdTDx2NpzK2Do",
+          "content": "2 * 192729.55 = 385459.10 (rounded to cents: 385459.10)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01KeMBKvpsd1X5kMugmmoUH9",
+          "content": "62749.66 + 385459.10 = 448208.76 (rounded to cents: 448208.76)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISqgQKwAMIEhgCKkD/IKvfcliLNObkpTYS+tl9OL7coTAN0cLpDFndk9vmHe00ge2nnXJqztKXVZuROZUTiHpLqf5fD6SCI71Jmq5SMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAZfghtYGwgF5CBkQABpLAbchAi4bA083CC71BZDwBCatBXEjCkuZCu8NA083C+RiC96yBCatCqPOCkgMA083C7EPC4qHBCatCqPaCi6XA083C+0dC2rsBCatIAIyBBJxzyU6BGaLrlBCBAoAix1KBKwhgE9QA1oE2QXhVmAIaAFwAdoBoAEKFnByZWZpeF9iZWZvcmVfYmxvY2tfdjESIEQAY/kmPMMWin6wHRK9AkTZeRSY8mbgDWgbPm7xFwGRIkBc2VJ8EebGuwen24u67NPl589M6W0QurgvsGD50tlEzysgmouaZu7x09erLlcYD0vhLzXYuYDgr3HAfFiEeHnjMiDCwBPIapyS4i+Wbz2GF3aPi3pEyQKtzAl7+h4JivtOH0gDEgxTVsJTk6m2b2RBzNcaDK0WahoKWS/K4vWl2SIwvSY1ZSWt1RdjP8duEwsKDesJpv2rJ8pFSTI6WxB89ELhdpRZ3lE/MrSrfarrCpgyKhe6gG4POMzAwItNJ2Ig7NOqn4wujfHNDRgB",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_015DE77ZqRa6np8DDizhozLy",
+          "input": {
+            "order_form": {
+              "customer_name": "Atlas Retail Group",
+              "vendor_name": "Nimbus Data Platforms, Inc.",
+              "effective_date": "2023-08-26",
+              "contract_signed_date_buying_company": "2023-08-29",
+              "contract_signed_date_selling_company": "2023-08-31",
+              "currency": "USD",
+              "grand_total": 448208.76,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Atlas Retail Group",
+                "vendor_name": "Nimbus Data Platforms, Inc.",
+                "effective_date": "This order form becomes effective on 2023-08-26.",
+                "contract_signed_date_buying_company": "Atlas Retail Group...Date (Print): 08/29/2023",
+                "contract_signed_date_selling_company": "Nimbus Data Platforms, Inc....Date (Print): 08/31/2023",
+                "currency": "USD 448,208.76",
+                "grand_total": "TOTAL SUBSCRIPTION USD 448,208.76",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "TALENT_ACQUISITION",
+                "source_row": "Talent Acquisition 1 USD 62,749.66 USD 62,749.66",
+                "currency": "USD",
+                "total_listed_value": 62749.66,
+                "quantity": 1,
+                "unit_price": 62749.66,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2023-09-14",
+                "service_end_date": "2024-09-12",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Due on Receipt",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Talent Acquisition",
+                  "source_row": "Talent Acquisition 1 USD 62,749.66 USD 62,749.66",
+                  "currency": "USD 62,749.66",
+                  "total_listed_value": "USD 62,749.66",
+                  "quantity": "1",
+                  "unit_price": "USD 62,749.66",
+                  "unit_price_period": "Start Date: 2023-09-14 End Date: Sep 12, 2024",
+                  "service_start_date": "Start Date: 2023-09-14",
+                  "service_end_date": "End Date: Sep 12, 2024",
+                  "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+                "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 2 USD 192,729.55 USD 385,459.10",
+                "currency": "USD",
+                "total_listed_value": 385459.1,
+                "quantity": 2,
+                "unit_price": 192729.55,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2023-09-14",
+                "service_end_date": "2024-09-12",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Due on Receipt",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Talent Intel. Platf. Prem. Ed. (Add-on)",
+                  "source_row": "Talent Intel. Platf. Prem. Ed. ... (Add-on) 2 USD 192,729.55 USD 385,459.10",
+                  "currency": "USD 192,729.55",
+                  "total_listed_value": "USD 385,459.10",
+                  "quantity": "2",
+                  "unit_price": "USD 192,729.55",
+                  "unit_price_period": "Start Date: 2023-09-14 End Date: Sep 12, 2024",
+                  "service_start_date": "Start Date: 2023-09-14",
+                  "service_end_date": "End Date: Sep 12, 2024",
+                  "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+              "TALENT_DESIGN"
+            ],
+            "ambiguities": [],
+            "inferred_dates": [],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_015DE77ZqRa6np8DDizhozLy",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Atlas Retail Group",
+      "vendor_name": "Nimbus Data Platforms, Inc.",
+      "effective_date": "2023-08-26",
+      "contract_signed_date_buying_company": "2023-08-29",
+      "contract_signed_date_selling_company": "2023-08-31",
+      "currency": "USD",
+      "grand_total": 448208.76,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Atlas Retail Group",
+        "vendor_name": "Nimbus Data Platforms, Inc.",
+        "effective_date": "This order form becomes effective on 2023-08-26.",
+        "contract_signed_date_buying_company": "Atlas Retail Group...Date (Print): 08/29/2023",
+        "contract_signed_date_selling_company": "Nimbus Data Platforms, Inc....Date (Print): 08/31/2023",
+        "currency": "USD 448,208.76",
+        "grand_total": "TOTAL SUBSCRIPTION USD 448,208.76",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      },
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {}
+    },
+    "contract_items_count": 2,
+    "contract_items": [
+      {
+        "name": "Talent Acquisition",
+        "sku_id": "d6f20b62-9bec-421b-8d33-489712746aee",
+        "sku_code": "TALENT_ACQUISITION",
+        "currency": "USD",
+        "total_listed_value": 62749.66,
+        "quantity": 1.0,
+        "unit_price": 62749.66,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2023-09-14",
+        "service_end_date": "2024-09-12",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "one-time",
+          "source": "inferred_from_pricing",
+          "ambiguous": true,
+          "alternatives": [
+            "yearly"
+          ],
+          "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+        },
+        "payment_terms": "Due on Receipt",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Talent Acquisition 1 USD 62,749.66 USD 62,749.66",
+        "evidence": {
+          "sku_code": "Talent Acquisition",
+          "source_row": "Talent Acquisition 1 USD 62,749.66 USD 62,749.66",
+          "currency": "USD 62,749.66",
+          "total_listed_value": "USD 62,749.66",
+          "quantity": "1",
+          "unit_price": "USD 62,749.66",
+          "unit_price_period": "Start Date: 2023-09-14 End Date: Sep 12, 2024",
+          "service_start_date": "Start Date: 2023-09-14",
+          "service_end_date": "End Date: Sep 12, 2024",
+          "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+        }
+      },
+      {
+        "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+        "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+        "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+        "currency": "USD",
+        "total_listed_value": 385459.1,
+        "quantity": 2.0,
+        "unit_price": 192729.55,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2023-09-14",
+        "service_end_date": "2024-09-12",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "one-time",
+          "source": "inferred_from_pricing",
+          "ambiguous": true,
+          "alternatives": [
+            "yearly"
+          ],
+          "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+        },
+        "payment_terms": "Due on Receipt",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 2 USD 192,729.55 USD 385,459.10",
+        "evidence": {
+          "sku_code": "Talent Intel. Platf. Prem. Ed. (Add-on)",
+          "source_row": "Talent Intel. Platf. Prem. Ed. ... (Add-on) 2 USD 192,729.55 USD 385,459.10",
+          "currency": "USD 192,729.55",
+          "total_listed_value": "USD 385,459.10",
+          "quantity": "2",
+          "unit_price": "USD 192,729.55",
+          "unit_price_period": "Start Date: 2023-09-14 End Date: Sep 12, 2024",
+          "service_start_date": "Start Date: 2023-09-14",
+          "service_end_date": "End Date: Sep 12, 2024",
+          "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+      "TALENT_DESIGN"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": null,
+        "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+      },
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": 1,
+        "message": "quotes for ['sku_code', 'source_row'] were not found verbatim in the text layer"
+      }
+    ],
+    "meta": {
+      "source_pdf": "of-0010.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 4,
+      "submissions": 1,
+      "stop_note": null,
+      "seconds": 25.8,
+      "usage": {
+        "input_tokens": 8,
+        "output_tokens": 2508,
+        "cache_creation_input_tokens": 16175,
+        "cache_read_input_tokens": 55363,
+        "per_turn": [
+          {
+            "input": 2,
+            "output": 154,
+            "cache_write": 5419,
+            "cache_read": 6029
+          },
+          {
+            "input": 2,
+            "output": 264,
+            "cache_write": 4883,
+            "cache_read": 11448
+          },
+          {
+            "input": 2,
+            "output": 532,
+            "cache_write": 5224,
+            "cache_read": 16331
+          },
+          {
+            "input": 2,
+            "output": 1558,
+            "cache_write": 649,
+            "cache_read": 21555
+          }
+        ]
+      },
+      "cost_usd": 0.1915,
+      "catalog": {
+        "mode": "retrieval",
+        "size": 2000,
+        "searches": [
+          {
+            "query": "Talent Acquisition",
+            "candidates": [
+              "TALENT_ACQUISITION",
+              "TALENT_ACQUISITION_ADD_ON",
+              "TALENT_ACQUISITION_AMERICAS",
+              "TALENT_ACQUISITION_ANALYTICS",
+              "TALENT_ACQUISITION_CORE",
+              "TALENT_ACQUISITION_SUITE",
+              "TALENT_ACQUISITION_STARTER",
+              "TALENT_ACQUISITION_LATAM",
+              "TALENT_ACQUISITION_TALENT_TRACKING_ADDON",
+              "TALENT_ACQUISITION_TALENT_PIPELINE_ADD_ON",
+              "TALENT_ACQUISITION_CRM_ADD_ON",
+              "TALENT_ACQUISITION_IMPLEMENTATION",
+              "TALENT_ACQUISITION_FEDRAMP",
+              "TALENT_ACQUISITION_EMEA",
+              "TALENT_ACQUISITION_CRM",
+              "TALENT_ACQUISITION_CORE_PLUS",
+              "TALENT_ACQUISITION_CORE_LITE",
+              "TALENT_ACQUISITION_CORE_JAPAN"
+            ]
+          },
+          {
+            "query": "Talent Intel. Platf. Prem. Ed. (Add-on)",
+            "candidates": [
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_LATAM",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_MONTHLY",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_RENEWAL_UPLIFT",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_LOCATION",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_EMPLOYEE",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_GOVERNMENT_CLOUD",
+              "TALENT_INTELLIGENCE_PLATFORM_STANDARD_EDITION_ADD_ON",
+              "TALENT_INTELLIGENCE_PLATFORM_ENTERPRISE_EDITION_ADD_ON",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_US_DATA_RESIDENCY",
+              "TALENT_INTELLIGENCE_PLATFORM_ADD_ON",
+              "TALENT_INTELLIGENCE_PREMIUM_ANALYTICS_ADD_ON"
+            ]
+          },
+          {
+            "query": "Overages - Talent Acquisition AI Interviewer Agent Add-on",
+            "candidates": [
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_AMERICAS",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANZ",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_LATAM",
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_RECRUITER",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_1_000_EMPLOYEES",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_GOVERNMENT_CLOUD",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANNUAL_PREPAID",
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_JAPAN",
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_INDIA",
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_EMEA",
+              "OVERAGES_TALENT_ACQUISITION_AI_SOURCING_AGENT_ADD_ON",
+              "OVERAGES_TALENT_ACQUISITION_AI_SCHEDULING_AGENT_ADD_ON",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_US_DATA_RESIDENCY",
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_EMPLOYEE",
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_MULTI_YEAR",
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_GOVERNMENT_CLOUD",
+              "TALENT_ACQUISITION_AI_SOURCING_AGENT_ADD_ON",
+              "TALENT_ACQUISITION_AI_SCREENING_AGENT_ADD_ON"
+            ]
+          },
+          {
+            "query": "Talent Design",
+            "candidates": [
+              "TALENT_DESIGN",
+              "TALENT_DESIGN_ADD_ON",
+              "TALENT_DESIGN_APAC",
+              "TALENT_DESIGN_EMEA",
+              "TALENT_DESIGN_FEDRAMP",
+              "TALENT_DESIGN_STUDIO",
+              "TALENT_DESIGN_PLUS",
+              "TALENT_DESIGN_JAPAN",
+              "TALENT_ACQUISITION_ADD_ON",
+              "TALENT_ACQUISITION_EMEA",
+              "TALENT_ACQUISITION_FEDRAMP"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

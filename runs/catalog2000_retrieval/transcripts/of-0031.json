@@ -1,0 +1,527 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nThe selling company's catalog has 2000 SKUs, too many to list here. Every contract item must map to exactly one of them: for each priced line, call search_catalog with the line's text as printed (product name, abbreviations and all). It returns the closest SKUs plus similar siblings (other editions, add-ons, regions, deployments) with their parsing instructions. Choose the SKU the document actually describes; a sibling that adds a region, edition or add-on the document doesn't mention is a different product. If no candidate fits, search again with other wording before concluding the line isn't in the catalog. Use only codes returned by search_catalog; each code is checked against the full catalog. Parsing instructions of the SKU you choose take precedence over the general rules below.\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- Every date you give must be printed in the document (in any format). If a date is not printed but follows from one that is (e.g. an end date from a start date and a stated term), add an inferred_dates entry: the printed from_date, the add_months / add_days that produce the value, and an explanation quoting the text it relies on. The calculation is re-checked. Never supply a date that is neither printed nor calculated from a printed date; leave it null.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). Billing \"in advance\" or \"in arrears\" describes timing within a period, not the schedule type or frequency. If the document does not say, use null.\n- Amendments: if the document contains an amendment, addendum or change order that modifies this order (e.g. a changed price, quantity or date), use the values as amended, quote the amending text as evidence, and mention the amendment in special_notes.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Before treating a field as ambiguous, test each candidate reading against the rest of the document: the arithmetic of prices, quantities and the service term, and the other dates. A reading that contradicts the document is not a valid reading. If exactly one reading survives, use it and quote the deciding evidence. Closeness or typicality (e.g. a date being near the signature date) never eliminates a reading; it can only make one likely.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). If surrounding context makes one candidate more likely (e.g. its closeness to other dates in the document), give it as likely with that evidence in likely_reason; the field itself still stays null. Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0031.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0031.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                                  ORDER FORM - SUBSCRIPTION SERVICES\n\nPrepared For: Helio Manufacturing                                              Quote Number: Q-561578\nAccount Executive: Jordan Lee                                                  Offer Valid Through: 2024-08-24\n\n\n Sold/Ship To:                                                     Bill To:\n 478 Harbor Boulevard, San Francisco, CA                           Attn: Accounts Payable, 5364 Mission\n 83496, USA                                                        Street, San Francisco, CA 33476, USA\n\n\n\n Primary Contact: Avery Brown                                      Billing Contact: Morgan Diaz\n Primary Email: avery@heliomanufacturing.com                       Billing Email: ap@heliomanufacturing.com\n\n\n\nStart Date: 13-Aug-2024                     End Date: 12 Aug 2026                     Up to Customer Employee Size: 2,500\n\nSUBSCRIPTION SERVICE FEES\n\n Product/Service                                            Qty            Rate                           Total Contract Value\n\n Prem. Support                                               1             168,583.06 USD                 337,166.12 USD\n\n Talent Intel. Platf. Prem. Ed.                              1             178,673.49 USD                 357,346.98 USD\n (Add-on)\n\n TOTAL SUBSCRIPTION                                                                                       694,513.10 USD\n\nBILLING SCHEDULE\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Due on Receipt unless stated otherwise.\n\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\n\n\n\n                                                                                                                    Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on Jul 14, 2024. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Skills Portfolio, Elevate Success Plan\n\nHelio Manufacturing                                              Northstar Systems LLC\nBy:                                                              By:\n               SIGNED ELECTRONICALLY                                          SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                        Name (Print): ___________________________\nTitle (Print): Finance Manager                                   Title (Print): Procurement Lead\nDate (Print): 21-Jul-2024                                        Date (Print): 21-Jul-2024\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: NO, PO exception form to be signed.\n\n\n\n\nConfidential - pricing subject to agreement.                                                                 Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "I'll start by searching the catalog for each priced line.",
+          "type": "text"
+        },
+        {
+          "id": "toolu_014GophebRViCnWh3U8jarxG",
+          "input": {
+            "line_text": "Prem. Support"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01CH3Eg4QuDf5J6Nb37kpmp7",
+          "input": {
+            "line_text": "Talent Intel. Platf. Prem. Ed. (Add-on)"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_014GophebRViCnWh3U8jarxG",
+          "content": "Catalog candidates for 'Prem. Support' (best first; siblings are similar SKUs to rule out):\n- PREMIUM_SUPPORT | Premium Support | Premium support subscription | instructions: - If minimum/maximum monthly hours are specified, capture them; otherwise leave quantity null. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.95]\n- PREMIUM_SUCCESS_SUPPORT | Premium Success Support | Subscription to Premium Success Support | instructions: - Use Order Form Start Date for service start.  [match, score 0.76]\n- PREMIUM_SUPPORT_24X7 | Premium Support - 24x7 | Recurring subscription to Premium Support - 24x7  [match, score 0.76]\n- PREMIUM_SUPPORT_ADD_ON | Premium Support (Add-on) | Subscription to Premium Support (Add-on) | instructions: - Use Order Form Start Date for service start.  [match, score 0.76]\n- PREMIUM_SUPPORT_AMERICAS | Premium Support - Americas | Premium Support - Americas capability for enterprise customers | instructions: - If the line is marked usage-based, capture the committed quantity.  [match, score 0.76]\n- PREMIUM_SUPPORT_PLUS | Premium Support Plus | Subscription to Premium Support Plus  [sibling of PREMIUM_SUPPORT, score 0.76]\n- PREMIUM_SUPPORT_JAPAN | Premium Support - Japan | Subscription to Premium Support - Japan | instructions: - Use Order Form Start Date for service start.  [sibling of PREMIUM_SUPPORT, score 0.76]\n- PREMIUM_SUPPORT_DACH | Premium Support - DACH | Subscription to Premium Support - DACH | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of PREMIUM_SUPPORT, score 0.76]",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01CH3Eg4QuDf5J6Nb37kpmp7",
+          "content": "Catalog candidates for 'Talent Intel. Platf. Prem. Ed. (Add-on)' (best first; siblings are similar SKUs to rule out):\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON | Talent Intelligence Platform Premium Edition (Add-on) | Premium add-on to Talent Intelligence Platform | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.88]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA | Talent Intelligence Platform Premium Edition (Add-on) - Canada | Subscription to Talent Intelligence Platform Premium Edition (Add-on) - Canada  [match, score 0.82]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA | Talent Intelligence Platform Premium Edition (Add-on) - EMEA | Talent Intelligence Platform Premium Edition (Add-on) - EMEA, billed per the order form | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.82]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_LATAM | Talent Intelligence Platform Premium Edition (Add-on) - LATAM | Talent Intelligence Platform Premium Edition (Add-on) - LATAM, billed per the order form | instructions: - Use Order Form Start Date for service start.  [match, score 0.82]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_MONTHLY | Talent Intelligence Platform Premium Edition (Add-on) - Monthly | Access to Talent Intelligence Platform Premium Edition (Add-on) - Monthly for the subscription term | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.82]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION | Talent Intelligence Platform Premium Edition | Access to Talent Intelligence Platform Premium Edition for the subscription term | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON, score 0.78]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_RENEWAL_UPLIFT | Talent Intelligence Platform Premium Edition (Add-on) - Renewal Uplift | Subscription to Talent Intelligence Platform Premium Edition (Add-on) - Renewal Uplift | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON, score 0.76]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_LOCATION | Talent Intelligence Platform Premium Edition (Add-on) - Per Location | Recurring subscription to Talent Intelligence Platform Premium Edition (Add-on) - Per Location  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON, score 0.76]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_EMPLOYEE | Talent Intelligence Platform Premium Edition (Add-on) - Per Employee | Access to Talent Intelligence Platform Premium Edition (Add-on) - Per Employee for the subscription term  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA, score 0.76]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_GOVERNMENT_CLOUD | Talent Intelligence Platform Premium Edition (Add-on) (Government Cloud) | Talent Intelligence Platform Premium Edition (Add-on) (Government Cloud), billed per the order form | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA, score 0.76]\n- TALENT_INTELLIGENCE_PLATFORM_STANDARD_EDITION_ADD_ON | Talent Intelligence Platform Standard Edition (Add-on) | Talent Intelligence Platform Standard Edition (Add-on), billed per the order form | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA, score 0.73]\n- TALENT_INTELLIGENCE_PLATFORM_ENTERPRISE_EDITION_ADD_ON | Talent Intelligence Platform Enterprise Edition (Add-on) | Subscription to Talent Intelligence Platform Enterprise Edition (Add-on) | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA, score 0.73]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_US_DATA_RESIDENCY | Talent Intelligence Platform Premium Edition (Add-on) (US Data Residency) | Subscription to Talent Intelligence Platform Premium Edition (Add-on) (US Data Residency) | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA, score 0.71]\n- TALENT_INTELLIGENCE_PLATFORM_ADD_ON | Talent Intelligence Platform (Add-on) | Talent Intelligence Platform (Add-on) capability for enterprise customers | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA, score 0.76]\n- TALENT_INTELLIGENCE_PREMIUM_ANALYTICS_ADD_ON | Talent Intelligence Premium Analytics (Add-on) | Access to Talent Intelligence Premium Analytics (Add-on) for the subscription term  [sibling of TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_LATAM, score 0.69]",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISiAUK2wIIEhgCKkAcnxFoIrGraWv4FcJ6DCY95O/q/lRoUGRLHNmBDDPPCmgvKNcC8j1bBO1g81509fdF9VQTl9zX2DGC38tl5kgBMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAfPghtYGwgFVCA0QABonAbchAi4bA083CK9pBcLUBCatBf/uCpXBChn/A083Czk4C1lwBCatIAIyBBJxzyU6BGaLrlBCBAoAix1KBKwhgE9QA1oE2QXhVmAEaAFwAdoBYAoWcHJlZml4X2JlZm9yZV9ibG9ja192MRIgqgL69898hNLj6akPIXm/e+HmN2i+tNPgw+VHO3ysPfIiADIgwsATyGqckuIvlm89hhd2j4t6RMkCrcwJe/oeCYr7Th9IAxIMZPYwahhvjRUvuVo3GgwUUEZV/YodEKiOc6oiMFVMbg4nGP+nsG6UcHh3ulwXumAvBLQrM1s89xB0RNlOgVKserrfxahd/HW5fpPcEyrZAYeln9JzpR0El428R4yg+Rcz7xC9u//RKoYRMvJStJReb4G2T29JeGRgzJyyzvAcuOA7lcaIQ8quFof4k583Zh+LDpN3GdmaXYUD2TN0CvCqzirqzlupTXhduhnIAJuxMFX34ytBidaMgPD5UBuKVbMPHsdv9X+PbL3TdZdOL2mA4FDvOl1LwqdsHWpisn6CMh/gAmCUeYWsM9fDJ5WXKWkyIoFZ1PoPMZoijjD+I+RNLjHIvEGg2Gviykfd3nZ6GN6ZKBp7HLjjrH5t/Jbwp6DT/9v3OIVcfbkYAQ==",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01NjQDwq5nMPxmrfGhZZERoV",
+          "input": {
+            "line_text": "Skills Portfolio"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01Uo2qJRcRnnmEkT3omTksjH",
+          "input": {
+            "line_text": "Elevate Success Plan"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01X6rT3M5SbTTLo4u1d4BqUd",
+          "input": {
+            "expression": "168583.06 * 2"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01WJoU1qo8sJaumoUXb1WvgX",
+          "input": {
+            "expression": "178673.49 * 2"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01NjQDwq5nMPxmrfGhZZERoV",
+          "content": "Catalog candidates for 'Skills Portfolio' (best first; siblings are similar SKUs to rule out):\n- SKILLS_PORTFOLIO | Skills Portfolio | Recurring subscription to Skills Portfolio | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 1.00]\n- SKILLS_PORTFOLIO_ADD_ON | Skills Portfolio (Add-on) | Subscription to Skills Portfolio (Add-on) | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.80]\n- SKILLS_PORTFOLIO_AMERICAS | Skills Portfolio - Americas | Recurring subscription to Skills Portfolio - Americas | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [match, score 0.80]\n- SKILLS_PORTFOLIO_ANALYTICS | Skills Portfolio Analytics | Skills Portfolio Analytics, billed per the order form  [match, score 0.80]\n- SKILLS_PORTFOLIO_CANADA | Skills Portfolio - Canada | Skills Portfolio - Canada, billed per the order form | instructions: - If the line is marked usage-based, capture the committed quantity.  [match, score 0.80]\n- SKILLS_PORTFOLIO_PLUS | Skills Portfolio Plus | Subscription to Skills Portfolio Plus | instructions: - Use Order Form Start Date for service start.  [sibling of SKILLS_PORTFOLIO, score 0.80]\n- SKILLS_PORTFOLIO_MONTHLY | Skills Portfolio - Monthly | Skills Portfolio - Monthly, billed per the order form | instructions: - Use Order Form Start Date for service start.  [sibling of SKILLS_PORTFOLIO, score 0.80]\n- SKILLS_PORTFOLIO_INDIA | Skills Portfolio - India | Access to Skills Portfolio - India for the subscription term | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of SKILLS_PORTFOLIO, score 0.80]\n- SKILLS_INFERENCE_ADD_ON | Skills Inference (Add-on) | Skills Inference (Add-on), billed per the order form | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of SKILLS_PORTFOLIO_ADD_ON, score 0.40]\n- SKILLS_INFERENCE_CANADA | Skills Inference - Canada | Skills Inference - Canada, billed per the order form | instructions: - Use Order Form Start Date for service start.  [sibling of SKILLS_PORTFOLIO_CANADA, score 0.40]",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01Uo2qJRcRnnmEkT3omTksjH",
+          "content": "Catalog candidates for 'Elevate Success Plan' (best first; siblings are similar SKUs to rule out):\n- ELEVATE_SUCCESS_PLAN | Elevate Success Plan | Success plan subscription | instructions: - Identify any negative-valued contract items in a modification document; strike off the related contract item(s) effective on the modification date. - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is  [match, score 1.00]\n- ELEVATE_SUCCESS_PLAN_ADD_ON | Elevate Success Plan (Add-on) | Recurring subscription to Elevate Success Plan (Add-on) | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.86]\n- ELEVATE_SUCCESS_PLAN_EMEA | Elevate Success Plan - EMEA | Elevate Success Plan - EMEA capability for enterprise customers | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.86]\n- ELEVATE_SUCCESS_PLAN_INDIA | Elevate Success Plan - India | Elevate Success Plan - India capability for enterprise customers | instructions: - If the line is marked usage-based, capture the committed quantity.  [match, score 0.86]\n- ELEVATE_SUCCESS_PLAN_JAPAN | Elevate Success Plan - Japan | Elevate Success Plan - Japan capability for enterprise customers | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [match, score 0.86]\n- ELEVATE_SUCCESS_PLAN_PLUS | Elevate Success Plan Plus | Elevate Success Plan Plus capability for enterprise customers | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of ELEVATE_SUCCESS_PLAN, score 0.86]\n- ELEVATE_SUCCESS_PLAN_MONTHLY | Elevate Success Plan - Monthly | Access to Elevate Success Plan - Monthly for the subscription term | instructions: - Use Order Form Start Date for service start.  [sibling of ELEVATE_SUCCESS_PLAN, score 0.86]\n- ELEVATE_SUCCESS_PLAN_LITE | Elevate Success Plan Lite | Elevate Success Plan Lite, billed per the order form | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of ELEVATE_SUCCESS_PLAN, score 0.86]\n- ELEVATE_SUCCESS_PLAN_PER_USER | Elevate Success Plan - Per User | Recurring subscription to Elevate Success Plan - Per User | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of ELEVATE_SUCCESS_PLAN_ADD_ON, score 0.75]",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01X6rT3M5SbTTLo4u1d4BqUd",
+          "content": "168583.06 * 2 = 337166.12 (rounded to cents: 337166.12)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01WJoU1qo8sJaumoUXb1WvgX",
+          "content": "178673.49 * 2 = 357346.98 (rounded to cents: 357346.98)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01PnKutcLAgfY8hGGt7YRaDR",
+          "input": {
+            "expression": "337166.12 + 357346.98"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01PnKutcLAgfY8hGGt7YRaDR",
+          "content": "337166.12 + 357346.98 = 694513.10 (rounded to cents: 694513.10)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "id": "toolu_01To7ZmFnFnRWg7DCpeWLt5K",
+          "input": {
+            "order_form": {
+              "customer_name": "Helio Manufacturing",
+              "vendor_name": "Northstar Systems LLC",
+              "effective_date": "2024-07-14",
+              "contract_signed_date_buying_company": "2024-07-21",
+              "contract_signed_date_selling_company": "2024-07-21",
+              "currency": "USD",
+              "grand_total": 694513.1,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Helio Manufacturing",
+                "vendor_name": "Northstar Systems LLC",
+                "effective_date": "This order form becomes effective on Jul 14, 2024.",
+                "contract_signed_date_buying_company": "Helio Manufacturing...Date (Print): 21-Jul-2024",
+                "contract_signed_date_selling_company": "Northstar Systems LLC...Date (Print): 21-Jul-2024",
+                "currency": "694,513.10 USD",
+                "grand_total": "TOTAL SUBSCRIPTION 694,513.10 USD",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "PREMIUM_SUPPORT",
+                "source_row": "Prem. Support 1 168,583.06 USD 337,166.12 USD",
+                "currency": "USD",
+                "total_listed_value": 337166.12,
+                "quantity": 1,
+                "unit_price": 168583.06,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2024-08-13",
+                "service_end_date": "2026-08-12",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Due on Receipt",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Prem. Support",
+                  "source_row": "Prem. Support 1 168,583.06 USD 337,166.12 USD",
+                  "currency": "168,583.06 USD",
+                  "total_listed_value": "337,166.12 USD",
+                  "quantity": "Qty...1",
+                  "unit_price": "Rate...168,583.06 USD",
+                  "unit_price_period": "Start Date: 13-Aug-2024 End Date: 12 Aug 2026",
+                  "service_start_date": "Start Date: 13-Aug-2024",
+                  "service_end_date": "End Date: 12 Aug 2026",
+                  "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+                "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 178,673.49 USD 357,346.98 USD",
+                "currency": "USD",
+                "total_listed_value": 357346.98,
+                "quantity": 1,
+                "unit_price": 178673.49,
+                "unit_price_period": "year",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2024-08-13",
+                "service_end_date": "2026-08-12",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Due on Receipt",
+                "special_notes": null,
+                "evidence": {
+                  "sku_code": "Talent Intel. Platf. Prem. Ed. (Add-on)",
+                  "source_row": "Talent Intel. Platf. Prem. Ed.\n(Add-on) 1 178,673.49 USD 357,346.98 USD",
+                  "currency": "178,673.49 USD",
+                  "total_listed_value": "357,346.98 USD",
+                  "quantity": "Qty...1",
+                  "unit_price": "Rate...178,673.49 USD",
+                  "unit_price_period": "Start Date: 13-Aug-2024 End Date: 12 Aug 2026",
+                  "service_start_date": "Start Date: 13-Aug-2024",
+                  "service_end_date": "End Date: 12 Aug 2026",
+                  "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "SKILLS_PORTFOLIO",
+              "ELEVATE_SUCCESS_PLAN"
+            ],
+            "ambiguities": [],
+            "inferred_dates": [],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01To7ZmFnFnRWg7DCpeWLt5K",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Helio Manufacturing",
+      "vendor_name": "Northstar Systems LLC",
+      "effective_date": "2024-07-14",
+      "contract_signed_date_buying_company": "2024-07-21",
+      "contract_signed_date_selling_company": "2024-07-21",
+      "currency": "USD",
+      "grand_total": 694513.1,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Helio Manufacturing",
+        "vendor_name": "Northstar Systems LLC",
+        "effective_date": "This order form becomes effective on Jul 14, 2024.",
+        "contract_signed_date_buying_company": "Helio Manufacturing...Date (Print): 21-Jul-2024",
+        "contract_signed_date_selling_company": "Northstar Systems LLC...Date (Print): 21-Jul-2024",
+        "currency": "694,513.10 USD",
+        "grand_total": "TOTAL SUBSCRIPTION 694,513.10 USD",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      },
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {}
+    },
+    "contract_items_count": 2,
+    "contract_items": [
+      {
+        "name": "Premium Support",
+        "sku_id": "2c825663-7215-4f20-883c-4e8099f64b8b",
+        "sku_code": "PREMIUM_SUPPORT",
+        "currency": "USD",
+        "total_listed_value": 337166.12,
+        "quantity": 1.0,
+        "unit_price": 168583.06,
+        "unit_price_period": "year",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2024-08-13",
+        "service_end_date": "2026-08-12",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "yearly",
+          "source": "inferred_from_pricing",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Due on Receipt",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Prem. Support 1 168,583.06 USD 337,166.12 USD",
+        "evidence": {
+          "sku_code": "Prem. Support",
+          "source_row": "Prem. Support 1 168,583.06 USD 337,166.12 USD",
+          "currency": "168,583.06 USD",
+          "total_listed_value": "337,166.12 USD",
+          "quantity": "Qty...1",
+          "unit_price": "Rate...168,583.06 USD",
+          "unit_price_period": "Start Date: 13-Aug-2024 End Date: 12 Aug 2026",
+          "service_start_date": "Start Date: 13-Aug-2024",
+          "service_end_date": "End Date: 12 Aug 2026",
+          "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+        }
+      },
+      {
+        "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+        "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+        "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+        "currency": "USD",
+        "total_listed_value": 357346.98,
+        "quantity": 1.0,
+        "unit_price": 178673.49,
+        "unit_price_period": "year",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2024-08-13",
+        "service_end_date": "2026-08-12",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "yearly",
+          "source": "inferred_from_pricing",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Due on Receipt",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 178,673.49 USD 357,346.98 USD",
+        "evidence": {
+          "sku_code": "Talent Intel. Platf. Prem. Ed. (Add-on)",
+          "source_row": "Talent Intel. Platf. Prem. Ed.\n(Add-on) 1 178,673.49 USD 357,346.98 USD",
+          "currency": "178,673.49 USD",
+          "total_listed_value": "357,346.98 USD",
+          "quantity": "Qty...1",
+          "unit_price": "Rate...178,673.49 USD",
+          "unit_price_period": "Start Date: 13-Aug-2024 End Date: 12 Aug 2026",
+          "service_start_date": "Start Date: 13-Aug-2024",
+          "service_end_date": "End Date: 12 Aug 2026",
+          "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "SKILLS_PORTFOLIO",
+      "ELEVATE_SUCCESS_PLAN"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": 1,
+        "message": "quotes for ['sku_code', 'source_row'] were not found verbatim in the text layer"
+      }
+    ],
+    "meta": {
+      "source_pdf": "of-0031.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 4,
+      "submissions": 1,
+      "stop_note": null,
+      "seconds": 32.7,
+      "usage": {
+        "input_tokens": 8,
+        "output_tokens": 2681,
+        "cache_creation_input_tokens": 12296,
+        "cache_read_input_tokens": 50122,
+        "per_turn": [
+          {
+            "input": 2,
+            "output": 146,
+            "cache_write": 5457,
+            "cache_read": 6029
+          },
+          {
+            "input": 2,
+            "output": 303,
+            "cache_write": 3525,
+            "cache_read": 11486
+          },
+          {
+            "input": 2,
+            "output": 691,
+            "cache_write": 2585,
+            "cache_read": 15011
+          },
+          {
+            "input": 2,
+            "output": 1541,
+            "cache_write": 729,
+            "cache_read": 17596
+          }
+        ]
+      },
+      "cost_usd": 0.169,
+      "catalog": {
+        "mode": "retrieval",
+        "size": 2000,
+        "searches": [
+          {
+            "query": "Prem. Support",
+            "candidates": [
+              "PREMIUM_SUPPORT",
+              "PREMIUM_SUCCESS_SUPPORT",
+              "PREMIUM_SUPPORT_24X7",
+              "PREMIUM_SUPPORT_ADD_ON",
+              "PREMIUM_SUPPORT_AMERICAS",
+              "PREMIUM_SUPPORT_PLUS",
+              "PREMIUM_SUPPORT_JAPAN",
+              "PREMIUM_SUPPORT_DACH"
+            ]
+          },
+          {
+            "query": "Talent Intel. Platf. Prem. Ed. (Add-on)",
+            "candidates": [
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_LATAM",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_MONTHLY",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_RENEWAL_UPLIFT",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_LOCATION",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_EMPLOYEE",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_GOVERNMENT_CLOUD",
+              "TALENT_INTELLIGENCE_PLATFORM_STANDARD_EDITION_ADD_ON",
+              "TALENT_INTELLIGENCE_PLATFORM_ENTERPRISE_EDITION_ADD_ON",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_US_DATA_RESIDENCY",
+              "TALENT_INTELLIGENCE_PLATFORM_ADD_ON",
+              "TALENT_INTELLIGENCE_PREMIUM_ANALYTICS_ADD_ON"
+            ]
+          },
+          {
+            "query": "Skills Portfolio",
+            "candidates": [
+              "SKILLS_PORTFOLIO",
+              "SKILLS_PORTFOLIO_ADD_ON",
+              "SKILLS_PORTFOLIO_AMERICAS",
+              "SKILLS_PORTFOLIO_ANALYTICS",
+              "SKILLS_PORTFOLIO_CANADA",
+              "SKILLS_PORTFOLIO_PLUS",
+              "SKILLS_PORTFOLIO_MONTHLY",
+              "SKILLS_PORTFOLIO_INDIA",
+              "SKILLS_INFERENCE_ADD_ON",
+              "SKILLS_INFERENCE_CANADA"
+            ]
+          },
+          {
+            "query": "Elevate Success Plan",
+            "candidates": [
+              "ELEVATE_SUCCESS_PLAN",
+              "ELEVATE_SUCCESS_PLAN_ADD_ON",
+              "ELEVATE_SUCCESS_PLAN_EMEA",
+              "ELEVATE_SUCCESS_PLAN_INDIA",
+              "ELEVATE_SUCCESS_PLAN_JAPAN",
+              "ELEVATE_SUCCESS_PLAN_PLUS",
+              "ELEVATE_SUCCESS_PLAN_MONTHLY",
+              "ELEVATE_SUCCESS_PLAN_LITE",
+              "ELEVATE_SUCCESS_PLAN_PER_USER"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

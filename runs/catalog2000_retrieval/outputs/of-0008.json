@@ -1,0 +1,309 @@
+{
+  "order_form": {
+    "customer_name": "Helio Manufacturing",
+    "vendor_name": "Nimbus Data Platforms, Inc.",
+    "effective_date": "2023-11-24",
+    "contract_signed_date_buying_company": "2023-12-01",
+    "contract_signed_date_selling_company": "2023-12-05",
+    "currency": "USD",
+    "grand_total": 14736440.76,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Helio Manufacturing",
+      "vendor_name": "Nimbus Data Platforms, Inc.",
+      "effective_date": "This order form becomes effective on 11/24/2023.",
+      "contract_signed_date_buying_company": "Helio Manufacturing...Title (Print): Procurement Lead...Date (Print): 12/01/2023",
+      "contract_signed_date_selling_company": "Nimbus Data Platforms, Inc....Title (Print): Controller...Date (Print): 12/05/2023",
+      "currency": "$14,736,440.76",
+      "grand_total": "$14,736,440.76",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {},
+    "missing_fields": {},
+    "inferred_dates": {}
+  },
+  "contract_items_count": 3,
+  "contract_items": [
+    {
+      "name": "Talent Acquisition",
+      "sku_id": "d6f20b62-9bec-421b-8d33-489712746aee",
+      "sku_code": "TALENT_ACQUISITION",
+      "currency": "USD",
+      "total_listed_value": 2206541.28,
+      "quantity": 1.0,
+      "unit_price": 183878.44,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-12-21",
+      "service_end_date": "2024-12-19",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "monthly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Due on Receipt",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Acquisition 1 $183,878.44 $2,206,541.28",
+      "evidence": {
+        "sku_code": "Talent Acquisition",
+        "source_row": "Talent Acquisition 1 $183,878.44 $2,206,541.28",
+        "currency": "$2,206,541.28",
+        "total_listed_value": "$2,206,541.28",
+        "quantity": "Qty...1",
+        "unit_price": "$183,878.44",
+        "unit_price_period": "Start Date: 21 Dec 2023 End Date: 19-Dec-2024",
+        "service_start_date": "Start Date: 21 Dec 2023",
+        "service_end_date": "End Date: 19-Dec-2024",
+        "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Acquisition CRM",
+      "sku_id": "24857132-4f8f-46f9-a89e-db212c44a8aa",
+      "sku_code": "TALENT_ACQUISITION_CRM",
+      "currency": "USD",
+      "total_listed_value": 1673405.88,
+      "quantity": 1.0,
+      "unit_price": 139450.49,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-12-21",
+      "service_end_date": "2024-12-19",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "monthly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Due on Receipt",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Acquisition CRM 1 $139,450.49 $1,673,405.88",
+      "evidence": {
+        "sku_code": "Talent Acquisition CRM",
+        "source_row": "Talent Acquisition CRM 1 $139,450.49 $1,673,405.88",
+        "currency": "$1,673,405.88",
+        "total_listed_value": "$1,673,405.88",
+        "quantity": "Qty...1",
+        "unit_price": "$139,450.49",
+        "unit_price_period": "Start Date: 21 Dec 2023 End Date: 19-Dec-2024",
+        "service_start_date": "Start Date: 21 Dec 2023",
+        "service_end_date": "End Date: 19-Dec-2024",
+        "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform",
+      "sku_id": "a763df24-1ea6-4afc-a195-13ce52ea20cd",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+      "currency": "USD",
+      "total_listed_value": 10856493.6,
+      "quantity": 5.0,
+      "unit_price": 180941.56,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2023-12-21",
+      "service_end_date": "2024-12-19",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "monthly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Due on Receipt",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Intel. Platf. 5 $180,941.56 $10,856,493.60",
+      "evidence": {
+        "sku_code": "Talent Intel. Platf.",
+        "source_row": "Talent Intel. Platf. 5 $180,941.56 $10,856,493.60",
+        "currency": "$10,856,493.60",
+        "total_listed_value": "$10,856,493.60",
+        "quantity": "Qty...5",
+        "unit_price": "$180,941.56",
+        "unit_price_period": "Start Date: 21 Dec 2023 End Date: 19-Dec-2024",
+        "service_start_date": "Start Date: 21 Dec 2023",
+        "service_end_date": "End Date: 19-Dec-2024",
+        "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+    "PREMIUM_SUPPORT"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": null,
+      "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0008.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 3,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 32.5,
+    "usage": {
+      "input_tokens": 6,
+      "output_tokens": 3276,
+      "cache_creation_input_tokens": 17363,
+      "cache_read_input_tokens": 35581,
+      "per_turn": [
+        {
+          "input": 2,
+          "output": 192,
+          "cache_write": 5482,
+          "cache_read": 6029
+        },
+        {
+          "input": 2,
+          "output": 599,
+          "cache_write": 6530,
+          "cache_read": 11511
+        },
+        {
+          "input": 2,
+          "output": 2485,
+          "cache_write": 5351,
+          "cache_read": 18041
+        }
+      ]
+    },
+    "cost_usd": 0.2082,
+    "catalog": {
+      "mode": "retrieval",
+      "size": 2000,
+      "searches": [
+        {
+          "query": "Talent Acquisition",
+          "candidates": [
+            "TALENT_ACQUISITION",
+            "TALENT_ACQUISITION_ADD_ON",
+            "TALENT_ACQUISITION_AMERICAS",
+            "TALENT_ACQUISITION_ANALYTICS",
+            "TALENT_ACQUISITION_CORE",
+            "TALENT_ACQUISITION_SUITE",
+            "TALENT_ACQUISITION_STARTER",
+            "TALENT_ACQUISITION_LATAM",
+            "TALENT_ACQUISITION_TALENT_TRACKING_ADDON",
+            "TALENT_ACQUISITION_TALENT_PIPELINE_ADD_ON",
+            "TALENT_ACQUISITION_CRM_ADD_ON",
+            "TALENT_ACQUISITION_IMPLEMENTATION",
+            "TALENT_ACQUISITION_FEDRAMP",
+            "TALENT_ACQUISITION_EMEA",
+            "TALENT_ACQUISITION_CRM",
+            "TALENT_ACQUISITION_CORE_PLUS",
+            "TALENT_ACQUISITION_CORE_LITE",
+            "TALENT_ACQUISITION_CORE_JAPAN"
+          ]
+        },
+        {
+          "query": "Talent Acquisition CRM",
+          "candidates": [
+            "TALENT_ACQUISITION_CRM",
+            "TALENT_ACQUISITION_CRM_ADD_ON",
+            "TALENT_ACQUISITION_CRM_DACH",
+            "TALENT_ACQUISITION_CRM_EMEA",
+            "TALENT_ACQUISITION_CRM_EVENTS",
+            "TALENT_ACQUISITION_CRM_PLUS",
+            "TALENT_ACQUISITION_CRM_MONTHLY",
+            "TALENT_ACQUISITION_CRM_LATAM",
+            "TALENT_ACQUISITION_CRM_CAMPAIGNS_ADD_ON",
+            "TALENT_ACQUISITION_ADD_ON",
+            "TALENT_ACQUISITION_TALENT_TRACKING_ADDON",
+            "TALENT_ACQUISITION_TALENT_TRACKING_ADD_ON_DACH",
+            "TALENT_ACQUISITION_CRM_PRIVATE_CLOUD",
+            "TALENT_ACQUISITION_CRM_PER_LOCATION",
+            "TALENT_ACQUISITION_EMEA",
+            "TALENT_ACQUISITION_CRM_PER_EMPLOYEE",
+            "TALENT_ACQUISITION"
+          ]
+        },
+        {
+          "query": "Talent Intel. Platf.",
+          "candidates": [
+            "TALENT_INTELLIGENCE_PLATFORM",
+            "TALENT_INTELLIGENCE_PLATFORM_ADD_ON",
+            "TALENT_INTELLIGENCE_PLATFORM_ANZ",
+            "TALENT_INTELLIGENCE_PLATFORM_DACH",
+            "TALENT_INTELLIGENCE_PLATFORM_IMPLEMENTATION",
+            "TALENT_INTELLIGENCE_PLATFORM_UK",
+            "TALENT_INTELLIGENCE_PLATFORM_STARTER",
+            "TALENT_INTELLIGENCE_PLATFORM_SANDBOX",
+            "TALENT_INTELLIGENCE_PLATFORM_STANDARD_EDITION_ADD_ON",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+            "TALENT_INTELLIGENCE_PLATFORM_ENTERPRISE_EDITION_ADD_ON",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION",
+            "TALENT_INTELLIGENCE_PLATFORM_PER_RECRUITER",
+            "TALENT_INTELLIGENCE_PLATFORM_PER_LOCATION",
+            "TALENT_INTELLIGENCE_PLATFORM_MULTI_YEAR",
+            "TALENT_INTELLIGENCE_PLATFORM_GOVERNMENT_CLOUD"
+          ]
+        },
+        {
+          "query": "Talent Acquisition AI Interviewer Agent Add-on",
+          "candidates": [
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_EMEA",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_INDIA",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_JAPAN",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_EMPLOYEE",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_MULTI_YEAR",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_GOVERNMENT_CLOUD",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_LATAM",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANZ",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_AMERICAS",
+            "TALENT_ACQUISITION_AI_SOURCING_AGENT_ADD_ON",
+            "TALENT_ACQUISITION_AI_SCREENING_AGENT_ADD_ON",
+            "TALENT_ACQUISITION_AI_SCHEDULING_AGENT_ADD_ON",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_HIRING_MANAGER",
+            "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_EU_DATA_RESIDENCY",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_RECRUITER",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_1_000_EMPLOYEES",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_GOVERNMENT_CLOUD",
+            "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANNUAL_PREPAID"
+          ]
+        },
+        {
+          "query": "Premium Support",
+          "candidates": [
+            "PREMIUM_SUPPORT",
+            "PREMIUM_SUCCESS_SUPPORT",
+            "PREMIUM_SUPPORT_24X7",
+            "PREMIUM_SUPPORT_ADD_ON",
+            "PREMIUM_SUPPORT_AMERICAS",
+            "PREMIUM_SUPPORT_PLUS",
+            "PREMIUM_SUPPORT_JAPAN",
+            "PREMIUM_SUPPORT_DACH"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,349 @@
+{
+  "order_form": {
+    "customer_name": "Summit Telecom",
+    "vendor_name": "Pioneer Intelligence Ltd.",
+    "effective_date": "2025-06-17",
+    "contract_signed_date_buying_company": "2025-06-24",
+    "contract_signed_date_selling_company": "2025-06-29",
+    "currency": "USD",
+    "grand_total": 982380.95,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Summit Telecom",
+      "vendor_name": "Pioneer Intelligence Ltd.",
+      "effective_date": "This order form becomes effective on 2025-06-17.",
+      "contract_signed_date_buying_company": "Summit Telecom...Title (Print): Procurement Lead...Date (Print): 2025-06-24",
+      "contract_signed_date_selling_company": "Pioneer Intelligence Ltd....Title (Print): Controller...Date (Print): 2025-06-29",
+      "currency": "$982,380.95",
+      "grand_total": "TOTAL SUBSCRIPTION                                                                                       $982,380.95",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {},
+    "missing_fields": {},
+    "inferred_dates": {}
+  },
+  "contract_items_count": 4,
+  "contract_items": [
+    {
+      "name": "WhatsApp / SMS Credits",
+      "sku_id": "1d910302-7e31-4e37-9a4b-b14d244af7c5",
+      "sku_code": "WHATSAPP_SMS_CREDITS",
+      "currency": "USD",
+      "total_listed_value": 150946.28,
+      "quantity": 1.0,
+      "unit_price": 150946.28,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-07-14",
+      "service_end_date": "2026-07-13",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": true,
+        "alternatives": [
+          "yearly"
+        ],
+        "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+      },
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "WhatsApp / SMS Credits                                      1             $150,946.28                    $150,946.28",
+      "evidence": {
+        "sku_code": "WhatsApp / SMS Credits",
+        "source_row": "WhatsApp / SMS Credits                                      1             $150,946.28                    $150,946.28",
+        "currency": "$150,946.28",
+        "total_listed_value": "$150,946.28",
+        "quantity": "1",
+        "unit_price": "$150,946.28",
+        "unit_price_period": "Start Date: 2025-07-14                      End Date: Jul 13, 2026",
+        "service_start_date": "Start Date: 2025-07-14",
+        "service_end_date": "End Date: Jul 13, 2026",
+        "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Elevate Success Plan",
+      "sku_id": "63d14b22-78d4-4cb0-9cd6-85127611f1d0",
+      "sku_code": "ELEVATE_SUCCESS_PLAN",
+      "currency": "USD",
+      "total_listed_value": 68005.9,
+      "quantity": 1.0,
+      "unit_price": 68005.9,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-07-14",
+      "service_end_date": "2026-07-13",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": true,
+        "alternatives": [
+          "yearly"
+        ],
+        "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+      },
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Elevate Success Plan                                        1             $68,005.90                     $68,005.90",
+      "evidence": {
+        "sku_code": "Elevate Success Plan",
+        "source_row": "Elevate Success Plan                                        1             $68,005.90                     $68,005.90",
+        "currency": "$68,005.90",
+        "total_listed_value": "$68,005.90",
+        "quantity": "1",
+        "unit_price": "$68,005.90",
+        "unit_price_period": "Start Date: 2025-07-14                      End Date: Jul 13, 2026",
+        "service_start_date": "Start Date: 2025-07-14",
+        "service_end_date": "End Date: Jul 13, 2026",
+        "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Acquisition Core",
+      "sku_id": "89ab57ac-9aad-49a5-b9f5-4b99698dd292",
+      "sku_code": "TALENT_ACQUISITION_CORE",
+      "currency": "USD",
+      "total_listed_value": 70915.52,
+      "quantity": 1.0,
+      "unit_price": 70915.52,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-07-14",
+      "service_end_date": "2026-07-13",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": true,
+        "alternatives": [
+          "yearly"
+        ],
+        "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+      },
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Acquisition Core                                      1             $70,915.52                     $70,915.52",
+      "evidence": {
+        "sku_code": "Talent Acquisition Core",
+        "source_row": "Talent Acquisition Core                                      1             $70,915.52                     $70,915.52",
+        "currency": "$70,915.52",
+        "total_listed_value": "$70,915.52",
+        "quantity": "1",
+        "unit_price": "$70,915.52",
+        "unit_price_period": "Start Date: 2025-07-14                      End Date: Jul 13, 2026",
+        "service_start_date": "Start Date: 2025-07-14",
+        "service_end_date": "End Date: Jul 13, 2026",
+        "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Professional Service",
+      "sku_id": "2a4fa79f-0fb7-42a3-a4ad-143f3cce8e36",
+      "sku_code": "PROFESSIONAL_SERVICE",
+      "currency": "USD",
+      "total_listed_value": 692513.25,
+      "quantity": 3.0,
+      "unit_price": 230837.75,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-07-14",
+      "service_end_date": "2026-07-13",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": true,
+        "alternatives": [
+          "yearly"
+        ],
+        "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+      },
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Professional Service                                         3             $230,837.75                    $692,513.25",
+      "evidence": {
+        "sku_code": "Professional Service",
+        "source_row": "Professional Service                                         3             $230,837.75                    $692,513.25",
+        "currency": "$692,513.25",
+        "total_listed_value": "$692,513.25",
+        "quantity": "3",
+        "unit_price": "$230,837.75",
+        "unit_price_period": "Start Date: 2025-07-14                      End Date: Jul 13, 2026",
+        "service_start_date": "Start Date: 2025-07-14",
+        "service_end_date": "End Date: Jul 13, 2026",
+        "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "PREMIUM_SUPPORT",
+    "TALENT_DESIGN"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": null,
+      "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0041.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 3,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 29.7,
+    "usage": {
+      "input_tokens": 6,
+      "output_tokens": 3305,
+      "cache_creation_input_tokens": 13449,
+      "cache_read_input_tokens": 34720,
+      "per_turn": [
+        {
+          "input": 2,
+          "output": 246,
+          "cache_write": 5426,
+          "cache_read": 6029
+        },
+        {
+          "input": 2,
+          "output": 308,
+          "cache_write": 5781,
+          "cache_read": 11455
+        },
+        {
+          "input": 2,
+          "output": 2751,
+          "cache_write": 2242,
+          "cache_read": 17236
+        }
+      ]
+    },
+    "cost_usd": 0.1841,
+    "catalog": {
+      "mode": "retrieval",
+      "size": 2000,
+      "searches": [
+        {
+          "query": "WhatsApp / SMS Credits",
+          "candidates": [
+            "WHATSAPP_SMS_CREDITS",
+            "OVERAGES_WHATSAPP_SMS_CREDITS",
+            "WHATSAPP_SMS_CREDITS_ADD_ON",
+            "WHATSAPP_SMS_CREDITS_ANZ",
+            "WHATSAPP_SMS_CREDITS_BUNDLE",
+            "WHATSAPP_SMS_CREDITS_LATAM",
+            "WHATSAPP_SMS_CREDITS_INDIA",
+            "WHATSAPP_CREDITS",
+            "WHATSAPP_SMS_CREDITS_PER_LOCATION",
+            "WHATSAPP_SMS_CREDITS_ANNUAL_PREPAID",
+            "SMS_CREDITS"
+          ]
+        },
+        {
+          "query": "Elevate Success Plan",
+          "candidates": [
+            "ELEVATE_SUCCESS_PLAN",
+            "ELEVATE_SUCCESS_PLAN_ADD_ON",
+            "ELEVATE_SUCCESS_PLAN_EMEA",
+            "ELEVATE_SUCCESS_PLAN_INDIA",
+            "ELEVATE_SUCCESS_PLAN_JAPAN",
+            "ELEVATE_SUCCESS_PLAN_PLUS",
+            "ELEVATE_SUCCESS_PLAN_MONTHLY",
+            "ELEVATE_SUCCESS_PLAN_LITE",
+            "ELEVATE_SUCCESS_PLAN_PER_USER"
+          ]
+        },
+        {
+          "query": "Talent Acquisition Core",
+          "candidates": [
+            "TALENT_ACQUISITION_CORE",
+            "TALENT_ACQUISITION_CORE_ADD_ON",
+            "TALENT_ACQUISITION_CORE_APAC",
+            "TALENT_ACQUISITION_CORE_CANADA",
+            "TALENT_ACQUISITION_CORE_IMPLEMENTATION",
+            "TALENT_ACQUISITION_CORE_PLUS",
+            "TALENT_ACQUISITION_CORE_LITE",
+            "TALENT_ACQUISITION_CORE_JAPAN",
+            "TALENT_ACQUISITION_ADD_ON",
+            "TALENT_MANAGEMENT_CORE_ADD_ON",
+            "TALENT_ACQUISITION_TALENT_TRACKING_ADDON",
+            "TALENT_MANAGEMENT_CORE_APAC",
+            "TALENT_ACQUISITION_CORE_PRIVATE_CLOUD",
+            "TALENT_ACQUISITION_CORE_PER_RECRUITER",
+            "TALENT_ACQUISITION_TALENT_TRACKING_ADD_ON_CANADA",
+            "TALENT_ACQUISITION_CORE_PER_EMPLOYEE",
+            "TALENT_ACQUISITION_CORE_ANNUAL_PREPAID",
+            "TALENT_ACQUISITION_IMPLEMENTATION",
+            "TALENT_ACQUISITION"
+          ]
+        },
+        {
+          "query": "Professional Service",
+          "candidates": [
+            "PROFESSIONAL_SERVICE",
+            "PROFESSIONAL_SERVICE_ADD_ON",
+            "PROFESSIONAL_SERVICE_ADVISORY",
+            "PROFESSIONAL_SERVICE_APAC",
+            "PROFESSIONAL_SERVICE_DACH",
+            "PROFESSIONAL_SERVICE_LATAM",
+            "PROFESSIONAL_SERVICE_PRIVATE_CLOUD",
+            "PROFESSIONAL_SERVICE_PER_LOCATION"
+          ]
+        },
+        {
+          "query": "Premium Support",
+          "candidates": [
+            "PREMIUM_SUPPORT",
+            "PREMIUM_SUCCESS_SUPPORT",
+            "PREMIUM_SUPPORT_24X7",
+            "PREMIUM_SUPPORT_ADD_ON",
+            "PREMIUM_SUPPORT_AMERICAS",
+            "PREMIUM_SUPPORT_PLUS",
+            "PREMIUM_SUPPORT_JAPAN",
+            "PREMIUM_SUPPORT_DACH"
+          ]
+        },
+        {
+          "query": "Talent Design",
+          "candidates": [
+            "TALENT_DESIGN",
+            "TALENT_DESIGN_ADD_ON",
+            "TALENT_DESIGN_APAC",
+            "TALENT_DESIGN_EMEA",
+            "TALENT_DESIGN_FEDRAMP",
+            "TALENT_DESIGN_STUDIO",
+            "TALENT_DESIGN_PLUS",
+            "TALENT_DESIGN_JAPAN",
+            "TALENT_ACQUISITION_ADD_ON",
+            "TALENT_ACQUISITION_EMEA",
+            "TALENT_ACQUISITION_FEDRAMP"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,353 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nThe selling company's catalog has 2000 SKUs, too many to list here. Every contract item must map to exactly one of them: for each priced line, call search_catalog with the line's text as printed (product name, abbreviations and all). It returns the closest SKUs plus similar siblings (other editions, add-ons, regions, deployments) with their parsing instructions. Choose the SKU the document actually describes; a sibling that adds a region, edition or add-on the document doesn't mention is a different product. If no candidate fits, search again with other wording before concluding the line isn't in the catalog. Use only codes returned by search_catalog; each code is checked against the full catalog. Parsing instructions of the SKU you choose take precedence over the general rules below.\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- Every date you give must be printed in the document (in any format). If a date is not printed but follows from one that is (e.g. an end date from a start date and a stated term), add an inferred_dates entry: the printed from_date, the add_months / add_days that produce the value, and an explanation quoting the text it relies on. The calculation is re-checked. Never supply a date that is neither printed nor calculated from a printed date; leave it null.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). Billing \"in advance\" or \"in arrears\" describes timing within a period, not the schedule type or frequency. If the document does not say, use null.\n- Amendments: if the document contains an amendment, addendum or change order that modifies this order (e.g. a changed price, quantity or date), use the values as amended, quote the amending text as evidence, and mention the amendment in special_notes.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Before treating a field as ambiguous, test each candidate reading against the rest of the document: the arithmetic of prices, quantities and the service term, and the other dates. A reading that contradicts the document is not a valid reading. If exactly one reading survives, use it and quote the deciding evidence. Closeness or typicality (e.g. a date being near the signature date) never eliminates a reading; it can only make one likely.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). If surrounding context makes one candidate more likely (e.g. its closeness to other dates in the document), give it as likely with that evidence in likely_reason; the field itself still stays null. Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0013.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0013.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                               Sales Order Form\n\nPrepared For: 0rchid Logistics                                                 Quote Number: Q-446650\nAccount Executive: Avery Brown                                                 Offer Valid Through: 2024-08-14\n\n\n Sold/Ship To:                                                     Bill To:\n 840 Harbor Boulevard, Seattle, WA 70226,                          Attn: Accounts Payable, 1450 Harbor\n USA                                                               Boulevard, Seattle, WA 51195, USA\n\n\n\n Primary Contact: Tay1or Morgan                                    Bi1ling Contact: Taylor Morgan\n Primary Email: taylor@orchidlogistics.com                         Billing Email: ap@orchidlogistics.com\n\n\n\nStart Date: 08/03/2024                       End Date: 02-Aug-2025                    Up to Customer Employee Size: 50,000\n\nSUBSCRIPTION FEES\n\n Product/Service                                            Qty            Rate                            Total\n\n Talent Acquisition CRM                                      1             USD 245,985.59                  USD 245,985.59\n\n\n TOTAL SUBSCRIPTION                                                                                        USD 245,985.59\n\nINVOICE PLAN\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Net 55 unless stated otherwise.\n\nIMPLEMENTATION SERVICES\nAs app1icable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\n\n\n\n                                                                                                                     Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the So1d-To address is the place of use for sales tax purposes.\nThis order form becomes effective on 02-Aug-2024. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Talent Management Core, Professional Service\n\nOrchid Logistics                                                 Nimbus Data Platforms, Inc.\nBy:                                                              By:\n               SIGNED ELECTRONICALLY                                          SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                        Name (Print): ___________________________\nTitle (Print): Finance Manager                                   Title (Print): Procurement Lead\nDate (Print): 2024-08-07                                         Date (Print): 2024-08-09\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: NO, PO exception form to be signed.\n\n\n\n\nThis is a generated order form for evaluation.                                                               Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01PcTHCzRuRVcGRmqoCByQuA",
+          "input": {
+            "line_text": "Talent Acquisition CRM"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_013Q64ChSVasRqHQoBgqm2Cf",
+          "input": {
+            "line_text": "Talent Management Core"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01Dk3rFhwbYwt9gkLopg5hjo",
+          "input": {
+            "line_text": "Professional Service"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01PcTHCzRuRVcGRmqoCByQuA",
+          "content": "Catalog candidates for 'Talent Acquisition CRM' (best first; siblings are similar SKUs to rule out):\n- TALENT_ACQUISITION_CRM | Talent Acquisition CRM | CRM component of Talent Acquisition | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 1.00]\n- TALENT_ACQUISITION_CRM_ADD_ON | Talent Acquisition CRM (Add-on) | Recurring subscription to Talent Acquisition CRM (Add-on) | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.86]\n- TALENT_ACQUISITION_CRM_DACH | Talent Acquisition CRM - DACH | Subscription to Talent Acquisition CRM - DACH  [match, score 0.86]\n- TALENT_ACQUISITION_CRM_EMEA | Talent Acquisition CRM - EMEA | Talent Acquisition CRM - EMEA capability for enterprise customers | instructions: - If the line is marked usage-based, capture the committed quantity.  [match, score 0.86]\n- TALENT_ACQUISITION_CRM_EVENTS | Talent Acquisition CRM Events | Talent Acquisition CRM Events capability for enterprise customers  [match, score 0.86]\n- TALENT_ACQUISITION_CRM_PLUS | Talent Acquisition CRM Plus | Recurring subscription to Talent Acquisition CRM Plus | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of TALENT_ACQUISITION_CRM, score 0.86]\n- TALENT_ACQUISITION_CRM_MONTHLY | Talent Acquisition CRM - Monthly | Recurring subscription to Talent Acquisition CRM - Monthly  [sibling of TALENT_ACQUISITION_CRM, score 0.86]\n- TALENT_ACQUISITION_CRM_LATAM | Talent Acquisition CRM - LATAM | Access to Talent Acquisition CRM - LATAM for the subscription term | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_ACQUISITION_CRM, score 0.86]\n- TALENT_ACQUISITION_CRM_CAMPAIGNS_ADD_ON | Talent Acquisition CRM Campaigns (Add-on) | Talent Acquisition CRM Campaigns (Add-on) capability for enterprise customers | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_ACQUISITION_CRM_ADD_ON, score 0.75]\n- TALENT_ACQUISITION_ADD_ON | Talent Acquisition (Add-on) | Talent Acquisition (Add-on), billed per the order form | instructions: - Use Order Form Start Date for service start.  [sibling of TALENT_ACQUISITION_CRM_ADD_ON, score 0.67]\n- TALENT_ACQUISITION_TALENT_TRACKING_ADDON | Talent Acquisition Talent Tracking Add-on | Recurring subscription to the Talent Tracking Add-on for Talent Acquisition | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_ACQUISITION_CRM_ADD_ON, score 0.50]\n- TALENT_ACQUISITION_TALENT_TRACKING_ADD_ON_DACH | Talent Acquisition Talent Tracking Add-on - DACH | Talent Acquisition Talent Tracking Add-on - DACH, billed per the order form | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_ACQUISITION_CRM_DACH, score 0.44]\n- TALENT_ACQUISITION_CRM_PRIVATE_CLOUD | Talent Acquisition CRM (Private Cloud) | Recurring subscription to Talent Acquisition CRM (Private Cloud) | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of TALENT_ACQUISITION_CRM_DACH, score 0.75]\n- TALENT_ACQUISITION_CRM_PER_LOCATION | Talent Acquisition CRM - Per Location | Talent Acquisition CRM - Per Location, billed per the order form | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_ACQUISITION_CRM_DACH, score 0.75]\n- TALENT_ACQUISITION_EMEA | Talent Acquisition - EMEA | Talent Acquisition - EMEA, billed per the order form | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of TALENT_ACQUISITION_CRM_EMEA, score 0.67]\n- TALENT_ACQUISITION_CRM_PER_EMPLOYEE | Talent Acquisition CRM - Per Employee | Talent Acquisition CRM - Per Employee, billed per the order form | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_ACQUISITION_CRM_EMEA, score 0.75]\n- TALENT_ACQUISITION | Talent Acquisition | Subscription to Talent Acquisition module | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_ACQUISITION_CRM_EMEA, score 0.80]",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_013Q64ChSVasRqHQoBgqm2Cf",
+          "content": "Catalog candidates for 'Talent Management Core' (best first; siblings are similar SKUs to rule out):\n- TALENT_MANAGEMENT_CORE | Talent Management Core | Core package of Talent Management | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 1.00]\n- TALENT_MANAGEMENT_CORE_ADD_ON | Talent Management Core (Add-on) | Subscription to Talent Management Core (Add-on) | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [match, score 0.86]\n- TALENT_MANAGEMENT_CORE_AMERICAS | Talent Management Core - Americas | Access to Talent Management Core - Americas for the subscription term | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.86]\n- TALENT_MANAGEMENT_CORE_APAC | Talent Management Core - APAC | Access to Talent Management Core - APAC for the subscription term  [match, score 0.86]\n- TALENT_MANAGEMENT_CORE_FEDRAMP | Talent Management Core (FedRAMP) | Talent Management Core (FedRAMP), billed per the order form  [match, score 0.86]\n- TALENT_MANAGEMENT_CORE_UK | Talent Management Core - UK | Access to Talent Management Core - UK for the subscription term  [sibling of TALENT_MANAGEMENT_CORE, score 0.86]\n- TALENT_MANAGEMENT_CORE_PLUS | Talent Management Core Plus | Subscription to Talent Management Core Plus | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_MANAGEMENT_CORE, score 0.86]\n- TALENT_MANAGEMENT_CORE_LITE | Talent Management Core Lite | Talent Management Core Lite capability for enterprise customers | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of TALENT_MANAGEMENT_CORE, score 0.86]\n- TALENT_MANAGEMENT_ENTERPRISE_ADD_ON | Talent Management Enterprise (Add-on) | Subscription to Talent Management Enterprise (Add-on) | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_MANAGEMENT_CORE_ADD_ON, score 0.57]\n- TALENT_ACQUISITION_CORE_ADD_ON | Talent Acquisition Core (Add-on) | Talent Acquisition Core (Add-on) capability for enterprise customers  [sibling of TALENT_MANAGEMENT_CORE_ADD_ON, score 0.57]\n- TALENT_MANAGEMENT_LEADER_EXPERIENCE_ADD_ON | Talent Management Leader Experience (Add-on) | Recurring subscription to Talent Management Leader Experience (Add-on) | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_MANAGEMENT_CORE_ADD_ON, score 0.50]\n- TALENT_MANAGEMENT_ENTERPRISE_AMERICAS | Talent Management Enterprise - Americas | Access to Talent Management Enterprise - Americas for the subscription term | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of TALENT_MANAGEMENT_CORE_AMERICAS, score 0.57]\n- TALENT_MANAGEMENT_CORE_PER_RECRUITER | Talent Management Core - Per Recruiter | Access to Talent Management Core - Per Recruiter for the subscription term | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_MANAGEMENT_CORE_AMERICAS, score 0.75]\n- TALENT_MANAGEMENT_CORE_PER_1_000_EMPLOYEES | Talent Management Core - Per 1,000 Employees | Recurring subscription to Talent Management Core - Per 1,000 Employees  [sibling of TALENT_MANAGEMENT_CORE_AMERICAS, score 0.75]\n- TALENT_ACQUISITION_CORE_APAC | Talent Acquisition Core - APAC | Subscription to Talent Acquisition Core - APAC | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_MANAGEMENT_CORE_APAC, score 0.57]\n- TALENT_MANAGEMENT_CORE_ANNUAL_PREPAID | Talent Management Core - Annual Prepaid | Access to Talent Management Core - Annual Prepaid for the subscription term | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_MANAGEMENT_CORE_APAC, score 0.75]\n- TALENT_MANAGEMENT_ENTERPRISE_FEDRAMP | Talent Management Enterprise (FedRAMP) | Recurring subscription to Talent Management Enterprise (FedRAMP) | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of TALENT_MANAGEMENT_CORE_FEDRAMP, score 0.57]",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01Dk3rFhwbYwt9gkLopg5hjo",
+          "content": "Catalog candidates for 'Professional Service' (best first; siblings are similar SKUs to rule out):\n- PROFESSIONAL_SERVICE | Professional Service | Professional services delivered on a usage/progress basis | instructions: - Capture delivery period and progress inputs (e.g., hours, milestones, percent complete) for percentage-of-completion. - If dates are absent, align service dates with the related SOW or Order Form where available.  [match, score 1.00]\n- PROFESSIONAL_SERVICE_ADD_ON | Professional Service (Add-on) | Subscription to Professional Service (Add-on) | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.80]\n- PROFESSIONAL_SERVICE_ADVISORY | Professional Service - Advisory | Professional Service - Advisory, billed per the order form | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [match, score 0.80]\n- PROFESSIONAL_SERVICE_APAC | Professional Service - APAC | Professional Service - APAC, billed per the order form | instructions: - If the line is marked usage-based, capture the committed quantity.  [match, score 0.80]\n- PROFESSIONAL_SERVICE_DACH | Professional Service - DACH | Professional Service - DACH, billed per the order form | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.80]\n- PROFESSIONAL_SERVICE_LATAM | Professional Service - LATAM | Subscription to Professional Service - LATAM | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of PROFESSIONAL_SERVICE, score 0.80]\n- PROFESSIONAL_SERVICE_PRIVATE_CLOUD | Professional Service (Private Cloud) | Professional Service (Private Cloud) capability for enterprise customers | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of PROFESSIONAL_SERVICE, score 0.67]\n- PROFESSIONAL_SERVICE_PER_LOCATION | Professional Service - Per Location | Subscription to Professional Service - Per Location | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of PROFESSIONAL_SERVICE, score 0.67]",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01QQixfYySTULxaLoZNaGNyK",
+          "input": {
+            "order_form": {
+              "customer_name": "Orchid Logistics",
+              "vendor_name": "Nimbus Data Platforms, Inc.",
+              "effective_date": "2024-08-02",
+              "contract_signed_date_buying_company": "2024-08-07",
+              "contract_signed_date_selling_company": "2024-08-09",
+              "currency": "USD",
+              "grand_total": 245985.59,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: 0rchid Logistics",
+                "vendor_name": "Nimbus Data Platforms, Inc.",
+                "effective_date": "This order form becomes effective on 02-Aug-2024.",
+                "contract_signed_date_buying_company": "Orchid Logistics...Date (Print): 2024-08-07",
+                "contract_signed_date_selling_company": "Nimbus Data Platforms, Inc....Date (Print): 2024-08-09",
+                "currency": "USD 245,985.59",
+                "grand_total": "TOTAL SUBSCRIPTION                     USD 245,985.59",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "TALENT_ACQUISITION_CRM",
+                "source_row": "Talent Acquisition CRM                1             USD 245,985.59                  USD 245,985.59",
+                "currency": "USD",
+                "total_listed_value": 245985.59,
+                "quantity": 1,
+                "unit_price": 245985.59,
+                "unit_price_period": "term",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2024-08-03",
+                "service_end_date": "2025-08-02",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 55",
+                "special_notes": "Subscription is scoped to a customer employee size of up to 50,000.",
+                "evidence": {
+                  "sku_code": "Talent Acquisition CRM",
+                  "source_row": "Talent Acquisition CRM                1             USD 245,985.59                  USD 245,985.59",
+                  "currency": "USD 245,985.59",
+                  "total_listed_value": "USD 245,985.59",
+                  "quantity": "Qty...1",
+                  "unit_price": "Rate...USD 245,985.59",
+                  "unit_price_period": "Start Date: 08/03/2024                       End Date: 02-Aug-2025",
+                  "service_start_date": "Start Date: 08/03/2024",
+                  "service_end_date": "End Date: 02-Aug-2025",
+                  "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+                  "special_notes": "Up to Customer Employee Size: 50,000"
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "TALENT_MANAGEMENT_CORE",
+              "PROFESSIONAL_SERVICE"
+            ],
+            "ambiguities": [],
+            "inferred_dates": [],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01QQixfYySTULxaLoZNaGNyK",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Orchid Logistics",
+      "vendor_name": "Nimbus Data Platforms, Inc.",
+      "effective_date": "2024-08-02",
+      "contract_signed_date_buying_company": "2024-08-07",
+      "contract_signed_date_selling_company": "2024-08-09",
+      "currency": "USD",
+      "grand_total": 245985.59,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: 0rchid Logistics",
+        "vendor_name": "Nimbus Data Platforms, Inc.",
+        "effective_date": "This order form becomes effective on 02-Aug-2024.",
+        "contract_signed_date_buying_company": "Orchid Logistics...Date (Print): 2024-08-07",
+        "contract_signed_date_selling_company": "Nimbus Data Platforms, Inc....Date (Print): 2024-08-09",
+        "currency": "USD 245,985.59",
+        "grand_total": "TOTAL SUBSCRIPTION                     USD 245,985.59",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      },
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {}
+    },
+    "contract_items_count": 1,
+    "contract_items": [
+      {
+        "name": "Talent Acquisition CRM",
+        "sku_id": "24857132-4f8f-46f9-a89e-db212c44a8aa",
+        "sku_code": "TALENT_ACQUISITION_CRM",
+        "currency": "USD",
+        "total_listed_value": 245985.59,
+        "quantity": 1.0,
+        "unit_price": 245985.59,
+        "unit_price_period": "term",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2024-08-03",
+        "service_end_date": "2025-08-02",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "one-time",
+          "source": "inferred_from_pricing",
+          "ambiguous": true,
+          "alternatives": [
+            "yearly"
+          ],
+          "reason": "One invoice for the full amount over the 12-month term (a single price covers the whole term; the document does not state billing). 'one-time' and 'yearly' both describe this; the document doesn't distinguish them."
+        },
+        "payment_terms": "Net 55",
+        "special_notes": "Subscription is scoped to a customer employee size of up to 50,000.",
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Talent Acquisition CRM                1             USD 245,985.59                  USD 245,985.59",
+        "evidence": {
+          "sku_code": "Talent Acquisition CRM",
+          "source_row": "Talent Acquisition CRM                1             USD 245,985.59                  USD 245,985.59",
+          "currency": "USD 245,985.59",
+          "total_listed_value": "USD 245,985.59",
+          "quantity": "Qty...1",
+          "unit_price": "Rate...USD 245,985.59",
+          "unit_price_period": "Start Date: 08/03/2024                       End Date: 02-Aug-2025",
+          "service_start_date": "Start Date: 08/03/2024",
+          "service_end_date": "End Date: 02-Aug-2025",
+          "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+          "special_notes": "Up to Customer Employee Size: 50,000"
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "TALENT_MANAGEMENT_CORE",
+      "PROFESSIONAL_SERVICE"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": null,
+        "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+      }
+    ],
+    "meta": {
+      "source_pdf": "of-0013.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 2,
+      "submissions": 1,
+      "stop_note": null,
+      "seconds": 34.3,
+      "usage": {
+        "input_tokens": 4,
+        "output_tokens": 3112,
+        "cache_creation_input_tokens": 11625,
+        "cache_read_input_tokens": 17366,
+        "per_turn": [
+          {
+            "input": 2,
+            "output": 1313,
+            "cache_write": 5308,
+            "cache_read": 6029
+          },
+          {
+            "input": 2,
+            "output": 1799,
+            "cache_write": 6317,
+            "cache_read": 11337
+          }
+        ]
+      },
+      "cost_usd": 0.1592,
+      "catalog": {
+        "mode": "retrieval",
+        "size": 2000,
+        "searches": [
+          {
+            "query": "Talent Acquisition CRM",
+            "candidates": [
+              "TALENT_ACQUISITION_CRM",
+              "TALENT_ACQUISITION_CRM_ADD_ON",
+              "TALENT_ACQUISITION_CRM_DACH",
+              "TALENT_ACQUISITION_CRM_EMEA",
+              "TALENT_ACQUISITION_CRM_EVENTS",
+              "TALENT_ACQUISITION_CRM_PLUS",
+              "TALENT_ACQUISITION_CRM_MONTHLY",
+              "TALENT_ACQUISITION_CRM_LATAM",
+              "TALENT_ACQUISITION_CRM_CAMPAIGNS_ADD_ON",
+              "TALENT_ACQUISITION_ADD_ON",
+              "TALENT_ACQUISITION_TALENT_TRACKING_ADDON",
+              "TALENT_ACQUISITION_TALENT_TRACKING_ADD_ON_DACH",
+              "TALENT_ACQUISITION_CRM_PRIVATE_CLOUD",
+              "TALENT_ACQUISITION_CRM_PER_LOCATION",
+              "TALENT_ACQUISITION_EMEA",
+              "TALENT_ACQUISITION_CRM_PER_EMPLOYEE",
+              "TALENT_ACQUISITION"
+            ]
+          },
+          {
+            "query": "Talent Management Core",
+            "candidates": [
+              "TALENT_MANAGEMENT_CORE",
+              "TALENT_MANAGEMENT_CORE_ADD_ON",
+              "TALENT_MANAGEMENT_CORE_AMERICAS",
+              "TALENT_MANAGEMENT_CORE_APAC",
+              "TALENT_MANAGEMENT_CORE_FEDRAMP",
+              "TALENT_MANAGEMENT_CORE_UK",
+              "TALENT_MANAGEMENT_CORE_PLUS",
+              "TALENT_MANAGEMENT_CORE_LITE",
+              "TALENT_MANAGEMENT_ENTERPRISE_ADD_ON",
+              "TALENT_ACQUISITION_CORE_ADD_ON",
+              "TALENT_MANAGEMENT_LEADER_EXPERIENCE_ADD_ON",
+              "TALENT_MANAGEMENT_ENTERPRISE_AMERICAS",
+              "TALENT_MANAGEMENT_CORE_PER_RECRUITER",
+              "TALENT_MANAGEMENT_CORE_PER_1_000_EMPLOYEES",
+              "TALENT_ACQUISITION_CORE_APAC",
+              "TALENT_MANAGEMENT_CORE_ANNUAL_PREPAID",
+              "TALENT_MANAGEMENT_ENTERPRISE_FEDRAMP"
+            ]
+          },
+          {
+            "query": "Professional Service",
+            "candidates": [
+              "PROFESSIONAL_SERVICE",
+              "PROFESSIONAL_SERVICE_ADD_ON",
+              "PROFESSIONAL_SERVICE_ADVISORY",
+              "PROFESSIONAL_SERVICE_APAC",
+              "PROFESSIONAL_SERVICE_DACH",
+              "PROFESSIONAL_SERVICE_LATAM",
+              "PROFESSIONAL_SERVICE_PRIVATE_CLOUD",
+              "PROFESSIONAL_SERVICE_PER_LOCATION"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

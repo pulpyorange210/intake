@@ -1,0 +1,233 @@
+{
+  "order_form": {
+    "customer_name": "Helio Manufacturing",
+    "vendor_name": "Northstar Systems LLC",
+    "effective_date": "2024-07-14",
+    "contract_signed_date_buying_company": "2024-07-21",
+    "contract_signed_date_selling_company": "2024-07-21",
+    "currency": "USD",
+    "grand_total": 694513.1,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Helio Manufacturing",
+      "vendor_name": "Northstar Systems LLC",
+      "effective_date": "This order form becomes effective on Jul 14, 2024.",
+      "contract_signed_date_buying_company": "Helio Manufacturing...Date (Print): 21-Jul-2024",
+      "contract_signed_date_selling_company": "Northstar Systems LLC...Date (Print): 21-Jul-2024",
+      "currency": "694,513.10 USD",
+      "grand_total": "TOTAL SUBSCRIPTION 694,513.10 USD",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {},
+    "missing_fields": {},
+    "inferred_dates": {}
+  },
+  "contract_items_count": 2,
+  "contract_items": [
+    {
+      "name": "Premium Support",
+      "sku_id": "2c825663-7215-4f20-883c-4e8099f64b8b",
+      "sku_code": "PREMIUM_SUPPORT",
+      "currency": "USD",
+      "total_listed_value": 337166.12,
+      "quantity": 1.0,
+      "unit_price": 168583.06,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-08-13",
+      "service_end_date": "2026-08-12",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "yearly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Due on Receipt",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Prem. Support 1 168,583.06 USD 337,166.12 USD",
+      "evidence": {
+        "sku_code": "Prem. Support",
+        "source_row": "Prem. Support 1 168,583.06 USD 337,166.12 USD",
+        "currency": "168,583.06 USD",
+        "total_listed_value": "337,166.12 USD",
+        "quantity": "Qty...1",
+        "unit_price": "Rate...168,583.06 USD",
+        "unit_price_period": "Start Date: 13-Aug-2024 End Date: 12 Aug 2026",
+        "service_start_date": "Start Date: 13-Aug-2024",
+        "service_end_date": "End Date: 12 Aug 2026",
+        "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+      "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+      "currency": "USD",
+      "total_listed_value": 357346.98,
+      "quantity": 1.0,
+      "unit_price": 178673.49,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-08-13",
+      "service_end_date": "2026-08-12",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "yearly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Due on Receipt",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on) 1 178,673.49 USD 357,346.98 USD",
+      "evidence": {
+        "sku_code": "Talent Intel. Platf. Prem. Ed. (Add-on)",
+        "source_row": "Talent Intel. Platf. Prem. Ed.\n(Add-on) 1 178,673.49 USD 357,346.98 USD",
+        "currency": "178,673.49 USD",
+        "total_listed_value": "357,346.98 USD",
+        "quantity": "Qty...1",
+        "unit_price": "Rate...178,673.49 USD",
+        "unit_price_period": "Start Date: 13-Aug-2024 End Date: 12 Aug 2026",
+        "service_start_date": "Start Date: 13-Aug-2024",
+        "service_end_date": "End Date: 12 Aug 2026",
+        "payment_terms": "Payment terms include Due on Receipt unless stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "SKILLS_PORTFOLIO",
+    "ELEVATE_SUCCESS_PLAN"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": 1,
+      "message": "quotes for ['sku_code', 'source_row'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0031.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 4,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 32.7,
+    "usage": {
+      "input_tokens": 8,
+      "output_tokens": 2681,
+      "cache_creation_input_tokens": 12296,
+      "cache_read_input_tokens": 50122,
+      "per_turn": [
+        {
+          "input": 2,
+          "output": 146,
+          "cache_write": 5457,
+          "cache_read": 6029
+        },
+        {
+          "input": 2,
+          "output": 303,
+          "cache_write": 3525,
+          "cache_read": 11486
+        },
+        {
+          "input": 2,
+          "output": 691,
+          "cache_write": 2585,
+          "cache_read": 15011
+        },
+        {
+          "input": 2,
+          "output": 1541,
+          "cache_write": 729,
+          "cache_read": 17596
+        }
+      ]
+    },
+    "cost_usd": 0.169,
+    "catalog": {
+      "mode": "retrieval",
+      "size": 2000,
+      "searches": [
+        {
+          "query": "Prem. Support",
+          "candidates": [
+            "PREMIUM_SUPPORT",
+            "PREMIUM_SUCCESS_SUPPORT",
+            "PREMIUM_SUPPORT_24X7",
+            "PREMIUM_SUPPORT_ADD_ON",
+            "PREMIUM_SUPPORT_AMERICAS",
+            "PREMIUM_SUPPORT_PLUS",
+            "PREMIUM_SUPPORT_JAPAN",
+            "PREMIUM_SUPPORT_DACH"
+          ]
+        },
+        {
+          "query": "Talent Intel. Platf. Prem. Ed. (Add-on)",
+          "candidates": [
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_LATAM",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_MONTHLY",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_RENEWAL_UPLIFT",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_LOCATION",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_EMPLOYEE",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_GOVERNMENT_CLOUD",
+            "TALENT_INTELLIGENCE_PLATFORM_STANDARD_EDITION_ADD_ON",
+            "TALENT_INTELLIGENCE_PLATFORM_ENTERPRISE_EDITION_ADD_ON",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_US_DATA_RESIDENCY",
+            "TALENT_INTELLIGENCE_PLATFORM_ADD_ON",
+            "TALENT_INTELLIGENCE_PREMIUM_ANALYTICS_ADD_ON"
+          ]
+        },
+        {
+          "query": "Skills Portfolio",
+          "candidates": [
+            "SKILLS_PORTFOLIO",
+            "SKILLS_PORTFOLIO_ADD_ON",
+            "SKILLS_PORTFOLIO_AMERICAS",
+            "SKILLS_PORTFOLIO_ANALYTICS",
+            "SKILLS_PORTFOLIO_CANADA",
+            "SKILLS_PORTFOLIO_PLUS",
+            "SKILLS_PORTFOLIO_MONTHLY",
+            "SKILLS_PORTFOLIO_INDIA",
+            "SKILLS_INFERENCE_ADD_ON",
+            "SKILLS_INFERENCE_CANADA"
+          ]
+        },
+        {
+          "query": "Elevate Success Plan",
+          "candidates": [
+            "ELEVATE_SUCCESS_PLAN",
+            "ELEVATE_SUCCESS_PLAN_ADD_ON",
+            "ELEVATE_SUCCESS_PLAN_EMEA",
+            "ELEVATE_SUCCESS_PLAN_INDIA",
+            "ELEVATE_SUCCESS_PLAN_JAPAN",
+            "ELEVATE_SUCCESS_PLAN_PLUS",
+            "ELEVATE_SUCCESS_PLAN_MONTHLY",
+            "ELEVATE_SUCCESS_PLAN_LITE",
+            "ELEVATE_SUCCESS_PLAN_PER_USER"
+          ]
+        }
+      ]
+    }
+  }
+}

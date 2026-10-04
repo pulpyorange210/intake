@@ -104,7 +104,6 @@ PDF -> text layer + the PDF itself -> agent loop -> checker -> post-processing -
 - **`parse.py`**: the command line. Loads the catalog, runs forms in parallel, writes the outputs.
 - **`ofparser/pdf.py`**: pulls the text layer with `pdftotext -layout` (keeps table columns lined up).
   If there's no text layer (a scan), it says so, and the model reads the page images instead.
-- **`ofparser/catalog.py`**: loads the SKU catalog.
 - **`ofparser/prompts.py`**: the system prompt. The whole catalog goes in, including each SKU's
   parsing instructions, along with the rules: only extract items that are in the catalog, keep out
   anything the form says isn't sold, and flag real ambiguity instead of guessing.
@@ -125,6 +124,8 @@ PDF -> text layer + the PDF itself -> agent loop -> checker -> post-processing -
   notes every empty important field and sets `needs_review` for it.
 - **`ofparser/pages.py`**: only for documents over 30 pages. Scores each page, builds the outline the agent
   starts from, and serves the `search_document` and `read_pages` tools.
+- **`ofparser/catalog.py`**: loads the catalog and, for catalogs over 200 SKUs, serves the `search_catalog`
+  tool.
 - **`ofparser/schema.py`**: the output structure (Pydantic models).
 - **`ofparser/compute.py`**: the arithmetic behind the `compute` tool.
 - **`eval.py`**: scores a run against the ground truth. It matches items by SKU, compares fields
@@ -273,6 +274,20 @@ The optional products on the decoy price list were left out every time. Caveats:
 the documents are generated, so real long contracts may be laid out in ways the outline handles less well.
 Long scanned PDFs can't be outlined yet. Details are in `CHANGELOG.md` (v0.9, v0.10) and
 `edge_cases/long_document/`.
+
+## Large catalogs
+
+Catalogs up to 200 SKUs go into the prompt; above that, the agent looks products up with a `search_catalog`
+tool that tolerates abbreviations, OCR errors and typos, and returns the closest SKUs plus their look-alikes.
+Tested on a generated 2,000-SKU catalog (the real 21 plus editions, add-ons, regional and near-name variants):
+both ways got every SKU right on the forms tried. Caching keeps the full catalog affordable inline at 2,000 SKUs
+(the first form pays to cache its 230K tokens, about $1.65, and later forms cost about $0.35 each), but at
+roughly 115 tokens per SKU a catalog of 5,000-10,000+ SKUs no longer fits in the model's context at all.
+Retrieval is what scales past that, and at 2,000 SKUs it already cost about the same as the 21-SKU setup
+($0.20 vs $0.17 per form). One form, of-0044, came out differently from earlier runs: its effective date
+"03/01/2024" was left blank as ambiguous (with March 1 as likely, which is correct) where earlier runs answered
+it; both readings fit the document, so this is run-to-run variation, not the catalog. Details in `CHANGELOG.md`
+(v0.11) and `edge_cases/big_catalog/`.
 
 ## Running it
 

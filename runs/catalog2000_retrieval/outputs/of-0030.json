@@ -1,0 +1,239 @@
+{
+  "order_form": {
+    "customer_name": "Summit Telecom",
+    "vendor_name": "Acme Software Inc.",
+    "effective_date": "2026-01-21",
+    "contract_signed_date_buying_company": "2026-01-27",
+    "contract_signed_date_selling_company": "2026-01-27",
+    "currency": "USD",
+    "grand_total": 27538907.04,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Summit Telecom",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "This order form becomes effective on 2026-01-21.",
+      "contract_signed_date_buying_company": "Summit Telecom...Date (Print): 2026-01-27",
+      "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): 2026-01-27",
+      "currency": "$27,538,907.04",
+      "grand_total": "$27,538,907.04",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {},
+    "missing_fields": {},
+    "inferred_dates": {}
+  },
+  "contract_items_count": 2,
+  "contract_items": [
+    {
+      "name": "Elevate Success Plan",
+      "sku_id": "63d14b22-78d4-4cb0-9cd6-85127611f1d0",
+      "sku_code": "ELEVATE_SUCCESS_PLAN",
+      "currency": "USD",
+      "total_listed_value": 18711561.6,
+      "quantity": 5.0,
+      "unit_price": 103953.12,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-01-25",
+      "service_end_date": "2029-01-23",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "monthly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 55",
+      "special_notes": "Up to Customer Employee Size: 25,000",
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Elevate Success Plan 5 $103,953.12 $18,711,561.60",
+      "evidence": {
+        "source_row": "Elevate Success Plan 5 $103,953.12 $18,711,561.60",
+        "currency": "$18,711,561.60",
+        "total_listed_value": "$18,711,561.60",
+        "quantity": "5",
+        "unit_price": "$103,953.12",
+        "unit_price_period": "Start Date: 01/25/2026 End Date: Jan 23, 2029",
+        "service_start_date": "Start Date: 01/25/2026",
+        "service_end_date": "End Date: Jan 23, 2029",
+        "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+        "special_notes": "Up to Customer Employee Size: 25,000"
+      }
+    },
+    {
+      "name": "Talent Acquisition",
+      "sku_id": "d6f20b62-9bec-421b-8d33-489712746aee",
+      "sku_code": "TALENT_ACQUISITION",
+      "currency": "USD",
+      "total_listed_value": 8827345.44,
+      "quantity": 2.0,
+      "unit_price": 122602.02,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-01-25",
+      "service_end_date": "2029-01-23",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "monthly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 55",
+      "special_notes": "Up to Customer Employee Size: 25,000",
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Acquisition 2 $122,602.02 $8,827,345.44",
+      "evidence": {
+        "source_row": "Talent Acquisition 2 $122,602.02 $8,827,345.44",
+        "currency": "$8,827,345.44",
+        "total_listed_value": "$8,827,345.44",
+        "quantity": "2",
+        "unit_price": "$122,602.02",
+        "unit_price_period": "Start Date: 01/25/2026 End Date: Jan 23, 2029",
+        "service_start_date": "Start Date: 01/25/2026",
+        "service_end_date": "End Date: Jan 23, 2029",
+        "payment_terms": "Payment terms include Net 55 unless stated otherwise.",
+        "special_notes": "Up to Customer Employee Size: 25,000"
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "SIGNATURE_SUCCESS",
+    "WHATSAPP_SMS_CREDITS"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": null,
+      "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0030.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 4,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 26.4,
+    "usage": {
+      "input_tokens": 8,
+      "output_tokens": 2445,
+      "cache_creation_input_tokens": 12050,
+      "cache_read_input_tokens": 50083,
+      "per_turn": [
+        {
+          "input": 2,
+          "output": 139,
+          "cache_write": 5391,
+          "cache_read": 6029
+        },
+        {
+          "input": 2,
+          "output": 694,
+          "cache_write": 3335,
+          "cache_read": 11420
+        },
+        {
+          "input": 2,
+          "output": 158,
+          "cache_write": 3124,
+          "cache_read": 14755
+        },
+        {
+          "input": 2,
+          "output": 1454,
+          "cache_write": 200,
+          "cache_read": 17879
+        }
+      ]
+    },
+    "cost_usd": 0.1615,
+    "catalog": {
+      "mode": "retrieval",
+      "size": 2000,
+      "searches": [
+        {
+          "query": "Elevate Success Plan",
+          "candidates": [
+            "ELEVATE_SUCCESS_PLAN",
+            "ELEVATE_SUCCESS_PLAN_ADD_ON",
+            "ELEVATE_SUCCESS_PLAN_EMEA",
+            "ELEVATE_SUCCESS_PLAN_INDIA",
+            "ELEVATE_SUCCESS_PLAN_JAPAN",
+            "ELEVATE_SUCCESS_PLAN_PLUS",
+            "ELEVATE_SUCCESS_PLAN_MONTHLY",
+            "ELEVATE_SUCCESS_PLAN_LITE",
+            "ELEVATE_SUCCESS_PLAN_PER_USER"
+          ]
+        },
+        {
+          "query": "Talent Acquisition",
+          "candidates": [
+            "TALENT_ACQUISITION",
+            "TALENT_ACQUISITION_ADD_ON",
+            "TALENT_ACQUISITION_AMERICAS",
+            "TALENT_ACQUISITION_ANALYTICS",
+            "TALENT_ACQUISITION_CORE",
+            "TALENT_ACQUISITION_SUITE",
+            "TALENT_ACQUISITION_STARTER",
+            "TALENT_ACQUISITION_LATAM",
+            "TALENT_ACQUISITION_TALENT_TRACKING_ADDON",
+            "TALENT_ACQUISITION_TALENT_PIPELINE_ADD_ON",
+            "TALENT_ACQUISITION_CRM_ADD_ON",
+            "TALENT_ACQUISITION_IMPLEMENTATION",
+            "TALENT_ACQUISITION_FEDRAMP",
+            "TALENT_ACQUISITION_EMEA",
+            "TALENT_ACQUISITION_CRM",
+            "TALENT_ACQUISITION_CORE_PLUS",
+            "TALENT_ACQUISITION_CORE_LITE",
+            "TALENT_ACQUISITION_CORE_JAPAN"
+          ]
+        },
+        {
+          "query": "Signature Success",
+          "candidates": [
+            "SIGNATURE_SUCCESS",
+            "SIGNATURE_SUCCESS_ADD_ON",
+            "SIGNATURE_SUCCESS_CANADA",
+            "SIGNATURE_SUCCESS_ESSENTIALS",
+            "SIGNATURE_SUCCESS_FEDRAMP",
+            "SIGNATURE_SUCCESS_UK",
+            "SIGNATURE_SUCCESS_PLUS",
+            "SIGNATURE_SUCCESS_LATAM",
+            "E_SIGNATURE_ADD_ON",
+            "E_SIGNATURE_ESSENTIALS"
+          ]
+        },
+        {
+          "query": "WhatsApp / SMS Credits",
+          "candidates": [
+            "WHATSAPP_SMS_CREDITS",
+            "OVERAGES_WHATSAPP_SMS_CREDITS",
+            "WHATSAPP_SMS_CREDITS_ADD_ON",
+            "WHATSAPP_SMS_CREDITS_ANZ",
+            "WHATSAPP_SMS_CREDITS_BUNDLE",
+            "WHATSAPP_SMS_CREDITS_LATAM",
+            "WHATSAPP_SMS_CREDITS_INDIA",
+            "WHATSAPP_CREDITS",
+            "WHATSAPP_SMS_CREDITS_PER_LOCATION",
+            "WHATSAPP_SMS_CREDITS_ANNUAL_PREPAID",
+            "SMS_CREDITS"
+          ]
+        }
+      ]
+    }
+  }
+}

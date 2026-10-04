@@ -1,0 +1,511 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nThe selling company's catalog has 2000 SKUs, too many to list here. Every contract item must map to exactly one of them: for each priced line, call search_catalog with the line's text as printed (product name, abbreviations and all). It returns the closest SKUs plus similar siblings (other editions, add-ons, regions, deployments) with their parsing instructions. Choose the SKU the document actually describes; a sibling that adds a region, edition or add-on the document doesn't mention is a different product. If no candidate fits, search again with other wording before concluding the line isn't in the catalog. Use only codes returned by search_catalog; each code is checked against the full catalog. Parsing instructions of the SKU you choose take precedence over the general rules below.\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- Every date you give must be printed in the document (in any format). If a date is not printed but follows from one that is (e.g. an end date from a start date and a stated term), add an inferred_dates entry: the printed from_date, the add_months / add_days that produce the value, and an explanation quoting the text it relies on. The calculation is re-checked. Never supply a date that is neither printed nor calculated from a printed date; leave it null.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). Billing \"in advance\" or \"in arrears\" describes timing within a period, not the schedule type or frequency. If the document does not say, use null.\n- Amendments: if the document contains an amendment, addendum or change order that modifies this order (e.g. a changed price, quantity or date), use the values as amended, quote the amending text as evidence, and mention the amendment in special_notes.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Before treating a field as ambiguous, test each candidate reading against the rest of the document: the arithmetic of prices, quantities and the service term, and the other dates. A reading that contradicts the document is not a valid reading. If exactly one reading survives, use it and quote the deciding evidence. Closeness or typicality (e.g. a date being near the signature date) never eliminates a reading; it can only make one likely.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). If surrounding context makes one candidate more likely (e.g. its closeness to other dates in the document), give it as likely with that evidence in likely_reason; the field itself still stays null. Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0011.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0011.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                                Sales Order Form\n\nPrepared For: Helio Manufacturing                                              Quote Number: Q-872482\nAccount Executive: Casey Patel                                                 Offer Valid Through: 2023-07-12\n\n\n Sold/Ship To:                                                     Bill To:\n 3278 Market Street, Boston, MA 90747,                             Attn: Accounts Payable, 9978 Mission\n USA                                                               Street, Boston, MA 62703, USA\n\n\n\n Primary Contact: Avery Brown                                      Billing Contact: Avery Brown\n Primary Email: avery@heliomanufacturing.com                       Billing Email: ap@heliomanufacturing.com\n\n\n\nStart Date: Jul 01, 2023                    End Date: Jun 29, 2025                      Up to Customer Employee Size: 10,000\n\nSUBSCRIPTION FEES\n\n Product/Service                                            Qty            Unit Price                     Total\n\n Professional Service                                        1             USD 218,856.20                 USD 5,252,548.80\n\n Sandbox                                                     2             USD 184,149.44                 USD 8,839,173.12\n\n\n TOTAL SUBSCRIPTION                                                                                       USD 14,091,721.92\n\nINVOICING SCHEDULE\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms include Net 45 unless stated otherwise.\nProcurement summary: annualized billing profile included for planning.\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\n\n\n\n                                                                                                                    Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on Jun 27, 2023. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Overages - Talent Acquisition AI Interviewer Agent\nAdd-on, Premium Support\n\nHelio Manufacturing                                                Acme Software Inc.\nBy:                                                                By:\n               SIGNED ELECTRONICALLY                                             SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                          Name (Print): ___________________________\nTitle (Print): VP Finance                                          Title (Print): Controller\nDate (Print): 28 Jun 2023                                          Date (Print): 02 Jul 2023\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: NO, PO exception form to be signed.\n\n\n\n\nConfidential - pricing subject to agreement.                                                                   Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "I'll start by searching the catalog for the two priced lines and the excluded items.",
+          "type": "text"
+        },
+        {
+          "id": "toolu_01B5ywmnRof9RJ655Ga7aL6x",
+          "input": {
+            "line_text": "Professional Service"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01SSFtb4LZGxd6E1R81ACwLf",
+          "input": {
+            "line_text": "Sandbox"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01DvAMbZyvNQaDrjRegYn8tU",
+          "input": {
+            "line_text": "Overages - Talent Acquisition AI Interviewer Agent Add-on"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01YJbPdSD6udiE8ZQnYRdGoo",
+          "input": {
+            "line_text": "Premium Support"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01B5ywmnRof9RJ655Ga7aL6x",
+          "content": "Catalog candidates for 'Professional Service' (best first; siblings are similar SKUs to rule out):\n- PROFESSIONAL_SERVICE | Professional Service | Professional services delivered on a usage/progress basis | instructions: - Capture delivery period and progress inputs (e.g., hours, milestones, percent complete) for percentage-of-completion. - If dates are absent, align service dates with the related SOW or Order Form where available.  [match, score 1.00]\n- PROFESSIONAL_SERVICE_ADD_ON | Professional Service (Add-on) | Subscription to Professional Service (Add-on) | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.80]\n- PROFESSIONAL_SERVICE_ADVISORY | Professional Service - Advisory | Professional Service - Advisory, billed per the order form | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [match, score 0.80]\n- PROFESSIONAL_SERVICE_APAC | Professional Service - APAC | Professional Service - APAC, billed per the order form | instructions: - If the line is marked usage-based, capture the committed quantity.  [match, score 0.80]\n- PROFESSIONAL_SERVICE_DACH | Professional Service - DACH | Professional Service - DACH, billed per the order form | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.80]\n- PROFESSIONAL_SERVICE_LATAM | Professional Service - LATAM | Subscription to Professional Service - LATAM | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of PROFESSIONAL_SERVICE, score 0.80]\n- PROFESSIONAL_SERVICE_PRIVATE_CLOUD | Professional Service (Private Cloud) | Professional Service (Private Cloud) capability for enterprise customers | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of PROFESSIONAL_SERVICE, score 0.67]\n- PROFESSIONAL_SERVICE_PER_LOCATION | Professional Service - Per Location | Subscription to Professional Service - Per Location | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of PROFESSIONAL_SERVICE, score 0.67]",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01SSFtb4LZGxd6E1R81ACwLf",
+          "content": "Catalog candidates for 'Sandbox' (best first; siblings are similar SKUs to rule out):\n- SANDBOX | Sandbox | Sandbox environment access subscription | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 1.00]\n- DEVELOPER_SANDBOX | Developer Sandbox | Access to Developer Sandbox for the subscription term | instructions: - Use Order Form Start Date for service start.  [match, score 0.67]\n- SANDBOX_ADD_ON | Sandbox (Add-on) | Sandbox (Add-on), billed per the order form | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.67]\n- SANDBOX_CANADA | Sandbox - Canada | Subscription to Sandbox - Canada  [match, score 0.67]\n- SANDBOX_ENVIRONMENT | Sandbox Environment | Sandbox Environment capability for enterprise customers | instructions: - Use Order Form Start Date for service start.  [match, score 0.67]\n- SANDBOX_UK | Sandbox - UK | Access to Sandbox - UK for the subscription term | instructions: - Use Order Form Start Date for service start.  [sibling of SANDBOX, score 0.67]\n- SANDBOX_REFRESH | Sandbox Refresh | Sandbox Refresh capability for enterprise customers | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of SANDBOX, score 0.67]\n- SANDBOX_LATAM | Sandbox - LATAM | Sandbox - LATAM capability for enterprise customers | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of SANDBOX, score 0.67]\n- SANDBOX_ENVIRONMENT_ADD_ON | Sandbox Environment (Add-on) | Access to Sandbox Environment (Add-on) for the subscription term  [sibling of SANDBOX_ADD_ON, score 0.50]\n- SANDBOX_ENVIRONMENT_PLUS_ADD_ON | Sandbox Environment Plus (Add-on) | Subscription to Sandbox Environment Plus (Add-on) | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of SANDBOX_ADD_ON, score 0.40]\n- SANDBOX_ENVIRONMENT_LITE_ADD_ON | Sandbox Environment Lite (Add-on) | Recurring subscription to Sandbox Environment Lite (Add-on) | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of SANDBOX_ADD_ON, score 0.40]\n- SANDBOX_ENVIRONMENT_LATAM | Sandbox Environment - LATAM | Recurring subscription to Sandbox Environment - LATAM | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of SANDBOX_ENVIRONMENT, score 0.50]\n- IMPLEMENTATION_SANDBOX_ENVIRONMENT | Implementation - Sandbox Environment | Subscription to Implementation - Sandbox Environment | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of SANDBOX_ENVIRONMENT, score 0.50]\n- WORKDAY_CONNECTOR_FOR_SANDBOX_ENVIRONMENT | Workday Connector for Sandbox Environment | Recurring subscription to Workday Connector for Sandbox Environment | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of SANDBOX_ENVIRONMENT, score 0.40]",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01DvAMbZyvNQaDrjRegYn8tU",
+          "content": "Catalog candidates for 'Overages - Talent Acquisition AI Interviewer Agent Add-on' (best first; siblings are similar SKUs to rule out):\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON | Overages - Talent Acquisition AI Interviewer Agent Add-on | Usage-based overages for the AI Interviewer Agent Add-on | instructions: - Revenue recognized based on actual usage consumption. - Capture usage metrics as they occur for recognition.  [match, score 1.00]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_AMERICAS | Overages - Talent Acquisition AI Interviewer Agent Add-on - Americas | Overages - Talent Acquisition AI Interviewer Agent Add-on - Americas capability for enterprise customers | instructions: - Use Order Form Start Date for service start.  [match, score 0.93]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANZ | Overages - Talent Acquisition AI Interviewer Agent Add-on - ANZ | Recurring subscription to Overages - Talent Acquisition AI Interviewer Agent Add-on - ANZ | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [match, score 0.93]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_LATAM | Overages - Talent Acquisition AI Interviewer Agent Add-on - LATAM | Overages - Talent Acquisition AI Interviewer Agent Add-on - LATAM capability for enterprise customers | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [match, score 0.93]\n- TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON | Talent Acquisition AI Interviewer Agent Add-on | Recurring subscription to the AI Interviewer Agent Add-on for Talent Acquisition | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 0.92]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_RECRUITER | Overages - Talent Acquisition AI Interviewer Agent Add-on - Per Recruiter | Overages - Talent Acquisition AI Interviewer Agent Add-on - Per Recruiter, billed per the order form | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON, score 0.88]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_1_000_EMPLOYEES | Overages - Talent Acquisition AI Interviewer Agent Add-on - Per 1,000 Employees | Recurring subscription to Overages - Talent Acquisition AI Interviewer Agent Add-on - Per 1,000 Employees | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON, score 0.88]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_GOVERNMENT_CLOUD | Overages - Talent Acquisition AI Interviewer Agent Add-on (Government Cloud) | Subscription to Overages - Talent Acquisition AI Interviewer Agent Add-on (Government Cloud) | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON, score 0.88]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANNUAL_PREPAID | Overages - Talent Acquisition AI Interviewer Agent Add-on - Annual Prepaid | Access to Overages - Talent Acquisition AI Interviewer Agent Add-on - Annual Prepaid for the subscription term | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_AMERICAS, score 0.88]\n- TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_JAPAN | Talent Acquisition AI Interviewer Agent Add-on - Japan | Talent Acquisition AI Interviewer Agent Add-on - Japan, billed per the order form | instructions: - Use Order Form Start Date for service start.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_AMERICAS, score 0.86]\n- TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_INDIA | Talent Acquisition AI Interviewer Agent Add-on - India | Access to Talent Acquisition AI Interviewer Agent Add-on - India for the subscription term | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_AMERICAS, score 0.86]\n- TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_EMEA | Talent Acquisition AI Interviewer Agent Add-on - EMEA | Talent Acquisition AI Interviewer Agent Add-on - EMEA, billed per the order form | instructions: - Use Order Form Start Date for service start.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANZ, score 0.86]\n- OVERAGES_TALENT_ACQUISITION_AI_SOURCING_AGENT_ADD_ON | Overages - Talent Acquisition AI Sourcing Agent Add-on | Overages - Talent Acquisition AI Sourcing Agent Add-on capability for enterprise customers | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANZ, score 0.86]\n- OVERAGES_TALENT_ACQUISITION_AI_SCHEDULING_AGENT_ADD_ON | Overages - Talent Acquisition AI Scheduling Agent Add-on | Subscription to Overages - Talent Acquisition AI Scheduling Agent Add-on  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANZ, score 0.86]\n- OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_US_DATA_RESIDENCY | Overages - Talent Acquisition AI Interviewer Agent Add-on (US Data Residency) | Access to Overages - Talent Acquisition AI Interviewer Agent Add-on (US Data Residency) for the subscription term | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_LATAM, score 0.82]\n- TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_EMPLOYEE | Talent Acquisition AI Interviewer Agent Add-on - Per Employee | Talent Acquisition AI Interviewer Agent Add-on - Per Employee capability for enterprise customers | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_LATAM, score 0.80]\n- TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_MULTI_YEAR | Talent Acquisition AI Interviewer Agent Add-on - Multi-Year | Recurring subscription to Talent Acquisition AI Interviewer Agent Add-on - Multi-Year | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_LATAM, score 0.80]\n- TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_GOVERNMENT_CLOUD | Talent Acquisition AI Interviewer Agent Add-on (Government Cloud) | Access to Talent Acquisition AI Interviewer Agent Add-on (Government Cloud) for the subscription term | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON, score 0.80]\n- TALENT_ACQUISITION_AI_SOURCING_AGENT_ADD_ON | Talent Acquisition AI Sourcing Agent Add-on | Recurring subscription to Talent Acquisition AI Sourcing Agent Add-on  [sibling of TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON, score 0.77]\n- TALENT_ACQUISITION_AI_SCREENING_AGENT_ADD_ON | Talent Acquisition AI Screening Agent Add-on | Talent Acquisition AI Screening Agent Add-on, billed per the order form | instructions: - Use Order Form Start Date for service start.  [sibling of TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON, score 0.77]",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01YJbPdSD6udiE8ZQnYRdGoo",
+          "content": "Catalog candidates for 'Premium Support' (best first; siblings are similar SKUs to rule out):\n- PREMIUM_SUPPORT | Premium Support | Premium support subscription | instructions: - If minimum/maximum monthly hours are specified, capture them; otherwise leave quantity null. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 1.00]\n- PREMIUM_SUCCESS_SUPPORT | Premium Success Support | Subscription to Premium Success Support | instructions: - Use Order Form Start Date for service start.  [match, score 0.80]\n- PREMIUM_SUPPORT_24X7 | Premium Support - 24x7 | Recurring subscription to Premium Support - 24x7  [match, score 0.80]\n- PREMIUM_SUPPORT_ADD_ON | Premium Support (Add-on) | Subscription to Premium Support (Add-on) | instructions: - Use Order Form Start Date for service start.  [match, score 0.80]\n- PREMIUM_SUPPORT_AMERICAS | Premium Support - Americas | Premium Support - Americas capability for enterprise customers | instructions: - If the line is marked usage-based, capture the committed quantity.  [match, score 0.80]\n- PREMIUM_SUPPORT_PLUS | Premium Support Plus | Subscription to Premium Support Plus  [sibling of PREMIUM_SUPPORT, score 0.80]\n- PREMIUM_SUPPORT_JAPAN | Premium Support - Japan | Subscription to Premium Support - Japan | instructions: - Use Order Form Start Date for service start.  [sibling of PREMIUM_SUPPORT, score 0.80]\n- PREMIUM_SUPPORT_DACH | Premium Support - DACH | Subscription to Premium Support - DACH | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of PREMIUM_SUPPORT, score 0.80]",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_013XnEzoVJD1xqrCiyTS9Y6x",
+          "input": {
+            "expression": "5252548.80 / 218856.20"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01X8NL2GxGM1LgQU3WiKT2vK",
+          "input": {
+            "expression": "8839173.12 / (184149.44 * 2)"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01K25AC8FN9jjbTxHCUy7riq",
+          "input": {
+            "expression": "5252548.80 + 8839173.12"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_013XnEzoVJD1xqrCiyTS9Y6x",
+          "content": "5252548.80 / 218856.20 = 24 (rounded to cents: 24.00)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01X8NL2GxGM1LgQU3WiKT2vK",
+          "content": "8839173.12 / (184149.44 * 2) = 24 (rounded to cents: 24.00)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01K25AC8FN9jjbTxHCUy7riq",
+          "content": "5252548.80 + 8839173.12 = 14091721.92 (rounded to cents: 14091721.92)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAISgwUKwAMIEhgCKkBGJlRHNM+D78Rce3JF7HytM0yZ2nV/3vQzmQugWHsN8Hsxodr0pIbdUqMeB5BlzkM/F6onmdGoCSsMD/29etDFMg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAZ/ghtYGwgF5CBkQABpLAbchAi4bA083CNo7BcjzBCatBY1jCuI2Coz3CpNtCi5NA083CzuNC0D2CxLLC0PwBCatCoBcCq9vCsbsA083C1ttC4mgCxNyBCatIAIyBBJxzyU6BGaLrlBCBAoAix1KBKwhgE9QA1oE2QXhVmAGaAFwAdoBoAEKFnByZWZpeF9iZWZvcmVfYmxvY2tfdjESILGVj42KHT0obDdSYL8emIJouWnvIP13rQ6rchQlfyijIkB5gT8m5bwg/KxnHiAu3TlcHGfoXS6qP2Rj8Q87cYL9Q+Fe5375sWXwTibLSAri9Yn6p0Tc0oG5MMuo/54UeHlDMiDCwBPIapyS4i+Wbz2GF3aPi3pEyQKtzAl7+h4JivtOH0gDEgzBQh5EtF7uwH/7TScaDH1n9+u23PKbdhffKCIwRwDVR4ali+b4DPLa1D4noe4bbc5DIzcQHY3/zcKdEQd1yW4gLcD2UqjbQBtUvFh7KnB+0yPqUIBjhkqyYcEPujMI/Kj2EQm64W1xC1DqbkYEAO4VuvcY4rLPvNNeI5kYYU0Eb3wenGyiCBTAT8LaKbGlRhj8TJW/woXYeIJbmxnLjG1PfObXkv7jG/nccVDllAUdVFadCUs2UlSO7wXzlSIsGAE=",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01DvuwHA3LKxKpSF284p34ni",
+          "input": {
+            "order_form": {
+              "customer_name": "Helio Manufacturing",
+              "vendor_name": "Acme Software Inc.",
+              "effective_date": "2023-06-27",
+              "contract_signed_date_buying_company": "2023-06-28",
+              "contract_signed_date_selling_company": "2023-07-02",
+              "currency": "USD",
+              "grand_total": 14091721.92,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Helio Manufacturing",
+                "vendor_name": "Acme Software Inc.",
+                "effective_date": "This order form becomes effective on Jun 27, 2023.",
+                "contract_signed_date_buying_company": "Helio Manufacturing...Date (Print): 28 Jun 2023",
+                "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): 02 Jul 2023",
+                "currency": "USD 14,091,721.92",
+                "grand_total": "TOTAL SUBSCRIPTION                     USD 14,091,721.92",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "PROFESSIONAL_SERVICE",
+                "source_row": "Professional Service                1             USD 218,856.20                 USD 5,252,548.80",
+                "currency": "USD",
+                "total_listed_value": 5252548.8,
+                "quantity": 1,
+                "unit_price": 218856.2,
+                "unit_price_period": "month",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2023-07-01",
+                "service_end_date": "2025-06-29",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 45",
+                "special_notes": null,
+                "evidence": {
+                  "currency": "USD 218,856.20",
+                  "total_listed_value": "USD 5,252,548.80",
+                  "quantity": "Professional Service                1",
+                  "unit_price": "USD 218,856.20",
+                  "unit_price_period": "Start Date: Jul 01, 2023                    End Date: Jun 29, 2025...USD 218,856.20                 USD 5,252,548.80",
+                  "service_start_date": "Start Date: Jul 01, 2023",
+                  "service_end_date": "End Date: Jun 29, 2025",
+                  "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+                }
+              },
+              {
+                "sku_code": "SANDBOX",
+                "source_row": "Sandbox                 2             USD 184,149.44                 USD 8,839,173.12",
+                "currency": "USD",
+                "total_listed_value": 8839173.12,
+                "quantity": 2,
+                "unit_price": 184149.44,
+                "unit_price_period": "month",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2023-07-01",
+                "service_end_date": "2025-06-29",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 45",
+                "special_notes": null,
+                "evidence": {
+                  "currency": "USD 184,149.44",
+                  "total_listed_value": "USD 8,839,173.12",
+                  "quantity": "Sandbox                 2",
+                  "unit_price": "USD 184,149.44",
+                  "unit_price_period": "Start Date: Jul 01, 2023                    End Date: Jun 29, 2025...USD 184,149.44                 USD 8,839,173.12",
+                  "service_start_date": "Start Date: Jul 01, 2023",
+                  "service_end_date": "End Date: Jun 29, 2025",
+                  "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+              "PREMIUM_SUPPORT"
+            ],
+            "ambiguities": [],
+            "inferred_dates": [],
+            "overrides": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01DvuwHA3LKxKpSF284p34ni",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Helio Manufacturing",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "2023-06-27",
+      "contract_signed_date_buying_company": "2023-06-28",
+      "contract_signed_date_selling_company": "2023-07-02",
+      "currency": "USD",
+      "grand_total": 14091721.92,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Helio Manufacturing",
+        "vendor_name": "Acme Software Inc.",
+        "effective_date": "This order form becomes effective on Jun 27, 2023.",
+        "contract_signed_date_buying_company": "Helio Manufacturing...Date (Print): 28 Jun 2023",
+        "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): 02 Jul 2023",
+        "currency": "USD 14,091,721.92",
+        "grand_total": "TOTAL SUBSCRIPTION                     USD 14,091,721.92",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      },
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {}
+    },
+    "contract_items_count": 2,
+    "contract_items": [
+      {
+        "name": "Professional Service",
+        "sku_id": "2a4fa79f-0fb7-42a3-a4ad-143f3cce8e36",
+        "sku_code": "PROFESSIONAL_SERVICE",
+        "currency": "USD",
+        "total_listed_value": 5252548.8,
+        "quantity": 1.0,
+        "unit_price": 218856.2,
+        "unit_price_period": "month",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2023-07-01",
+        "service_end_date": "2025-06-29",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "monthly",
+          "source": "inferred_from_pricing",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 45",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Professional Service                1             USD 218,856.20                 USD 5,252,548.80",
+        "evidence": {
+          "currency": "USD 218,856.20",
+          "total_listed_value": "USD 5,252,548.80",
+          "quantity": "Professional Service                1",
+          "unit_price": "USD 218,856.20",
+          "unit_price_period": "Start Date: Jul 01, 2023                    End Date: Jun 29, 2025...USD 218,856.20                 USD 5,252,548.80",
+          "service_start_date": "Start Date: Jul 01, 2023",
+          "service_end_date": "End Date: Jun 29, 2025",
+          "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+        }
+      },
+      {
+        "name": "Sandbox",
+        "sku_id": "bc8b9193-a684-41c5-ac83-c0356cbcb7f3",
+        "sku_code": "SANDBOX",
+        "currency": "USD",
+        "total_listed_value": 8839173.12,
+        "quantity": 2.0,
+        "unit_price": 184149.44,
+        "unit_price_period": "month",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2023-07-01",
+        "service_end_date": "2025-06-29",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "monthly",
+          "source": "inferred_from_pricing",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 45",
+        "special_notes": null,
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Sandbox                 2             USD 184,149.44                 USD 8,839,173.12",
+        "evidence": {
+          "currency": "USD 184,149.44",
+          "total_listed_value": "USD 8,839,173.12",
+          "quantity": "Sandbox                 2",
+          "unit_price": "USD 184,149.44",
+          "unit_price_period": "Start Date: Jul 01, 2023                    End Date: Jun 29, 2025...USD 184,149.44                 USD 8,839,173.12",
+          "service_start_date": "Start Date: Jul 01, 2023",
+          "service_end_date": "End Date: Jun 29, 2025",
+          "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+      "PREMIUM_SUPPORT"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": null,
+        "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+      }
+    ],
+    "meta": {
+      "source_pdf": "of-0011.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 3,
+      "submissions": 1,
+      "stop_note": null,
+      "seconds": 25.0,
+      "usage": {
+        "input_tokens": 6,
+        "output_tokens": 2402,
+        "cache_creation_input_tokens": 13424,
+        "cache_read_input_tokens": 36080,
+        "per_turn": [
+          {
+            "input": 2,
+            "output": 258,
+            "cache_write": 5412,
+            "cache_read": 6029
+          },
+          {
+            "input": 2,
+            "output": 664,
+            "cache_write": 7169,
+            "cache_read": 11441
+          },
+          {
+            "input": 2,
+            "output": 1480,
+            "cache_write": 843,
+            "cache_read": 18610
+          }
+        ]
+      },
+      "cost_usd": 0.162,
+      "catalog": {
+        "mode": "retrieval",
+        "size": 2000,
+        "searches": [
+          {
+            "query": "Professional Service",
+            "candidates": [
+              "PROFESSIONAL_SERVICE",
+              "PROFESSIONAL_SERVICE_ADD_ON",
+              "PROFESSIONAL_SERVICE_ADVISORY",
+              "PROFESSIONAL_SERVICE_APAC",
+              "PROFESSIONAL_SERVICE_DACH",
+              "PROFESSIONAL_SERVICE_LATAM",
+              "PROFESSIONAL_SERVICE_PRIVATE_CLOUD",
+              "PROFESSIONAL_SERVICE_PER_LOCATION"
+            ]
+          },
+          {
+            "query": "Sandbox",
+            "candidates": [
+              "SANDBOX",
+              "DEVELOPER_SANDBOX",
+              "SANDBOX_ADD_ON",
+              "SANDBOX_CANADA",
+              "SANDBOX_ENVIRONMENT",
+              "SANDBOX_UK",
+              "SANDBOX_REFRESH",
+              "SANDBOX_LATAM",
+              "SANDBOX_ENVIRONMENT_ADD_ON",
+              "SANDBOX_ENVIRONMENT_PLUS_ADD_ON",
+              "SANDBOX_ENVIRONMENT_LITE_ADD_ON",
+              "SANDBOX_ENVIRONMENT_LATAM",
+              "IMPLEMENTATION_SANDBOX_ENVIRONMENT",
+              "WORKDAY_CONNECTOR_FOR_SANDBOX_ENVIRONMENT"
+            ]
+          },
+          {
+            "query": "Overages - Talent Acquisition AI Interviewer Agent Add-on",
+            "candidates": [
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_AMERICAS",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANZ",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_LATAM",
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_RECRUITER",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_1_000_EMPLOYEES",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_GOVERNMENT_CLOUD",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_ANNUAL_PREPAID",
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_JAPAN",
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_INDIA",
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_EMEA",
+              "OVERAGES_TALENT_ACQUISITION_AI_SOURCING_AGENT_ADD_ON",
+              "OVERAGES_TALENT_ACQUISITION_AI_SCHEDULING_AGENT_ADD_ON",
+              "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_US_DATA_RESIDENCY",
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_PER_EMPLOYEE",
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_MULTI_YEAR",
+              "TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADD_ON_GOVERNMENT_CLOUD",
+              "TALENT_ACQUISITION_AI_SOURCING_AGENT_ADD_ON",
+              "TALENT_ACQUISITION_AI_SCREENING_AGENT_ADD_ON"
+            ]
+          },
+          {
+            "query": "Premium Support",
+            "candidates": [
+              "PREMIUM_SUPPORT",
+              "PREMIUM_SUCCESS_SUPPORT",
+              "PREMIUM_SUPPORT_24X7",
+              "PREMIUM_SUPPORT_ADD_ON",
+              "PREMIUM_SUPPORT_AMERICAS",
+              "PREMIUM_SUPPORT_PLUS",
+              "PREMIUM_SUPPORT_JAPAN",
+              "PREMIUM_SUPPORT_DACH"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

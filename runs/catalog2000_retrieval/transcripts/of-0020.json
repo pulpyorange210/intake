@@ -1,0 +1,400 @@
+{
+  "system": "You extract structured contract data from order forms. The output feeds revenue recognition (ASC 606), so accuracy matters more than completeness: a wrong value is worse than a null.\n\nYou receive the order form as a PDF plus the text layer extracted from it. The text layer can contain OCR-style character errors (e.g. 1/l, 5/S, 0/O confusion) and may interleave columns; use the PDF for layout and meaning, and the text layer to copy numbers and quotes exactly.\n\n# SKU catalog\nThe selling company's catalog has 2000 SKUs, too many to list here. Every contract item must map to exactly one of them: for each priced line, call search_catalog with the line's text as printed (product name, abbreviations and all). It returns the closest SKUs plus similar siblings (other editions, add-ons, regions, deployments) with their parsing instructions. Choose the SKU the document actually describes; a sibling that adds a region, edition or add-on the document doesn't mention is a different product. If no candidate fits, search again with other wording before concluding the line isn't in the catalog. Use only codes returned by search_catalog; each code is checked against the full catalog. Parsing instructions of the SKU you choose take precedence over the general rules below.\n\n# What is a contract item\n- A product or service the vendor sells in this order with its own price: a priced line or row, or a clearly priced paragraph.\n- Map each priced line to the single most specific catalog SKU. Document names are often abbreviated, truncated, or misspelled. Similar catalog names can mean different products (a base product vs. an add-on, edition, or overage of it); choose deliberately, don't collapse them.\n- The same SKU can appear more than once (e.g. sold for two different periods): one item per priced line.\n- Do not extract things that are only referenced, explicitly excluded, delivered or sold by a third party, optional/not purchased, or that have no match in the catalog.\n- If the document explicitly states that some catalog products are not part of this order, list their SKU codes in explicitly_excluded_skus. Such a statement never removes a separately priced line.\n\n# Field rules\n- Amounts: plain numbers, no separators or symbols, copied from the document. Any derived number (summing per-period amounts, dividing a total by quantity, applying a discount) must come from the compute tool; never do arithmetic in your head.\n- total_listed_value: value of the line over its whole service period. If the document lists amounts per period (Year 1, Year 2, ...), the total is their sum and each goes in period_amounts.\n- quantity: units purchased as stated; 1 if not stated, unless the SKU's parsing instructions say otherwise. A quantity printed in the document (e.g. a Qty column) is a stated quantity; SKU instructions about when to leave quantity null apply only when the document states none.\n- unit_price: price per unit as stated; if only a total is given, derive it from total and quantity. unit_price_period: the period one unit price covers (month/quarter/half_year/year/term), from labels or column headers, or from the relation between unit price, quantity, total and the service term; null if unclear.\n- discount: only if stated.\n- Service dates: YYYY-MM-DD. Use the line's own dates if given, otherwise the order form's service term, subject to the SKU's parsing instructions.\n- Every date you give must be printed in the document (in any format). If a date is not printed but follows from one that is (e.g. an end date from a start date and a stated term), add an inferred_dates entry: the printed from_date, the add_months / add_days that produce the value, and an explanation quoting the text it relies on. The calculation is re-checked. Never supply a date that is neither printed nor calculated from a printed date; leave it null.\n- invoicing_frequency and invoicing_schedule_type: fill only from explicit statements about how the customer is billed (e.g. \"billed annually in advance\", an invoice schedule with dates). How a price is quoted is not how it is billed (\"$10/user/month, billed annually\" is yearly). Billing \"in advance\" or \"in arrears\" describes timing within a period, not the schedule type or frequency. If the document does not say, use null.\n- Amendments: if the document contains an amendment, addendum or change order that modifies this order (e.g. a changed price, quantity or date), use the values as amended, quote the amending text as evidence, and mention the amendment in special_notes.\n- payment_terms: as stated (e.g. \"Net 30\", \"Due on Receipt\"). A form-level term applies to every item unless an item states its own.\n- special_notes: conditions specific to that line stated in the document (caps, tiers, entitlements, non-standard terms); null if none. Don't copy generic boilerplate.\n- Header: effective_date is the date the document says the order form becomes effective; null if not stated. For signature dates, work out which party is the customer (buyer) and which is the vendor (seller), then attribute each signature date to the party named in its signature block.\n- Before treating a field as ambiguous, test each candidate reading against the rest of the document: the arithmetic of prices, quantities and the service term, and the other dates. A reading that contradicts the document is not a valid reading. If exactly one reading survives, use it and quote the deciding evidence. Closeness or typicality (e.g. a date being near the signature date) never eliminates a reading; it can only make one likely.\n- Ambiguity: if the document genuinely supports more than one reading of a field, do not pick one. Leave the field null and add an entry to ambiguities (item_index, field, the candidate readings, and why the document doesn't decide). If surrounding context makes one candidate more likely (e.g. its closeness to other dates in the document), give it as likely with that evidence in likely_reason; the field itself still stays null. Missing information is null without an ambiguity entry; ambiguities are for conflicting or equally valid readings.\n- evidence: for every non-null field, a short verbatim quote from the document supporting it, keyed by field name. source_row: the verbatim text of the priced line (a shorter exact excerpt is fine). To quote text that is not contiguous (e.g. a party name and the date in its signature block, or a row split across lines), join the exact fragments with \"...\".\n\n# Process\n1. Read the document. Identify the parties, the service term, and every priced line.\n2. Use compute for every derived number.\n3. Call submit_extraction. The submission is checked automatically:\n   - Hard errors must be fixed.\n   - Warnings flag things that are often mistakes (a price that doesn't divide evenly into the term, totals that don't add up). Re-check the document. If your values are correct as written, resubmit them unchanged with an override (check name, item_index, reason). Never change a value just to make a check pass.\n",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "document",
+          "source": "<pdf omitted: of-0020.pdf>"
+        },
+        {
+          "type": "text",
+          "text": "Order form file: of-0020.pdf\n\nText layer (pdftotext -layout):\n<text_layer>\n                                CUSTOMER ORDER SCHEDULE\n\nPrepared For: Helio Manufacturing                                              Quote Number: Q-698589\nAccount Executive: Taylor Morgan                                               Offer Valid Through: 2022-10-10\n\n\n Sold/Ship To:                                                     Bill To:\n 5021 Innovation Pkwy, San Jose, CA                                Attn: Accounts Payable, 240 Harbor\n 97594, USA                                                        Boulevard, San Jose, CA 33889, USA\n\n\n\n Primary Contact: Avery Brown                                      Billing Contact: Jordan Lee\n Primary Email: avery@heliomanufacturing.com                       Billing Email: ap@heliomanufacturing.com\n\n\n\nStart Date: 2022-10-17                      End Date: Oct 15, 2025                      Up to Customer Emp1oyee Size: 25,000\n\nSUBSCRlPTION FEES\n\n Product/Service                                            Qty            Unit Price                    Total\n\n Talent Intel. Platf.                                        3             230,975.18 USD               24,945,319.44 USD\n\n\n TOTAL SUBSCRIPTION                                                                                     24,945,319.44 USD\n\nBILLING SCHEDULE\nInvoices are sent in advance in accordance with each line item\u2019s billing frequency. Payment\nterms inc1ude Net 30 unless stated otherwise.\n\nIMPLEMENTATION SERVICES\nAs applicable, implementation services and fees are defined in a Statement of Work. Customer may\ncontract directly with a certified implementation partner for services and training.\n\n\n\n\n                                                                                                                  Page 1 of 2\n\fTERMS & CONDITIONS\nThe subscription services set forth in this Sales Order Form provided by the seller to the customer are\ngoverned by the terms and conditions of the Master Subscription Agreement or similar agreement for\nsubscription services and applicable statements of work signed by the parties, which are incorporated\nby reference. Customer confirms that the Sold-To address is the place of use for sales tax purposes.\nThis order form becomes effective on 19-Sep-2022. On the end date, the products and services purchased\nunder this Sales Order Form expire and do not automatically renew unless otherwise agreed in writing.\n\nQUOTE/PRODUCT SPECIAL TERMS\nThe undersigned represent they are authorized signatories, have reviewed this order form, and by\nsigning enter into a legally binding agreement on behalf of their respective organizations.\nReference catalog items not sold in this order: Talent Management Leader Experience, WhatsApp / SMS\nCredits\n\nHelio Manufacturing                                               Nimbus Data Platforms, Inc.\nBy:                                                               By:\n               SIGNED ELECTRONICALLY                                           SIGNED ELECTRONICALLY\n\n\n\n\nName (Print): ___________________________                         Name (Print): ___________________________\nTitle (Print): VP Finance                                         Title (Print): Procurement Lead\nDate (Print): Sep 23, 2022                                        Date (Print): Sep 25, 2022\n\n\nPURCHASE ORDER INFORMATION\nCustomer confirms PO required: NO, PO exception form to be signed.\n\n\n\n\nConfidential - pricing subject to agreement.                                                                  Page 2 of 2\n\f\n</text_layer>\n\nExtract the order form details and all contract items, then call submit_extraction."
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "text": "I'll start by searching the catalog for the priced line and the excluded items.",
+          "type": "text"
+        },
+        {
+          "id": "toolu_01LZXih7TT3ZymaZvBAL2MHN",
+          "input": {
+            "line_text": "Talent Intel. Platf."
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_013nn5QcCDwtZeZKJpuuBTLC",
+          "input": {
+            "line_text": "Talent Management Leader Experience"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01UVrE6EfSMMaGwEzsihWEj4",
+          "input": {
+            "line_text": "WhatsApp / SMS Credits"
+          },
+          "name": "search_catalog",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01LZXih7TT3ZymaZvBAL2MHN",
+          "content": "Catalog candidates for 'Talent Intel. Platf.' (best first; siblings are similar SKUs to rule out):\n- TALENT_INTELLIGENCE_PLATFORM | Talent Intelligence Platform | Subscription to the Talent Intelligence Platform | instructions: - For this and ALL items: use the Order Form Start Date as the contract term start (not the signature date). - Revenue recognition for the mapped POB is straight-line by days across the service period.  [match, score 0.93]\n- TALENT_INTELLIGENCE_PLATFORM_ADD_ON | Talent Intelligence Platform (Add-on) | Talent Intelligence Platform (Add-on) capability for enterprise customers | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [match, score 0.80]\n- TALENT_INTELLIGENCE_PLATFORM_ANZ | Talent Intelligence Platform - ANZ | Subscription to Talent Intelligence Platform - ANZ  [match, score 0.80]\n- TALENT_INTELLIGENCE_PLATFORM_DACH | Talent Intelligence Platform - DACH | Recurring subscription to Talent Intelligence Platform - DACH | instructions: - Use Order Form Start Date for service start.  [match, score 0.80]\n- TALENT_INTELLIGENCE_PLATFORM_IMPLEMENTATION | Talent Intelligence Platform Implementation | Access to Talent Intelligence Platform Implementation for the subscription term | instructions: - If the line is marked usage-based, capture the committed quantity.  [match, score 0.80]\n- TALENT_INTELLIGENCE_PLATFORM_UK | Talent Intelligence Platform - UK | Recurring subscription to Talent Intelligence Platform - UK | instructions: - Use Order Form Start Date for service start.  [sibling of TALENT_INTELLIGENCE_PLATFORM, score 0.80]\n- TALENT_INTELLIGENCE_PLATFORM_STARTER | Talent Intelligence Platform Starter | Talent Intelligence Platform Starter, billed per the order form | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_INTELLIGENCE_PLATFORM, score 0.80]\n- TALENT_INTELLIGENCE_PLATFORM_SANDBOX | Talent Intelligence Platform Sandbox | Talent Intelligence Platform Sandbox, billed per the order form | instructions: - Use Order Form Start Date for service start.  [sibling of TALENT_INTELLIGENCE_PLATFORM, score 0.80]\n- TALENT_INTELLIGENCE_PLATFORM_STANDARD_EDITION_ADD_ON | Talent Intelligence Platform Standard Edition (Add-on) | Talent Intelligence Platform Standard Edition (Add-on), billed per the order form | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_INTELLIGENCE_PLATFORM_ADD_ON, score 0.62]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON | Talent Intelligence Platform Premium Edition (Add-on) | Premium add-on to Talent Intelligence Platform | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_INTELLIGENCE_PLATFORM_ADD_ON, score 0.62]\n- TALENT_INTELLIGENCE_PLATFORM_ENTERPRISE_EDITION_ADD_ON | Talent Intelligence Platform Enterprise Edition (Add-on) | Subscription to Talent Intelligence Platform Enterprise Edition (Add-on) | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_INTELLIGENCE_PLATFORM_ADD_ON, score 0.62]\n- TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION | Talent Intelligence Platform Premium Edition | Access to Talent Intelligence Platform Premium Edition for the subscription term | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_INTELLIGENCE_PLATFORM_ANZ, score 0.70]\n- TALENT_INTELLIGENCE_PLATFORM_PER_RECRUITER | Talent Intelligence Platform - Per Recruiter | Talent Intelligence Platform - Per Recruiter capability for enterprise customers | instructions: - Use Order Form Start Date for service start.  [sibling of TALENT_INTELLIGENCE_PLATFORM_ANZ, score 0.70]\n- TALENT_INTELLIGENCE_PLATFORM_PER_LOCATION | Talent Intelligence Platform - Per Location | Talent Intelligence Platform - Per Location, billed per the order form | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [sibling of TALENT_INTELLIGENCE_PLATFORM_ANZ, score 0.70]\n- TALENT_INTELLIGENCE_PLATFORM_MULTI_YEAR | Talent Intelligence Platform - Multi-Year | Subscription to Talent Intelligence Platform - Multi-Year  [sibling of TALENT_INTELLIGENCE_PLATFORM_DACH, score 0.70]\n- TALENT_INTELLIGENCE_PLATFORM_GOVERNMENT_CLOUD | Talent Intelligence Platform (Government Cloud) | Recurring subscription to Talent Intelligence Platform (Government Cloud) | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_INTELLIGENCE_PLATFORM_DACH, score 0.70]",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_013nn5QcCDwtZeZKJpuuBTLC",
+          "content": "Catalog candidates for 'Talent Management Leader Experience' (best first; siblings are similar SKUs to rule out):\n- TALENT_MANAGEMENT_LEADER_EXPERIENCE | Talent Management Leader Experience | Leader Experience component of Talent Management | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 1.00]\n- TALENT_MANAGEMENT_LEADER_EXPERIENCE_ADD_ON | Talent Management Leader Experience (Add-on) | Recurring subscription to Talent Management Leader Experience (Add-on) | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [match, score 0.89]\n- TALENT_MANAGEMENT_LEADER_EXPERIENCE_CANADA | Talent Management Leader Experience - Canada | Talent Management Leader Experience - Canada, billed per the order form | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [match, score 0.89]\n- TALENT_MANAGEMENT_LEADER_EXPERIENCE_DACH | Talent Management Leader Experience - DACH | Recurring subscription to Talent Management Leader Experience - DACH  [match, score 0.89]\n- TALENT_MANAGEMENT_LEADER_EXPERIENCE_EMEA | Talent Management Leader Experience - EMEA | Talent Management Leader Experience - EMEA capability for enterprise customers | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [match, score 0.89]\n- TALENT_MANAGEMENT_LEADER_EXPERIENCE_PLUS | Talent Management Leader Experience Plus | Access to Talent Management Leader Experience Plus for the subscription term | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_MANAGEMENT_LEADER_EXPERIENCE, score 0.89]\n- TALENT_MANAGEMENT_LEADER_EXPERIENCE_PER_LOCATION | Talent Management Leader Experience - Per Location | Access to Talent Management Leader Experience - Per Location for the subscription term | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_MANAGEMENT_LEADER_EXPERIENCE, score 0.80]\n- TALENT_MANAGEMENT_LEADER_EXPERIENCE_PER_EMPLOYEE | Talent Management Leader Experience - Per Employee | Talent Management Leader Experience - Per Employee capability for enterprise customers | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of TALENT_MANAGEMENT_LEADER_EXPERIENCE, score 0.80]\n- TALENT_MANAGEMENT_LEADER_EXPERIENCE_MULTI_YEAR | Talent Management Leader Experience - Multi-Year | Recurring subscription to Talent Management Leader Experience - Multi-Year | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_MANAGEMENT_LEADER_EXPERIENCE_ADD_ON, score 0.80]\n- TALENT_MANAGEMENT_MANAGER_EXPERIENCE | Talent Management Manager Experience | Subscription to Talent Management Manager Experience | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_MANAGEMENT_LEADER_EXPERIENCE_ADD_ON, score 0.75]\n- TALENT_MANAGEMENT_LEADER_EXPERIENCE_US_DATA_RESIDENCY | Talent Management Leader Experience (US Data Residency) | Recurring subscription to Talent Management Leader Experience (US Data Residency) | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_MANAGEMENT_LEADER_EXPERIENCE_ADD_ON, score 0.73]\n- TALENT_MANAGEMENT_LEADER_EXPERIENCE_EU_DATA_RESIDENCY | Talent Management Leader Experience (EU Data Residency) | Talent Management Leader Experience (EU Data Residency) capability for enterprise customers | instructions: - Use the line's own dates if stated; otherwise the Order Form term.  [sibling of TALENT_MANAGEMENT_LEADER_EXPERIENCE_CANADA, score 0.73]\n- TALENT_MANAGEMENT_EMPLOYEE_EXPERIENCE | Talent Management Employee Experience | Access to Talent Management Employee Experience for the subscription term | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of TALENT_MANAGEMENT_LEADER_EXPERIENCE_CANADA, score 0.75]",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01UVrE6EfSMMaGwEzsihWEj4",
+          "content": "Catalog candidates for 'WhatsApp / SMS Credits' (best first; siblings are similar SKUs to rule out):\n- WHATSAPP_SMS_CREDITS | WhatsApp / SMS Credits | Recurring subscription for WhatsApp and SMS credits | instructions: - Use Order Form Start Date for service start. - Revenue recognition for the mapped POB is straight-line by days.  [match, score 1.00]\n- OVERAGES_WHATSAPP_SMS_CREDITS | Overages - WhatsApp / SMS Credits | Access to Overages - WhatsApp / SMS Credits for the subscription term | instructions: - If the line is marked usage-based, capture the committed quantity.  [match, score 0.86]\n- WHATSAPP_SMS_CREDITS_ADD_ON | WhatsApp / SMS Credits (Add-on) | Subscription to WhatsApp / SMS Credits (Add-on) | instructions: - If the line is marked usage-based, capture the committed quantity.  [match, score 0.86]\n- WHATSAPP_SMS_CREDITS_ANZ | WhatsApp / SMS Credits - ANZ | Recurring subscription to WhatsApp / SMS Credits - ANZ  [match, score 0.86]\n- WHATSAPP_SMS_CREDITS_BUNDLE | WhatsApp / SMS Credits Bundle | WhatsApp / SMS Credits Bundle, billed per the order form  [match, score 0.86]\n- WHATSAPP_SMS_CREDITS_LATAM | WhatsApp / SMS Credits - LATAM | WhatsApp / SMS Credits - LATAM capability for enterprise customers | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of WHATSAPP_SMS_CREDITS, score 0.86]\n- WHATSAPP_SMS_CREDITS_INDIA | WhatsApp / SMS Credits - India | WhatsApp / SMS Credits - India, billed per the order form | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of WHATSAPP_SMS_CREDITS, score 0.86]\n- WHATSAPP_CREDITS | WhatsApp Credits | WhatsApp Credits, billed per the order form  [sibling of WHATSAPP_SMS_CREDITS, score 0.80]\n- WHATSAPP_SMS_CREDITS_PER_LOCATION | WhatsApp / SMS Credits - Per Location | WhatsApp / SMS Credits - Per Location capability for enterprise customers | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of OVERAGES_WHATSAPP_SMS_CREDITS, score 0.75]\n- WHATSAPP_SMS_CREDITS_ANNUAL_PREPAID | WhatsApp / SMS Credits - Annual Prepaid | Subscription to WhatsApp / SMS Credits - Annual Prepaid | instructions: - If the line is marked usage-based, capture the committed quantity.  [sibling of OVERAGES_WHATSAPP_SMS_CREDITS, score 0.75]\n- SMS_CREDITS | SMS Credits | Recurring subscription to SMS Credits | instructions: - Capture delivery period and progress inputs for percentage-of-completion.  [sibling of OVERAGES_WHATSAPP_SMS_CREDITS, score 0.80]",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "CAIStQYK4QIIEhgCKkA706MwuuukK0oj/ousWeHKm4CP4Lnbc2Z5Ds+ZJywNTfgXPtAcf07/DAfhwV0CxvtMhIlW1pR+KEXsGFC/lIm5Mg1jbGF1ZGUtb3B1cy01OAFCCHRoaW5raW5nWiRkYmZhYjE3Yy03ZDY2LTRhZjctYTVmMy03ZmFlOGQ2NzIzNDWaAQ8KDWNsYXVkZS1vcHVzLTWoAcfghtYGwgFbCA8QABotAbchAi4bA083CHedBXwwBCatBSu7CmZGClf9Cg5AA083C5o3C1U3CyjDBCatIAIyBBJxzyU6BGaLrlBCBAoAix1KBKwhgE9QA1oE2QXhVmAEaAFwAdoBYAoWcHJlZml4X2JlZm9yZV9ibG9ja192MRIg46DkFhHxB9N9PwT7aozs9nz8sXk1H96mbYR11O5EzZ8iADIgwsATyGqckuIvlm89hhd2j4t6RMkCrcwJe/oeCYr7Th9IAxIMZXTpQHvrRc7vlYclGgzUyKOd58G3Zb+w61MiMO83N2shbq1/uujiV2KvdbNx4wtWtZr49RBd3HLhH9rsW7gDgNJa98e6tlUwJcmkmyqAA3ml38Yu4TJdYX2BPEjyA7Pu1wVji/Fo1Q1HY4ixLFKtlftz5T8L2WnuQP/r6htnPeaND8vrJG5Cq0YESQJdIU4cgaGCGE+2MLGKnxxCosxfAtMNF6pOXDjxG/S8coJhZeBNWEy/s9X6jogz4RDKZGD8Hhqt74KLr3YhaOw+R+A/9YMzL3WEvJHa056kAhOTwbckiyjdj2DwbOsB6mreQ7GLSptaRf1SgFw9KwH2n2T9E5spVMhRxNNVFc941j6PzihyhZQ1UYJdRgkzdu8kbaOYYbJ/f0Hgn5tT+yXVv9ehCu5L1fSPFhTIInO6TxKGYKQSLpwKuR+9xgpw24RPDMBdJWVWMrPYrrzt4LGfyTvpTcJDrS8guCEr9Pfo81KOTBWJ3hqBmelA1eiQlqLifk9/6zbT3YzZckVWoD2S8XFYb2AZTNx71qJyAEMT9AOwSm5N7abHtwTTJBzYEtoRbx7RXRPFykNnGdnmTHKrdfLCwbMERLq5kvzyzZvYX4Gh1xgB",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_01FfDtksmxSgpku5wsMTQvtG",
+          "input": {
+            "expression": "3 * 230975.18"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        },
+        {
+          "id": "toolu_01LAi53bnJwfeGxDXGkFRLgd",
+          "input": {
+            "expression": "24945319.44 / (3 * 230975.18)"
+          },
+          "name": "compute",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01FfDtksmxSgpku5wsMTQvtG",
+          "content": "3 * 230975.18 = 692925.54 (rounded to cents: 692925.54)",
+          "is_error": false
+        },
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_01LAi53bnJwfeGxDXGkFRLgd",
+          "content": "24945319.44 / (3 * 230975.18) = 36 (rounded to cents: 36.00)",
+          "is_error": false
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_016SFWsWAgSu34j5wW7RuBDa",
+          "input": {
+            "order_form": {
+              "customer_name": "Helio Manufacturing",
+              "vendor_name": "Nimbus Data Platforms, Inc.",
+              "effective_date": "2022-09-19",
+              "contract_signed_date_buying_company": "2022-09-23",
+              "contract_signed_date_selling_company": "2022-09-25",
+              "currency": "USD",
+              "grand_total": 24945319.44,
+              "grand_total_label": "TOTAL SUBSCRIPTION",
+              "evidence": {
+                "customer_name": "Prepared For: Helio Manufacturing",
+                "vendor_name": "Nimbus Data Platforms, Inc.",
+                "effective_date": "This order form becomes effective on 19-Sep-2022.",
+                "contract_signed_date_buying_company": "Helio Manufacturing...Date (Print): Sep 23, 2022",
+                "contract_signed_date_selling_company": "Nimbus Data Platforms, Inc....Date (Print): Sep 25, 2022",
+                "currency": "24,945,319.44 USD",
+                "grand_total": "TOTAL SUBSCRIPTION 24,945,319.44 USD",
+                "grand_total_label": "TOTAL SUBSCRIPTION"
+              }
+            },
+            "contract_items": [
+              {
+                "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+                "source_row": "Talent Intel. Platf. 3 230,975.18 USD 24,945,319.44 USD",
+                "currency": "USD",
+                "total_listed_value": 24945319.44,
+                "quantity": 3,
+                "unit_price": 230975.18,
+                "unit_price_period": "month",
+                "period_amounts": null,
+                "discount": null,
+                "service_start_date": "2022-10-17",
+                "service_end_date": "2025-10-15",
+                "invoicing_schedule_type": null,
+                "invoicing_frequency": null,
+                "payment_terms": "Net 30",
+                "special_notes": "Up to Customer Employee Size: 25,000",
+                "evidence": {
+                  "currency": "230,975.18 USD",
+                  "total_listed_value": "24,945,319.44 USD",
+                  "quantity": "Qty...3",
+                  "unit_price": "Unit Price...230,975.18 USD",
+                  "unit_price_period": "Start Date: 2022-10-17 End Date: Oct 15, 2025",
+                  "service_start_date": "Start Date: 2022-10-17",
+                  "service_end_date": "End Date: Oct 15, 2025",
+                  "payment_terms": "Payment terms inc1ude Net 30 unless stated otherwise.",
+                  "special_notes": "Up to Customer Emp1oyee Size: 25,000",
+                  "source_row": "Talent Intel. Platf. 3 230,975.18 USD 24,945,319.44 USD"
+                }
+              }
+            ],
+            "explicitly_excluded_skus": [
+              "TALENT_MANAGEMENT_LEADER_EXPERIENCE",
+              "WHATSAPP_SMS_CREDITS"
+            ],
+            "ambiguities": [],
+            "inferred_dates": []
+          },
+          "name": "submit_extraction",
+          "type": "tool_use",
+          "caller": {
+            "type": "direct"
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_016SFWsWAgSu34j5wW7RuBDa",
+          "content": "accepted",
+          "is_error": false
+        }
+      ]
+    }
+  ],
+  "output": {
+    "order_form": {
+      "customer_name": "Helio Manufacturing",
+      "vendor_name": "Nimbus Data Platforms, Inc.",
+      "effective_date": "2022-09-19",
+      "contract_signed_date_buying_company": "2022-09-23",
+      "contract_signed_date_selling_company": "2022-09-25",
+      "currency": "USD",
+      "grand_total": 24945319.44,
+      "grand_total_label": "TOTAL SUBSCRIPTION",
+      "evidence": {
+        "customer_name": "Prepared For: Helio Manufacturing",
+        "vendor_name": "Nimbus Data Platforms, Inc.",
+        "effective_date": "This order form becomes effective on 19-Sep-2022.",
+        "contract_signed_date_buying_company": "Helio Manufacturing...Date (Print): Sep 23, 2022",
+        "contract_signed_date_selling_company": "Nimbus Data Platforms, Inc....Date (Print): Sep 25, 2022",
+        "currency": "24,945,319.44 USD",
+        "grand_total": "TOTAL SUBSCRIPTION 24,945,319.44 USD",
+        "grand_total_label": "TOTAL SUBSCRIPTION"
+      },
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {}
+    },
+    "contract_items_count": 1,
+    "contract_items": [
+      {
+        "name": "Talent Intelligence Platform",
+        "sku_id": "a763df24-1ea6-4afc-a195-13ce52ea20cd",
+        "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+        "currency": "USD",
+        "total_listed_value": 24945319.44,
+        "quantity": 3.0,
+        "unit_price": 230975.18,
+        "unit_price_period": "month",
+        "period_amounts": null,
+        "discount": null,
+        "service_start_date": "2022-10-17",
+        "service_end_date": "2025-10-15",
+        "invoicing_schedule_type": null,
+        "invoicing_frequency": {
+          "value": "monthly",
+          "source": "inferred_from_pricing",
+          "ambiguous": false,
+          "alternatives": [],
+          "reason": null
+        },
+        "payment_terms": "Net 30",
+        "special_notes": "Up to Customer Employee Size: 25,000",
+        "ambiguous_fields": {},
+        "missing_fields": {},
+        "inferred_dates": {},
+        "source_row": "Talent Intel. Platf. 3 230,975.18 USD 24,945,319.44 USD",
+        "evidence": {
+          "currency": "230,975.18 USD",
+          "total_listed_value": "24,945,319.44 USD",
+          "quantity": "Qty...3",
+          "unit_price": "Unit Price...230,975.18 USD",
+          "unit_price_period": "Start Date: 2022-10-17 End Date: Oct 15, 2025",
+          "service_start_date": "Start Date: 2022-10-17",
+          "service_end_date": "End Date: Oct 15, 2025",
+          "payment_terms": "Payment terms inc1ude Net 30 unless stated otherwise.",
+          "special_notes": "Up to Customer Emp1oyee Size: 25,000",
+          "source_row": "Talent Intel. Platf. 3 230,975.18 USD 24,945,319.44 USD"
+        }
+      }
+    ],
+    "explicitly_excluded_skus": [
+      "TALENT_MANAGEMENT_LEADER_EXPERIENCE",
+      "WHATSAPP_SMS_CREDITS"
+    ],
+    "overrides": [],
+    "needs_review": false,
+    "unresolved_issues": [],
+    "review_notes": [
+      {
+        "severity": "note",
+        "check": "evidence_not_found",
+        "item_index": null,
+        "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+      }
+    ],
+    "meta": {
+      "source_pdf": "of-0020.pdf",
+      "model": "claude-opus-5",
+      "effort": "high",
+      "turns": 3,
+      "submissions": 1,
+      "stop_note": null,
+      "seconds": 21.2,
+      "usage": {
+        "input_tokens": 6,
+        "output_tokens": 2030,
+        "cache_creation_input_tokens": 11242,
+        "cache_read_input_tokens": 34309,
+        "per_turn": [
+          {
+            "input": 2,
+            "output": 203,
+            "cache_write": 5386,
+            "cache_read": 6029
+          },
+          {
+            "input": 2,
+            "output": 288,
+            "cache_write": 5450,
+            "cache_read": 11415
+          },
+          {
+            "input": 2,
+            "output": 1539,
+            "cache_write": 406,
+            "cache_read": 16865
+          }
+        ]
+      },
+      "cost_usd": 0.1382,
+      "catalog": {
+        "mode": "retrieval",
+        "size": 2000,
+        "searches": [
+          {
+            "query": "Talent Intel. Platf.",
+            "candidates": [
+              "TALENT_INTELLIGENCE_PLATFORM",
+              "TALENT_INTELLIGENCE_PLATFORM_ADD_ON",
+              "TALENT_INTELLIGENCE_PLATFORM_ANZ",
+              "TALENT_INTELLIGENCE_PLATFORM_DACH",
+              "TALENT_INTELLIGENCE_PLATFORM_IMPLEMENTATION",
+              "TALENT_INTELLIGENCE_PLATFORM_UK",
+              "TALENT_INTELLIGENCE_PLATFORM_STARTER",
+              "TALENT_INTELLIGENCE_PLATFORM_SANDBOX",
+              "TALENT_INTELLIGENCE_PLATFORM_STANDARD_EDITION_ADD_ON",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+              "TALENT_INTELLIGENCE_PLATFORM_ENTERPRISE_EDITION_ADD_ON",
+              "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION",
+              "TALENT_INTELLIGENCE_PLATFORM_PER_RECRUITER",
+              "TALENT_INTELLIGENCE_PLATFORM_PER_LOCATION",
+              "TALENT_INTELLIGENCE_PLATFORM_MULTI_YEAR",
+              "TALENT_INTELLIGENCE_PLATFORM_GOVERNMENT_CLOUD"
+            ]
+          },
+          {
+            "query": "Talent Management Leader Experience",
+            "candidates": [
+              "TALENT_MANAGEMENT_LEADER_EXPERIENCE",
+              "TALENT_MANAGEMENT_LEADER_EXPERIENCE_ADD_ON",
+              "TALENT_MANAGEMENT_LEADER_EXPERIENCE_CANADA",
+              "TALENT_MANAGEMENT_LEADER_EXPERIENCE_DACH",
+              "TALENT_MANAGEMENT_LEADER_EXPERIENCE_EMEA",
+              "TALENT_MANAGEMENT_LEADER_EXPERIENCE_PLUS",
+              "TALENT_MANAGEMENT_LEADER_EXPERIENCE_PER_LOCATION",
+              "TALENT_MANAGEMENT_LEADER_EXPERIENCE_PER_EMPLOYEE",
+              "TALENT_MANAGEMENT_LEADER_EXPERIENCE_MULTI_YEAR",
+              "TALENT_MANAGEMENT_MANAGER_EXPERIENCE",
+              "TALENT_MANAGEMENT_LEADER_EXPERIENCE_US_DATA_RESIDENCY",
+              "TALENT_MANAGEMENT_LEADER_EXPERIENCE_EU_DATA_RESIDENCY",
+              "TALENT_MANAGEMENT_EMPLOYEE_EXPERIENCE"
+            ]
+          },
+          {
+            "query": "WhatsApp / SMS Credits",
+            "candidates": [
+              "WHATSAPP_SMS_CREDITS",
+              "OVERAGES_WHATSAPP_SMS_CREDITS",
+              "WHATSAPP_SMS_CREDITS_ADD_ON",
+              "WHATSAPP_SMS_CREDITS_ANZ",
+              "WHATSAPP_SMS_CREDITS_BUNDLE",
+              "WHATSAPP_SMS_CREDITS_LATAM",
+              "WHATSAPP_SMS_CREDITS_INDIA",
+              "WHATSAPP_CREDITS",
+              "WHATSAPP_SMS_CREDITS_PER_LOCATION",
+              "WHATSAPP_SMS_CREDITS_ANNUAL_PREPAID",
+              "SMS_CREDITS"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

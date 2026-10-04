@@ -44,12 +44,17 @@ class Usage:
     output_tokens: int = 0
     cache_creation_input_tokens: int = 0
     cache_read_input_tokens: int = 0
+    per_turn: List[dict] = field(default_factory=list)
 
     def add(self, u) -> None:
-        self.input_tokens += u.input_tokens or 0
-        self.output_tokens += u.output_tokens or 0
-        self.cache_creation_input_tokens += getattr(u, "cache_creation_input_tokens", 0) or 0
-        self.cache_read_input_tokens += getattr(u, "cache_read_input_tokens", 0) or 0
+        turn = {"input": u.input_tokens or 0, "output": u.output_tokens or 0,
+                "cache_write": getattr(u, "cache_creation_input_tokens", 0) or 0,
+                "cache_read": getattr(u, "cache_read_input_tokens", 0) or 0}
+        self.per_turn.append(turn)
+        self.input_tokens += turn["input"]
+        self.output_tokens += turn["output"]
+        self.cache_creation_input_tokens += turn["cache_write"]
+        self.cache_read_input_tokens += turn["cache_read"]
 
     def cost(self, model: str) -> Optional[float]:
         if model not in PRICING:
@@ -73,6 +78,7 @@ class Session:
     pages_read: List[int] = field(default_factory=list)   # fetched with read_pages
     pages_seen: List[int] = field(default_factory=list)   # sent up front or fetched
     searches: int = 0
+    catalog_searches: List[dict] = field(default_factory=list)  # {"query", "candidates"} per search_catalog call
 
 
 def _compute(session: Session, expression: str):
@@ -112,6 +118,12 @@ def _submit(session: Session, payload: dict):
                      "{check, item_index, reason}):")
         lines += [f"- [{i.check}] item {i.item_index}: {i.message}" for i in warnings]
     return "\n".join(lines), True
+
+
+def _search_catalog(session: Session, line_text: str):
+    text, codes = session.ctx.catalog.search_text(line_text)
+    session.catalog_searches.append({"query": line_text, "candidates": codes})
+    return text, False
 
 
 def _search(session: Session, query: str):
@@ -158,25 +170,34 @@ def _block_to_dict(block) -> dict:
 
 
 LONG_DOC_MODES = ("outline", "select")
+CATALOG_MODES = ("auto", "inline", "retrieval")
 
 
 def parse_order_form(pdf_path: Path, catalog: Catalog, client: anthropic.Anthropic,
                      model: str = DEFAULT_MODEL, effort: str = "high",
-                     transcript_path: Optional[Path] = None, long_doc: str = "outline") -> dict:
+                     transcript_path: Optional[Path] = None, long_doc: str = "outline",
+                     catalog_mode: str = "auto") -> dict:
     """long_doc: how documents over MAX_FULL_PAGES are shown. "outline": a code-built outline only; the model
     fetches pages with read_pages. "select": the highest-scoring pages are sent up front (v0.9)."""
+    """catalog_mode: "auto" puts catalogs of up to INLINE_LIMIT SKUs in the prompt and searches larger ones;
+    "inline" / "retrieval" force one or the other."""
     if long_doc not in LONG_DOC_MODES:
         raise ValueError(f"long_doc must be one of {LONG_DOC_MODES}")
+    if catalog_mode not in CATALOG_MODES:
+        raise ValueError(f"catalog_mode must be one of {CATALOG_MODES}")
     pdf_path = Path(pdf_path)
     text = extract_text(pdf_path)
     session = Session(ValidationContext(catalog, text, numbers_in(text), set(), has_text_layer(text),
                                         dates_in(text)))
-    system = prompts.SYSTEM_TEMPLATE.format(catalog=catalog.to_prompt())
+    retrieval = catalog_mode == "retrieval" or (catalog_mode == "auto" and not catalog.inline)
+    system = prompts.system_prompt(catalog, retrieval)
     tools = [
         prompts.COMPUTE_TOOL,
         {"name": "submit_extraction", "description": prompts.SUBMIT_TOOL_DESCRIPTION,
          "input_schema": submission_json_schema()},
     ]
+    if retrieval:
+        tools.append(prompts.SEARCH_CATALOG_TOOL)
     selected = None
     if session.ctx.has_text_layer:
         index = PageIndex.build(pdf_path, text, [e.get("name") for e in catalog.entries])
@@ -224,7 +245,10 @@ def parse_order_form(pdf_path: Path, catalog: Catalog, client: anthropic.Anthrop
             client,
             model=model,
             max_tokens=32000,
-            system=system,
+            # Cache point after the system prompt (rules + catalog): identical for every form with the same
+            # catalog, so later forms read it from the cache instead of re-writing it. Tools render before
+            # the system prompt, so they are part of this cached prefix too.
+            system=[{"type": "text", "text": system, "cache_control": {"type": "ephemeral"}}],
             tools=tools,
             messages=messages,
             thinking={"type": "adaptive"},
@@ -253,6 +277,8 @@ def parse_order_form(pdf_path: Path, catalog: Catalog, client: anthropic.Anthrop
                 content, is_error = _compute(session, tu.input.get("expression", ""))
             elif tu.name == "submit_extraction":
                 content, is_error = _submit(session, tu.input)
+            elif tu.name == "search_catalog" and retrieval:
+                content, is_error = _search_catalog(session, tu.input.get("line_text", ""))
             elif tu.name == "search_document" and session.index:
                 content, is_error = _search(session, tu.input.get("query", ""))
             elif tu.name == "read_pages" and session.index:
@@ -280,6 +306,8 @@ def parse_order_form(pdf_path: Path, catalog: Catalog, client: anthropic.Anthrop
         "usage": usage.__dict__,
         "cost_usd": usage.cost(model),
     }
+    output["meta"]["catalog"] = {"mode": "retrieval" if retrieval else "inline", "size": len(catalog.entries),
+                                 "searches": session.catalog_searches}
     if session.index:
         output["meta"]["long_document"] = {
             "mode": long_doc,

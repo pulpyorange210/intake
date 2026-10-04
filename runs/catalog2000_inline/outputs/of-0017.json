@@ -1,0 +1,195 @@
+{
+  "order_form": {
+    "customer_name": "Meridian Financial Services",
+    "vendor_name": "Acme Software Inc.",
+    "effective_date": "2026-11-29",
+    "contract_signed_date_buying_company": "2026-12-06",
+    "contract_signed_date_selling_company": "2026-12-08",
+    "currency": "USD",
+    "grand_total": 1313894.33,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Meridian Financial Services",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "This order form becomes effective on 2026-11-29.",
+      "contract_signed_date_buying_company": "Meridian Financial Services...Title (Print): Finance Manager...Date (Print): 06 Dec 2026",
+      "contract_signed_date_selling_company": "Acme Software Inc....Title (Print): Procurement Lead...Date (Print): 08 Dec 2026",
+      "currency": "1,313,894.33 USD",
+      "grand_total": "TOTAL SUBSCRIPTION                                                                                      1,313,894.33 USD",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {},
+    "missing_fields": {},
+    "inferred_dates": {}
+  },
+  "contract_items_count": 3,
+  "contract_items": [
+    {
+      "name": "Talent Acquisition",
+      "sku_id": "d6f20b62-9bec-421b-8d33-489712746aee",
+      "sku_code": "TALENT_ACQUISITION",
+      "currency": "USD",
+      "total_listed_value": 131825.7,
+      "quantity": 3.0,
+      "unit_price": 43941.9,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-12-16",
+      "service_end_date": "2028-12-14",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 55",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Acquisition                                          3             43,941.90 USD                 131,825.70 USD",
+      "evidence": {
+        "source_row": "Talent Acquisition                                          3             43,941.90 USD                 131,825.70 USD",
+        "currency": "43,941.90 USD",
+        "total_listed_value": "131,825.70 USD",
+        "quantity": "3",
+        "unit_price": "43,941.90 USD",
+        "unit_price_period": "Qty            Unit Price                        Total",
+        "service_start_date": "Start Date: 2026-12-16",
+        "service_end_date": "End Date: 2028-12-14",
+        "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+      "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+      "currency": "USD",
+      "total_listed_value": 237087.03,
+      "quantity": 3.0,
+      "unit_price": 79029.01,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-12-16",
+      "service_end_date": "2028-12-14",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 55",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Intel. Platf. Prem. Ed.                              3             79,029.01 USD                 237,087.03 USD\n (Add-on)",
+      "evidence": {
+        "source_row": "Talent Intel. Platf. Prem. Ed....(Add-on)                              3             79,029.01 USD                 237,087.03 USD",
+        "currency": "79,029.01 USD",
+        "total_listed_value": "237,087.03 USD",
+        "quantity": "3",
+        "unit_price": "79,029.01 USD",
+        "unit_price_period": "Qty            Unit Price                        Total",
+        "service_start_date": "Start Date: 2026-12-16",
+        "service_end_date": "End Date: 2028-12-14",
+        "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+      }
+    },
+    {
+      "name": "Talent Intelligence Platform",
+      "sku_id": "a763df24-1ea6-4afc-a195-13ce52ea20cd",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+      "currency": "USD",
+      "total_listed_value": 944981.6,
+      "quantity": 5.0,
+      "unit_price": 188996.32,
+      "unit_price_period": "term",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2026-12-16",
+      "service_end_date": "2028-12-14",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "one-time",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 55",
+      "special_notes": null,
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Intel. Platf.                                         5             188,996.32 USD                944,981.60 USD",
+      "evidence": {
+        "source_row": "Talent Intel. Platf.                                         5             188,996.32 USD                944,981.60 USD",
+        "currency": "188,996.32 USD",
+        "total_listed_value": "944,981.60 USD",
+        "quantity": "5",
+        "unit_price": "188,996.32 USD",
+        "unit_price_period": "Qty            Unit Price                        Total",
+        "service_start_date": "Start Date: 2026-12-16",
+        "service_end_date": "End Date: 2028-12-14",
+        "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "ELEVATE_SUCCESS_PLAN",
+    "TALENT_ACQUISITION_CRM"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": null,
+      "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0017.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 2,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 41.1,
+    "usage": {
+      "input_tokens": 4,
+      "output_tokens": 2931,
+      "cache_creation_input_tokens": 6789,
+      "cache_read_input_tokens": 458296,
+      "per_turn": [
+        {
+          "input": 2,
+          "output": 1031,
+          "cache_write": 5530,
+          "cache_read": 226383
+        },
+        {
+          "input": 2,
+          "output": 1900,
+          "cache_write": 1259,
+          "cache_read": 231913
+        }
+      ]
+    },
+    "cost_usd": 0.3449,
+    "catalog": {
+      "mode": "inline",
+      "size": 2000,
+      "searches": []
+    }
+  }
+}

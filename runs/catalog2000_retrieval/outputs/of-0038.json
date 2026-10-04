@@ -1,0 +1,187 @@
+{
+  "order_form": {
+    "customer_name": "Riverstone Health",
+    "vendor_name": "Acme Software Inc.",
+    "effective_date": "2022-08-15",
+    "contract_signed_date_buying_company": "2022-08-16",
+    "contract_signed_date_selling_company": "2022-08-16",
+    "currency": "USD",
+    "grand_total": 40431715.2,
+    "grand_total_label": "TOTAL SUBSCRIPTION",
+    "evidence": {
+      "customer_name": "Prepared For: Riverstone Health",
+      "vendor_name": "Acme Software Inc.",
+      "effective_date": "This order form becomes effective on 2022-08-15.",
+      "contract_signed_date_buying_company": "Riverstone Health...Date (Print): Aug 16, 2022",
+      "contract_signed_date_selling_company": "Acme Software Inc....Date (Print): Aug 16, 2022",
+      "currency": "$224,620.64",
+      "grand_total": "TOTAL SUBSCRIPTION $40,431,715.20",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+    },
+    "ambiguous_fields": {},
+    "missing_fields": {},
+    "inferred_dates": {}
+  },
+  "contract_items_count": 1,
+  "contract_items": [
+    {
+      "name": "Talent Intelligence Platform Premium Edition (Add-on)",
+      "sku_id": "00f6fbfc-a12b-42b1-9c7e-efbd9d90a37f",
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+      "currency": "USD",
+      "total_listed_value": 40431715.2,
+      "quantity": 5.0,
+      "unit_price": 224620.64,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2022-09-01",
+      "service_end_date": "2025-08-30",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": {
+        "value": "monthly",
+        "source": "inferred_from_pricing",
+        "ambiguous": false,
+        "alternatives": [],
+        "reason": null
+      },
+      "payment_terms": "Net 45",
+      "special_notes": "Up to Customer Employee Size: 5,000",
+      "ambiguous_fields": {},
+      "missing_fields": {},
+      "inferred_dates": {},
+      "source_row": "Talent Intelligence Platform Premium Edition (Add-on) 5 $224,620.64 $40,431,715.20",
+      "evidence": {
+        "sku_code": "Talent Intelligence Platform Premium Edition (Add-on)",
+        "source_row": "Talent Intelligence Platform                                5             $224,620.64                      $40,431,715.20",
+        "currency": "$224,620.64",
+        "total_listed_value": "$40,431,715.20",
+        "quantity": "Qty ... 5",
+        "unit_price": "$224,620.64",
+        "unit_price_period": "Start Date: 2022-09-01                      End Date: 2025-08-30",
+        "service_start_date": "Start Date: 2022-09-01",
+        "service_end_date": "End Date: 2025-08-30",
+        "payment_terms": "Payment terms include Net 45 unless stated otherwise.",
+        "special_notes": "Up to Customer Employee Size: 5,000"
+      }
+    }
+  ],
+  "explicitly_excluded_skus": [
+    "COPILOT",
+    "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE"
+  ],
+  "overrides": [],
+  "needs_review": false,
+  "unresolved_issues": [],
+  "review_notes": [
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": null,
+      "message": "quotes for ['contract_signed_date_selling_company'] were not found verbatim in the text layer"
+    },
+    {
+      "severity": "note",
+      "check": "evidence_not_found",
+      "item_index": 0,
+      "message": "quotes for ['sku_code', 'source_row'] were not found verbatim in the text layer"
+    }
+  ],
+  "meta": {
+    "source_pdf": "of-0038.pdf",
+    "model": "claude-opus-5",
+    "effort": "high",
+    "turns": 3,
+    "submissions": 1,
+    "stop_note": null,
+    "seconds": 20.7,
+    "usage": {
+      "input_tokens": 6,
+      "output_tokens": 1958,
+      "cache_creation_input_tokens": 12187,
+      "cache_read_input_tokens": 34929,
+      "per_turn": [
+        {
+          "input": 2,
+          "output": 210,
+          "cache_write": 5347,
+          "cache_read": 6029
+        },
+        {
+          "input": 2,
+          "output": 569,
+          "cache_write": 6148,
+          "cache_read": 11376
+        },
+        {
+          "input": 2,
+          "output": 1179,
+          "cache_write": 692,
+          "cache_read": 17524
+        }
+      ]
+    },
+    "cost_usd": 0.1426,
+    "catalog": {
+      "mode": "retrieval",
+      "size": 2000,
+      "searches": [
+        {
+          "query": "Talent Intelligence Platform Premium Edition (Add-on)",
+          "candidates": [
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_CANADA",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_EMEA",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_LATAM",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_MONTHLY",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_RENEWAL_UPLIFT",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_LOCATION",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_PER_EMPLOYEE",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_GOVERNMENT_CLOUD",
+            "TALENT_INTELLIGENCE_PLATFORM_STANDARD_EDITION_ADD_ON",
+            "TALENT_INTELLIGENCE_PLATFORM_ENTERPRISE_EDITION_ADD_ON",
+            "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_EDITION_ADD_ON_US_DATA_RESIDENCY",
+            "TALENT_INTELLIGENCE_PLATFORM_ADD_ON",
+            "TALENT_INTELLIGENCE_PREMIUM_ANALYTICS_ADD_ON"
+          ]
+        },
+        {
+          "query": "Copilot",
+          "candidates": [
+            "COPILOT",
+            "COPILOT_ADD_ON",
+            "COPILOT_ANZ",
+            "COPILOT_DACH",
+            "COPILOT_FEDRAMP",
+            "COPILOT_PLUS",
+            "COPILOT_MONTHLY",
+            "COPILOT_INDIA"
+          ]
+        },
+        {
+          "query": "Talent Acquisition Candidate Experience",
+          "candidates": [
+            "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE",
+            "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE_ADD_ON",
+            "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE_FEDRAMP",
+            "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE_INDIA",
+            "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE_LATAM",
+            "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE_UK",
+            "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE_PLUS",
+            "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE_MONTHLY",
+            "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE_CHATBOT_ADD_ON",
+            "TALENT_ACQUISITION_ADD_ON",
+            "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE_PER_USER",
+            "TALENT_ACQUISITION_FEDRAMP",
+            "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE_PER_RECRUITER",
+            "TALENT_ACQUISITION_CANDIDATE_EXPERIENCE_GOVERNMENT_CLOUD",
+            "TALENT_ACQUISITION_CANDIDATE_ENGAGEMENT",
+            "TALENT_ACQUISITION_LATAM",
+            "TALENT_ACQUISITION_CRM_LATAM"
+          ]
+        }
+      ]
+    }
+  }
+}
