@@ -1,0 +1,165 @@
+{
+ "form": "of-0026",
+ "pdf_sha256": "25100decba39e7c5db2e4811a511c7af14562918b96b2c3039abc17ae65b656d",
+ "recorded": {
+  "model": "claude-opus-5",
+  "effort": "high",
+  "turns": 2,
+  "submissions": 1,
+  "seconds": 26.9,
+  "usage": {
+   "input_tokens": 4,
+   "output_tokens": 2846,
+   "cache_creation_input_tokens": 14156,
+   "cache_read_input_tokens": 13573
+  },
+  "cost_usd": 0.1664
+ },
+ "tool_calls": [
+  {
+   "name": "compute",
+   "input": {
+    "expression": "5*191623.04"
+   }
+  },
+  {
+   "name": "compute",
+   "input": {
+    "expression": "3*183856.45"
+   }
+  },
+  {
+   "name": "compute",
+   "input": {
+    "expression": "3*162044.75"
+   }
+  },
+  {
+   "name": "compute",
+   "input": {
+    "expression": "958115.20+551569.35+486134.25"
+   }
+  },
+  {
+   "name": "submit_extraction",
+   "input": {
+    "order_form": {
+     "customer_name": "Brightwave Industries",
+     "vendor_name": "Nimbus Data Platforms, Inc.",
+     "effective_date": "2025-04-18",
+     "contract_signed_date_buying_company": "2025-04-19",
+     "contract_signed_date_selling_company": "2025-04-24",
+     "currency": "USD",
+     "grand_total": 1995818.8,
+     "grand_total_label": "TOTAL SUBSCRIPTION",
+     "evidence": {
+      "customer_name": "Prepared For: Brightwave Industries",
+      "vendor_name": "Nimbus Data Platforms, Inc.",
+      "effective_date": "This order form becomes effective on 2025-04-18.",
+      "contract_signed_date_buying_company": "Brightwave Industries...Title (Print): Procurement Lead...Date (Print): 19-Apr-2025",
+      "contract_signed_date_selling_company": "Nimbus Data Platforms, Inc....Title (Print): VP Finance...Date (Print): 24-Apr-2025",
+      "currency": "USD 1,995,818.80",
+      "grand_total": "TOTAL SUBSCRIPTION                     USD 1,995,818.80",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+     }
+    },
+    "contract_items": [
+     {
+      "sku_code": "TALENT_ACQUISITION",
+      "source_row": "Talent Acquisition                                          5             USD 191,623.04                USD 958,115.20",
+      "currency": "USD",
+      "total_listed_value": 958115.2,
+      "quantity": 5,
+      "unit_price": 191623.04,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-05-01",
+      "service_end_date": "2026-04-30",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "evidence": {
+       "sku_code": "Talent Acquisition",
+       "source_row": "Talent Acquisition ... 5 ... USD 191,623.04 ... USD 958,115.20",
+       "currency": "USD 191,623.04",
+       "total_listed_value": "USD 958,115.20",
+       "quantity": "Qty ... 5",
+       "unit_price": "USD 191,623.04",
+       "unit_price_period": "Start Date: 05/01/2025                      End Date: Apr 30, 2026",
+       "service_start_date": "Start Date: 05/01/2025",
+       "service_end_date": "End Date: Apr 30, 2026",
+       "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+     },
+     {
+      "sku_code": "TALENT_MANAGEMENT_CORE",
+      "source_row": "Talent Mgmt Core                                            3             USD 183,856.45                USD 551,569.35",
+      "currency": "USD",
+      "total_listed_value": 551569.35,
+      "quantity": 3,
+      "unit_price": 183856.45,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-05-01",
+      "service_end_date": "2026-04-30",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "evidence": {
+       "sku_code": "Talent Mgmt Core",
+       "source_row": "Talent Mgmt Core ... 3 ... USD 183,856.45 ... USD 551,569.35",
+       "currency": "USD 183,856.45",
+       "total_listed_value": "USD 551,569.35",
+       "quantity": "Qty ... 3",
+       "unit_price": "USD 183,856.45",
+       "unit_price_period": "Start Date: 05/01/2025                      End Date: Apr 30, 2026",
+       "service_start_date": "Start Date: 05/01/2025",
+       "service_end_date": "End Date: Apr 30, 2026",
+       "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+     },
+     {
+      "sku_code": "WHATSAPP_SMS_CREDITS",
+      "source_row": "WhatsApp / SMS Credits                                       3             USD 162,044.75                USD 486,134.25",
+      "currency": "USD",
+      "total_listed_value": 486134.25,
+      "quantity": 3,
+      "unit_price": 162044.75,
+      "unit_price_period": "year",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-05-01",
+      "service_end_date": "2026-04-30",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "evidence": {
+       "sku_code": "WhatsApp / SMS Credits",
+       "source_row": "WhatsApp / SMS Credits ... 3 ... USD 162,044.75 ... USD 486,134.25",
+       "currency": "USD 162,044.75",
+       "total_listed_value": "USD 486,134.25",
+       "quantity": "Qty ... 3",
+       "unit_price": "USD 162,044.75",
+       "unit_price_period": "Start Date: 05/01/2025                      End Date: Apr 30, 2026",
+       "service_start_date": "Start Date: 05/01/2025",
+       "service_end_date": "End Date: Apr 30, 2026",
+       "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+     }
+    ],
+    "explicitly_excluded_skus": [
+     "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+     "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON"
+    ],
+    "ambiguities": [],
+    "inferred_dates": [],
+    "overrides": []
+   }
+  }
+ ]
+}

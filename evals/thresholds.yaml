@@ -1,0 +1,6 @@
+# Eval gate (evals/run.py exits 1 if any of these fails). Flat `key: number` lines.
+wrong_values: 0          # hard gate: amounts, dates and billing terms answered confidently but wrong
+wrong_sku_matches: 0     # hard gate
+line_item_recall: 1.0    # hard gate
+no_review_forms_min: 47  # current 49 of 51; allow 2 of slack
+cost_per_form_max_usd: 0.25

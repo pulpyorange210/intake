@@ -1,0 +1,200 @@
+{
+ "form": "of-0015",
+ "pdf_sha256": "2f14c094e17ff531235a0951c8d1c07cc12d0576add28a19a8f3214b73067d1e",
+ "recorded": {
+  "model": "claude-opus-5",
+  "effort": "high",
+  "turns": 3,
+  "submissions": 1,
+  "seconds": 31.0,
+  "usage": {
+   "input_tokens": 6,
+   "output_tokens": 3275,
+   "cache_creation_input_tokens": 14785,
+   "cache_read_input_tokens": 28054
+  },
+  "cost_usd": 0.1883
+ },
+ "tool_calls": [
+  {
+   "name": "compute",
+   "input": {
+    "expression": "4550807.40 + 1574734.92 + 1808828.76 + 1144114.80"
+   }
+  },
+  {
+   "name": "compute",
+   "input": {
+    "expression": "75846.79 * 5 * 12"
+   }
+  },
+  {
+   "name": "compute",
+   "input": {
+    "expression": "131227.91*12"
+   }
+  },
+  {
+   "name": "compute",
+   "input": {
+    "expression": "150735.73*12"
+   }
+  },
+  {
+   "name": "compute",
+   "input": {
+    "expression": "95342.90*12"
+   }
+  },
+  {
+   "name": "submit_extraction",
+   "input": {
+    "order_form": {
+     "customer_name": "Brightwave Industries",
+     "vendor_name": "Nimbus Data Platforms, Inc.",
+     "effective_date": "2024-09-29",
+     "contract_signed_date_buying_company": "2024-10-06",
+     "contract_signed_date_selling_company": "2024-10-09",
+     "currency": "USD",
+     "grand_total": 9078485.88,
+     "grand_total_label": "TOTAL SUBSCRIPTION",
+     "evidence": {
+      "customer_name": "Prepared For: Brightwave Industries",
+      "vendor_name": "Nimbus Data Platforms, Inc.",
+      "effective_date": "This order form becomes effective on Sep 29, 2024.",
+      "contract_signed_date_buying_company": "Brightwave Industries...Date (Print): Oct 06, 2024",
+      "contract_signed_date_selling_company": "Nimbus Data Platforms, Inc....Date (Print): Oct 09, 2024",
+      "currency": "9,078,485.88 USD",
+      "grand_total": "TOTAL SUBSCRIPTION                                                                                      9,078,485.88 USD",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+     }
+    },
+    "contract_items": [
+     {
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+      "source_row": "Talent Intel. Platf.                                        5             75,846.79 USD                 4,550,807.40 USD",
+      "currency": "USD",
+      "total_listed_value": 4550807.4,
+      "quantity": 5,
+      "unit_price": 75846.79,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-10-09",
+      "service_end_date": "2025-10-08",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "evidence": {
+       "sku_code": "Talent Intel. Platf.",
+       "source_row": "Talent Intel. Platf.                                        5             75,846.79 USD                 4,550,807.40 USD",
+       "currency": "4,550,807.40 USD",
+       "total_listed_value": "4,550,807.40 USD",
+       "quantity": "Qty...5",
+       "unit_price": "75,846.79 USD",
+       "unit_price_period": "Start Date: 10/09/2024                      End Date: 10/08/2025",
+       "service_start_date": "Start Date: 10/09/2024",
+       "service_end_date": "End Date: 10/08/2025",
+       "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+     },
+     {
+      "sku_code": "PREMIUM_SUPPORT",
+      "source_row": "Prem. Support                                               1             131,227.91 USD                1,574,734.92 USD",
+      "currency": "USD",
+      "total_listed_value": 1574734.92,
+      "quantity": 1,
+      "unit_price": 131227.91,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-10-09",
+      "service_end_date": "2025-10-08",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "evidence": {
+       "sku_code": "Prem. Support",
+       "source_row": "Prem. Support                                               1             131,227.91 USD                1,574,734.92 USD",
+       "currency": "1,574,734.92 USD",
+       "total_listed_value": "1,574,734.92 USD",
+       "quantity": "Qty...1",
+       "unit_price": "131,227.91 USD",
+       "unit_price_period": "Start Date: 10/09/2024                      End Date: 10/08/2025",
+       "service_start_date": "Start Date: 10/09/2024",
+       "service_end_date": "End Date: 10/08/2025",
+       "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+     },
+     {
+      "sku_code": "SANDBOX",
+      "source_row": "Sandbox                                                     1             150,735.73 USD                1,808,828.76 USD",
+      "currency": "USD",
+      "total_listed_value": 1808828.76,
+      "quantity": 1,
+      "unit_price": 150735.73,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-10-09",
+      "service_end_date": "2025-10-08",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "evidence": {
+       "sku_code": "Sandbox",
+       "source_row": "Sandbox                                                     1             150,735.73 USD                1,808,828.76 USD",
+       "currency": "1,808,828.76 USD",
+       "total_listed_value": "1,808,828.76 USD",
+       "quantity": "Qty...1",
+       "unit_price": "150,735.73 USD",
+       "unit_price_period": "Start Date: 10/09/2024                      End Date: 10/08/2025",
+       "service_start_date": "Start Date: 10/09/2024",
+       "service_end_date": "End Date: 10/08/2025",
+       "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+     },
+     {
+      "sku_code": "SIGNATURE_SUCCESS",
+      "source_row": "Signature Success                                           1             95,342.90 USD                 1,144,114.80 USD",
+      "currency": "USD",
+      "total_listed_value": 1144114.8,
+      "quantity": 1,
+      "unit_price": 95342.9,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2024-10-09",
+      "service_end_date": "2025-10-08",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "payment_terms": "Net 30",
+      "special_notes": null,
+      "evidence": {
+       "sku_code": "Signature Success",
+       "source_row": "Signature Success                                           1             95,342.90 USD                 1,144,114.80 USD",
+       "currency": "1,144,114.80 USD",
+       "total_listed_value": "1,144,114.80 USD",
+       "quantity": "Qty...1",
+       "unit_price": "95,342.90 USD",
+       "unit_price_period": "Start Date: 10/09/2024                      End Date: 10/08/2025",
+       "service_start_date": "Start Date: 10/09/2024",
+       "service_end_date": "End Date: 10/08/2025",
+       "payment_terms": "Payment terms include Net 30 unless stated otherwise."
+      }
+     }
+    ],
+    "explicitly_excluded_skus": [
+     "OVERAGES_TALENT_ACQUISITION_AI_INTERVIEWER_AGENT_ADDON",
+     "TALENT_ACQUISITION_CRM"
+    ],
+    "ambiguities": [],
+    "inferred_dates": [],
+    "overrides": []
+   }
+  }
+ ]
+}

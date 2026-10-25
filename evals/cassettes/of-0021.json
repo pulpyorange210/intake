@@ -1,0 +1,200 @@
+{
+ "form": "of-0021",
+ "pdf_sha256": "05dc0e08c9c1ff9a71168465945bcf4cefb8794950fc8fedc8db089cad7823e0",
+ "recorded": {
+  "model": "claude-opus-5",
+  "effort": "high",
+  "turns": 2,
+  "submissions": 1,
+  "seconds": 29.7,
+  "usage": {
+   "input_tokens": 4,
+   "output_tokens": 3294,
+   "cache_creation_input_tokens": 14820,
+   "cache_read_input_tokens": 13673
+  },
+  "cost_usd": 0.1818
+ },
+ "tool_calls": [
+  {
+   "name": "compute",
+   "input": {
+    "expression": "3*207686.58*12"
+   }
+  },
+  {
+   "name": "compute",
+   "input": {
+    "expression": "5*90172.61*12"
+   }
+  },
+  {
+   "name": "compute",
+   "input": {
+    "expression": "3*68904.81*12"
+   }
+  },
+  {
+   "name": "compute",
+   "input": {
+    "expression": "2*77982.55*12"
+   }
+  },
+  {
+   "name": "compute",
+   "input": {
+    "expression": "7476716.88+5410356.60+2480573.16+1871581.20"
+   }
+  },
+  {
+   "name": "submit_extraction",
+   "input": {
+    "order_form": {
+     "customer_name": "Riverstone Health",
+     "vendor_name": "Northstar Systems LLC",
+     "effective_date": "2025-06-05",
+     "contract_signed_date_buying_company": "2025-06-06",
+     "contract_signed_date_selling_company": "2025-06-09",
+     "currency": "USD",
+     "grand_total": 17239227.84,
+     "grand_total_label": "TOTAL SUBSCRIPTION",
+     "evidence": {
+      "customer_name": "Prepared For: Riverstone Health",
+      "vendor_name": "Northstar Systems LLC",
+      "effective_date": "This order form becomes effective on 05-Jun-2025.",
+      "contract_signed_date_buying_company": "Riverstone Health...Date (Print): 06 Jun 2025",
+      "contract_signed_date_selling_company": "Northstar Systems LLC...Date (Print): 09 Jun 2025",
+      "currency": "17,239,227.84 USD",
+      "grand_total": "TOTAL SUBSCRIPTION                17,239,227.84 USD",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+     }
+    },
+    "contract_items": [
+     {
+      "sku_code": "TALENT_ACQUISITION",
+      "source_row": "Talent Acquisition     3     207,686.58 USD     7,476,716.88 USD",
+      "currency": "USD",
+      "total_listed_value": 7476716.88,
+      "quantity": 3,
+      "unit_price": 207686.58,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-06-22",
+      "service_end_date": "2026-06-21",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "evidence": {
+       "sku_code": "Talent Acquisition",
+       "source_row": "Talent Acquisition     3     207,686.58 USD     7,476,716.88 USD",
+       "currency": "7,476,716.88 USD",
+       "total_listed_value": "7,476,716.88 USD",
+       "quantity": "3",
+       "unit_price": "207,686.58 USD",
+       "unit_price_period": "Start Date: 22 Jun 2025...End Date: 21-Jun-2026",
+       "service_start_date": "Start Date: 22 Jun 2025",
+       "service_end_date": "End Date: 21-Jun-2026",
+       "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+      }
+     },
+     {
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM_PREMIUM_ADDON",
+      "source_row": "Talent Intel. Platf. Prem. Ed. (Add-on)     5     90,172.61 USD     5,410,356.60 USD",
+      "currency": "USD",
+      "total_listed_value": 5410356.6,
+      "quantity": 5,
+      "unit_price": 90172.61,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-06-22",
+      "service_end_date": "2026-06-21",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "evidence": {
+       "sku_code": "Talent Intel. Platf. Prem. Ed. (Add-on)",
+       "source_row": "Talent Intel. Platf. Prem. Ed.     5     90,172.61 USD     5,410,356.60 USD",
+       "currency": "5,410,356.60 USD",
+       "total_listed_value": "5,410,356.60 USD",
+       "quantity": "5",
+       "unit_price": "90,172.61 USD",
+       "unit_price_period": "Start Date: 22 Jun 2025...End Date: 21-Jun-2026",
+       "service_start_date": "Start Date: 22 Jun 2025",
+       "service_end_date": "End Date: 21-Jun-2026",
+       "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+      }
+     },
+     {
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+      "source_row": "Talent Intel. Platf.     3     68,904.81 USD     2,480,573.16 USD",
+      "currency": "USD",
+      "total_listed_value": 2480573.16,
+      "quantity": 3,
+      "unit_price": 68904.81,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-06-22",
+      "service_end_date": "2026-06-21",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "evidence": {
+       "sku_code": "Talent Intel. Platf.",
+       "source_row": "Talent Intel. Platf.     3     68,904.81 USD     2,480,573.16 USD",
+       "currency": "2,480,573.16 USD",
+       "total_listed_value": "2,480,573.16 USD",
+       "quantity": "3",
+       "unit_price": "68,904.81 USD",
+       "unit_price_period": "Start Date: 22 Jun 2025...End Date: 21-Jun-2026",
+       "service_start_date": "Start Date: 22 Jun 2025",
+       "service_end_date": "End Date: 21-Jun-2026",
+       "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+      }
+     },
+     {
+      "sku_code": "TALENT_ACQUISITION_CORE",
+      "source_row": "Talent Acquisition Core     2     77,982.55 USD     1,871,581.20 USD",
+      "currency": "USD",
+      "total_listed_value": 1871581.2,
+      "quantity": 2,
+      "unit_price": 77982.55,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-06-22",
+      "service_end_date": "2026-06-21",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "payment_terms": "Net 45",
+      "special_notes": null,
+      "evidence": {
+       "sku_code": "Talent Acquisition Core",
+       "source_row": "Talent Acquisition Core     2     77,982.55 USD     1,871,581.20 USD",
+       "currency": "1,871,581.20 USD",
+       "total_listed_value": "1,871,581.20 USD",
+       "quantity": "2",
+       "unit_price": "77,982.55 USD",
+       "unit_price_period": "Start Date: 22 Jun 2025...End Date: 21-Jun-2026",
+       "service_start_date": "Start Date: 22 Jun 2025",
+       "service_end_date": "End Date: 21-Jun-2026",
+       "payment_terms": "Payment terms include Net 45 unless stated otherwise."
+      }
+     }
+    ],
+    "explicitly_excluded_skus": [
+     "TALENT_ACQUISITION_CRM",
+     "PREMIUM_SUPPORT"
+    ],
+    "ambiguities": [],
+    "inferred_dates": [],
+    "overrides": []
+   }
+  }
+ ]
+}

@@ -1,0 +1,96 @@
+{
+ "form": "of-0020",
+ "pdf_sha256": "8e0cfa876b000f8890a0c25bb1430e12f1aa1a5541e062da2be812958a2c1924",
+ "recorded": {
+  "model": "claude-opus-5",
+  "effort": "high",
+  "turns": 2,
+  "submissions": 1,
+  "seconds": 22.0,
+  "usage": {
+   "input_tokens": 4,
+   "output_tokens": 2097,
+   "cache_creation_input_tokens": 14419,
+   "cache_read_input_tokens": 13425
+  },
+  "cost_usd": 0.1493
+ },
+ "tool_calls": [
+  {
+   "name": "compute",
+   "input": {
+    "expression": "230975.18 * 108"
+   }
+  },
+  {
+   "name": "compute",
+   "input": {
+    "expression": "24945319.44 / 230975.18"
+   }
+  },
+  {
+   "name": "submit_extraction",
+   "input": {
+    "order_form": {
+     "customer_name": "Helio Manufacturing",
+     "vendor_name": "Nimbus Data Platforms, Inc.",
+     "effective_date": "2022-09-19",
+     "contract_signed_date_buying_company": "2022-09-23",
+     "contract_signed_date_selling_company": "2022-09-25",
+     "currency": "USD",
+     "grand_total": 24945319.44,
+     "grand_total_label": "TOTAL SUBSCRIPTION",
+     "evidence": {
+      "customer_name": "Prepared For: Helio Manufacturing",
+      "vendor_name": "Nimbus Data Platforms, Inc.",
+      "effective_date": "This order form becomes effective on 19-Sep-2022.",
+      "contract_signed_date_buying_company": "Helio Manufacturing...Date (Print): Sep 23, 2022",
+      "contract_signed_date_selling_company": "Nimbus Data Platforms, Inc....Date (Print): Sep 25, 2022",
+      "currency": "24,945,319.44 USD",
+      "grand_total": "TOTAL SUBSCRIPTION 24,945,319.44 USD",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+     }
+    },
+    "contract_items": [
+     {
+      "sku_code": "TALENT_INTELLIGENCE_PLATFORM",
+      "source_row": "Talent Intel. Platf. 3 230,975.18 USD 24,945,319.44 USD",
+      "currency": "USD",
+      "total_listed_value": 24945319.44,
+      "quantity": 3,
+      "unit_price": 230975.18,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2022-10-17",
+      "service_end_date": "2025-10-15",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "payment_terms": "Net 30",
+      "special_notes": "Up to Customer Emp1oyee Size: 25,000",
+      "evidence": {
+       "sku_code": "Talent Intel. Platf.",
+       "source_row": "Talent Intel. Platf. 3 230,975.18 USD 24,945,319.44 USD",
+       "currency": "230,975.18 USD",
+       "total_listed_value": "24,945,319.44 USD",
+       "quantity": "Qty ... 3",
+       "unit_price": "Unit Price ... 230,975.18 USD",
+       "unit_price_period": "Start Date: 2022-10-17 End Date: Oct 15, 2025",
+       "service_start_date": "Start Date: 2022-10-17",
+       "service_end_date": "End Date: Oct 15, 2025",
+       "payment_terms": "Payment terms inc1ude Net 30 unless stated otherwise.",
+       "special_notes": "Up to Customer Emp1oyee Size: 25,000"
+      }
+     }
+    ],
+    "explicitly_excluded_skus": [
+     "TALENT_MANAGEMENT_LEADER_EXPERIENCE",
+     "WHATSAPP_SMS_CREDITS"
+    ],
+    "ambiguities": [],
+    "inferred_dates": [],
+    "overrides": []
+   }
+  }
+ ]
+}

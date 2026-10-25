@@ -1,0 +1,128 @@
+{
+ "form": "of-0028",
+ "pdf_sha256": "c22048d7290364beae5cd8e379ab3939f909e03fab074fadab5026d723103d40",
+ "recorded": {
+  "model": "claude-opus-5",
+  "effort": "high",
+  "turns": 2,
+  "submissions": 1,
+  "seconds": 20.1,
+  "usage": {
+   "input_tokens": 4,
+   "output_tokens": 2186,
+   "cache_creation_input_tokens": 14288,
+   "cache_read_input_tokens": 13424
+  },
+  "cost_usd": 0.1507
+ },
+ "tool_calls": [
+  {
+   "name": "compute",
+   "input": {
+    "expression": "2328288.00 / 97012.00"
+   }
+  },
+  {
+   "name": "compute",
+   "input": {
+    "expression": "796823.52 / 33200.98"
+   }
+  },
+  {
+   "name": "compute",
+   "input": {
+    "expression": "2328288.00 + 796823.52"
+   }
+  },
+  {
+   "name": "submit_extraction",
+   "input": {
+    "order_form": {
+     "customer_name": "Oakbridge Energy",
+     "vendor_name": "Pioneer Intelligence Ltd.",
+     "effective_date": "2025-02-15",
+     "contract_signed_date_buying_company": "2025-02-22",
+     "contract_signed_date_selling_company": "2025-02-27",
+     "currency": "USD",
+     "grand_total": 3125111.52,
+     "grand_total_label": "TOTAL SUBSCRIPTION",
+     "evidence": {
+      "customer_name": "Prepared For: Oakbridge Energy",
+      "vendor_name": "Pioneer Intelligence Ltd.",
+      "effective_date": "This order form becomes effective on 15 Feb 2025.",
+      "contract_signed_date_buying_company": "Oakbridge Energy...Title (Print): Procurement Lead...Date (Print): Feb 22, 2025",
+      "contract_signed_date_selling_company": "Pioneer Intelligence Ltd....Title (Print): Finance Manager...Date (Print): Feb 27, 2025",
+      "currency": "$3,125,111.52",
+      "grand_total": "TOTAL SUBSCRIPTION                $3,125,111.52",
+      "grand_total_label": "TOTAL SUBSCRIPTION"
+     }
+    },
+    "contract_items": [
+     {
+      "sku_code": "TALENT_ACQUISITION_CORE",
+      "source_row": "Talent Acquisition Core 1 $97,012.00 $2,328,288.00",
+      "currency": "USD",
+      "total_listed_value": 2328288.0,
+      "quantity": 1,
+      "unit_price": 97012.0,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-03-07",
+      "service_end_date": "2027-03-06",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "payment_terms": "Net 55",
+      "special_notes": null,
+      "evidence": {
+       "source_row": "Talent Acquisition Core 1 $97,012.00 $2,328,288.00",
+       "currency": "$2,328,288.00",
+       "total_listed_value": "$2,328,288.00",
+       "quantity": "Qty ... 1",
+       "unit_price": "$97,012.00",
+       "unit_price_period": "Start Date: 2025-03-07 End Date: 2027-03-06",
+       "service_start_date": "Start Date: 2025-03-07",
+       "service_end_date": "End Date: 2027-03-06",
+       "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+      }
+     },
+     {
+      "sku_code": "TALENT_MANAGEMENT_ENTERPRISE",
+      "source_row": "Talent Mgmt Ent. 1 $33,200.98 $796,823.52",
+      "currency": "USD",
+      "total_listed_value": 796823.52,
+      "quantity": 1,
+      "unit_price": 33200.98,
+      "unit_price_period": "month",
+      "period_amounts": null,
+      "discount": null,
+      "service_start_date": "2025-03-07",
+      "service_end_date": "2027-03-06",
+      "invoicing_schedule_type": null,
+      "invoicing_frequency": null,
+      "payment_terms": "Net 55",
+      "special_notes": null,
+      "evidence": {
+       "source_row": "Talent Mgmt Ent. 1 $33,200.98 $796,823.52",
+       "currency": "$796,823.52",
+       "total_listed_value": "$796,823.52",
+       "quantity": "Qty ... 1",
+       "unit_price": "$33,200.98",
+       "unit_price_period": "Start Date: 2025-03-07 End Date: 2027-03-06",
+       "service_start_date": "Start Date: 2025-03-07",
+       "service_end_date": "End Date: 2027-03-06",
+       "payment_terms": "Payment terms include Net 55 unless stated otherwise."
+      }
+     }
+    ],
+    "explicitly_excluded_skus": [
+     "TALENT_INTELLIGENCE_PLATFORM",
+     "TALENT_MANAGEMENT_LEADER_EXPERIENCE"
+    ],
+    "ambiguities": [],
+    "inferred_dates": [],
+    "overrides": []
+   }
+  }
+ ]
+}
