@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@layer components {
+  .btn {
+    @apply rounded border border-slate-300 bg-white px-2.5 py-1 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-primary {
+    @apply rounded bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300;
+  }
+  .field-input {
+    @apply w-full rounded border border-slate-300 px-1.5 py-0.5 text-sm focus:border-indigo-500 focus:outline-none;
+  }
+}
+
+/* quote highlight in the pdf.js text layer */
+.textLayer mark.pdf-mark {
+  background: rgb(250 204 21 / 0.55);
+  color: transparent;
+  border-radius: 2px;
+  outline: 2px solid rgb(234 179 8);
+}

@@ -17,6 +17,7 @@ from typing import Dict, List, Optional
 
 from ofparser.pdf import normalize_for_match
 from ofparser.postprocess import sku_value
+from ofparser.validator import quote_found
 
 SEVERITY_RANK = {None: 0, "low": 1, "medium": 2, "high": 3}
 
@@ -103,16 +104,17 @@ def split_pages(text: str) -> List[str]:
 
 
 def page_of(quote: Optional[str], pages_norm: List[str]) -> Optional[int]:
-    """1-based page holding the quote's first fragment (quotes may join fragments with '...')."""
+    """1-based page holding the whole quote (all its '...' fragments, in order); failing that, the page of its
+    first fragment, so a quote split across a page break still lands near its start."""
     if not quote:
         return None
+    for i, page in enumerate(pages_norm, start=1):
+        if quote_found(quote, page):
+            return i
     for fragment in re.split(r"\.\.\.|…", quote):
         frag = normalize_for_match(fragment)
         if frag:
-            for i, page in enumerate(pages_norm, start=1):
-                if frag in page:
-                    return i
-            return None
+            return next((i for i, page in enumerate(pages_norm, start=1) if frag in page), None)
     return None
 
 
