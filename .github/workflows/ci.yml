@@ -1,0 +1,72 @@
+# Required checks for main. No API key needed: evals run in replay mode on recorded model responses.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests-and-evals:
+    name: tests and evals (replay)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install poppler (pdftotext)
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: pip install -r requirements.txt
+      - name: Unit, checker, sync and API tests
+        run: python -m unittest discover -s tests -t . -v
+      - name: Evals (replay mode)
+        run: python evals/run.py --out eval-out
+      - name: Eval summary
+        if: always()
+        run: cat eval-out/report.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-report
+          path: eval-out/
+
+  web-e2e:
+    name: web e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install poppler (pdftotext)
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: pip install -r requirements.txt
+      - run: npm ci
+        working-directory: web
+      - run: npx tsc
+        working-directory: web
+      - run: npx playwright install --with-deps chromium
+        working-directory: web
+      - run: npx playwright test
+        working-directory: web
+        env:
+          PYTHON: python
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: web/playwright-report/
