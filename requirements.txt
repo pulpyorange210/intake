@@ -1,3 +1,7 @@
 anthropic>=0.125
 pydantic>=2
 pypdf>=6
+fastapi>=0.115
+uvicorn>=0.30
+python-multipart>=0.0.9
+google-auth[requests]>=2.30  # only used when GOOGLE_SERVICE_ACCOUNT_JSON is set

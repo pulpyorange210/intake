@@ -5,3 +5,9 @@ runs/*.log
 runs/smoke/
 edge_cases/long_document/generated/
 edge_cases/big_catalog/generated/
+.env
+data/
+web/node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/
