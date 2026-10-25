@@ -501,3 +501,30 @@ as an extra plus a missed item. The flagged item's other fields are still scored
 flagged SKU is not "fully correct". Re-scored `runs/sku_tie_check`: 56 unflagged items 100% / 100%, flagged 2
 (of-0019 kept the expected SKU as the value, of-0031 has it as the alternative). Earlier runs (v0.8, the
 2,000-SKU retrieval run) score exactly as before. 3 new tests (73 total).
+
+## v0.13 - review app, exactly-once Sheets sync, Slack alerts, eval gate in CI (2026-10-25)
+
+The parser's output now feeds a review workflow, and every change is gated by evals.
+
+- **Eval gate** (`evals/`). Recorded tool calls (cassettes) for the 50 synthetic forms and the real form, replayed
+  through the current checker, post-processing and matcher: about a second, no API key, deterministic. Gates in
+  `evals/thresholds.yaml`: 0 wrong values (amounts, dates, billing terms answered confidently but wrong), 0 wrong
+  SKUs, 100% line-item recall, at least 47 forms needing no review (49 of 51 today), at most $0.25 per form.
+  Regressions are named per form and field against `evals/baseline.json`. Checked by breaking one frequency
+  rule: the gate failed with 22 wrong values, each named. Values flagged ambiguous or left blank with a reason
+  are not counted as wrong, as in `eval.py`.
+- **Review backend** (`server/`, FastAPI and SQLite). The parser's recorded doubts are graded for the queue:
+  high (blank important field, tied SKU, unresolved checker issue; blocks approval), medium (value given with a
+  recorded doubt), low (calculated date, no text layer). `evidence_not_found` is deliberately not a flag: it
+  fired on 43 of 50 forms because of layout quirks and says nothing about the value; as a flag it would have
+  sent a Slack alert for almost every form. With it left out, 38 of 50 forms are clean.
+- **Sheets sync**: idempotency keys over canonical JSON of the PDF hash, line index and final values; re-read
+  column A, append only missing keys, retry 429/5xx/timeouts with jittered backoff. Exactly once under retries,
+  lost responses and crashes, given one writer.
+- **Slack**: one Block Kit alert per flagged form, recorded in `events`, never blocking review.
+- **Review UI** (`web/`): queue, and a two-pane form page with click-to-highlight in the PDF, inline
+  accept/edit with validation and recomputed amounts, the approval gate and keyboard review. 7 Playwright tests.
+- **Local stand-ins**: with no credentials, uploads replay recordings, rows go to a CSV sheet and alerts to an
+  outbox file.
+- 107 Python tests (was 73).
+
