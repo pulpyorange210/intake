@@ -69,10 +69,10 @@ What's behind the flagged and empty cells:
 - **Invoicing schedule type:** the forms never say whether billing is upfront, recurring, hybrid etc.;
   the ground truth has values anyway. The parser leaves it empty rather than guess.
 - **Special notes:** the parser picks up the form's "Up to Customer Employee Size" line, the same kind
-  of note as the example ("Up to 25,000 employee size"). The ground truth has unrelated phrases
+  of note as the real example form's ("Up to 25,000 employee size"). The ground truth has unrelated phrases
   that aren't tied to anything in the form.
 
-The real example form is covered below, under "Testing the decisions on a real form".
+A real order form is covered below, under "Testing the decisions on a real form".
 
 ### Read the 100%s with care
 
@@ -136,7 +136,7 @@ PDF -> text layer + the PDF itself -> agent loop -> checker -> post-processing -
 ## Output
 
 Each form gives an `order_form` block (parties, effective date, signature dates, grand total) and a
-list of `contract_items` with the fields (`sku_code.value` is the `sku_reference`).
+list of `contract_items` with their billing fields (`sku_code.value` is the catalog SKU).
 Every value also carries the quote from the document it came from, under `evidence`. Trimmed
 example:
 
@@ -236,7 +236,7 @@ fixed:
 
 ## Testing the decisions on a real form
 
-The example is a real (redacted) order form with a different layout and a different 5-SKU
+`edge_cases/example_order_form_redacted/` is a real (redacted) order form with a different layout and a different 5-SKU
 catalog. I ran it with no code changes (`runs/example`, $0.32). The 3 expected items were found and
 nothing else, and every amount, date, schedule type and frequency matches the expected answer.
 
@@ -265,7 +265,7 @@ prices or signatures. It reads the pages it needs with `read_pages` and can sear
 some pages never weakens it.
 
 To test it, I generated long contracts with decoy pages (a price list of optional services using catalog
-product names, SLA tables, date-heavy logs, a table of contents) and buried a real form inside. One
+product names, SLA tables, date-heavy logs, a table of contents) and buried the real form inside. One
 version splits the form apart, with the term, pricing, invoicing and signatures hundreds of pages from each
 other, and adds an amendment that changes a price.
 

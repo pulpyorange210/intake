@@ -3,6 +3,5 @@ __pycache__/
 .DS_Store
 runs/*.log
 runs/smoke/
-
 edge_cases/long_document/generated/
 edge_cases/big_catalog/generated/

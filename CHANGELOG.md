@@ -77,7 +77,7 @@ accuracy at roughly one fewer model turn per form. To be confirmed with a live r
 - A quantity printed in the document (e.g. a Qty column) counts as a stated quantity. SKU parsing
   instructions about leaving quantity null apply only when the document states no quantity.
   Motivation: the 4 PREMIUM_SUPPORT quantity misses in v0.1 (instruction said null, form printed Qty 1/3).
-  Decision made by me as the more defensible reading of the instruction, not to match
+  My decision, as the more defensible reading of the instruction, not to match
   the ground truth.
 - New rule (non-negotiable): when the document supports more than one correct reading, the system says so
   instead of guessing. The field is left null and recorded in `ambiguous_fields` with the candidate
@@ -122,7 +122,7 @@ is null on all 6; no misplaced ambiguity entries. Removes the one accidental sch
 
 ## v0.5 - ambiguity shown next to the value, with hints (2026-09-24)
 
-The principle behind the ambiguity rule, as clarified by me: the output must never look
+The principle behind the ambiguity rule, stated plainly: the output must never look
 like it knows something it doesn't. Giving a value is fine if the uncertainty is impossible to miss.
 
 **What**
@@ -278,8 +278,8 @@ ground-truth submissions also pass the new date check, so every true date is pri
 
 ## Real example form (2026-09-25)
 
-The `example_order_form_redacted.pdf` arrived after v0.8 and was run with no code changes
-(`runs/example`, 5-SKU catalog, $0.32, 2 submissions).
+A real (redacted) order form, `example_order_form_redacted.pdf`, was added after v0.8 and run with no code changes
+(`runs/example`, its own 5-SKU catalog, $0.32, 2 submissions).
 - 3/3 expected items, 0 extra; SKU-004 (implementation via a partner) listed in explicitly_excluded_skus.
 - Totals, unit prices, quantity, currency, dates, schedule type (recurring) and frequency (yearly,
   source `stated`) match the expected answer. First real test of stated billing: every synthetic form
